@@ -425,9 +425,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onPressed: () => copyText(context, mcp.setupCommand),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 44),
+                    visualDensity: VisualDensity.standard,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
+                    overlayColor: Colors.white,
                     shape: const RoundedRectangleBorder(),
                   ),
                   icon: const Icon(Icons.copy_outlined, size: 18),
@@ -449,8 +451,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : controller.open(),
                   style: IconButton.styleFrom(
                     minimumSize: const Size(44, 44),
+                    visualDensity: VisualDensity.standard,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     foregroundColor: Colors.white,
+                    overlayColor: Colors.white,
                     shape: const RoundedRectangleBorder(),
                   ),
                   icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),

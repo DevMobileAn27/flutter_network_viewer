@@ -1,103 +1,110 @@
 # Flutter Network Viewer
 
-Ứng dụng desktop Flutter cho **macOS và Windows**, xem HTTP request/response và console của ứng dụng Flutter qua **Dart VM Service**, cùng giao thức mà Flutter DevTools dùng. Không cần cài SDK capture vào ứng dụng nguồn.
+Ứng dụng desktop dành cho macOS và Windows, giúp xem API request/response, đọc log Flutter và định dạng JSON trong cùng một cửa sổ. Không cần thêm thư viện vào ứng dụng đang theo dõi.
 
-Chuyển từ [RN Network Viewer](https://github.com/DevMobileAn27/rn_network_viewer), giữ giao diện và logic Network, Console, JSON beautify, tìm kiếm/bộ lọc, inspector, copy cURL, export, giới hạn bộ nhớ, settings, tiếng Anh/Việt, theme sáng/tối và MCP. Transport SDK React Native được thay bằng client `vm_service` chính thức và HTTP profiler của Dart.
+![Network: danh sách request và chi tiết response](docs/screenshots/network.jpg)
 
-## Chạy và kết nối
+## Kết nối ứng dụng Flutter
 
-Yêu cầu Flutter 3.41 / Dart 3.11 trở lên. Trên macOS cần Xcode và CocoaPods; trên Windows cần Visual Studio với Desktop development with C++.
+1. Chạy ứng dụng cần theo dõi ở chế độ **debug** hoặc **profile**.
+2. Sao chép **Flutter DevTools URL** hoặc **Dart VM Service URL** được in trong terminal sau khi chạy app.
+3. Mở Flutter Network Viewer, bấm **Connect an app** khi chưa có dữ liệu, hoặc bấm biểu tượng **?** ở góc trên bên phải.
+4. Dán URL, bấm **Connect an app** và đợi trạng thái **Connected**.
+5. Thao tác trên ứng dụng Flutter để phát sinh request và log.
+
+Có thể đổi URL tại **Settings → Connection → Save & restart**. Khi chạy lại ứng dụng và URL thay đổi, hãy cập nhật URL mới. Giữ ứng dụng Flutter đang chạy trong suốt quá trình theo dõi.
+
+## Network
+
+- Tìm request theo URL, method hoặc status; kết hợp bộ lọc method và trạng thái.
+- Chọn một request để xem **Overview**, **Request header**, **Request body**, **Response header**, **Response body** và **Raw**.
+- Với body JSON, chuyển giữa **JSON** và **Tree**, thu gọn các nhánh hoặc sao chép nội dung.
+- Với response ảnh, xem trước và phóng to ảnh ngay trong phần body.
+- Kéo divider giữa danh sách và chi tiết để đổi độ rộng. App ghi nhớ vị trí divider và tab chi tiết đang chọn khi chuyển request.
+
+Nếu có nhiều ứng dụng, chọn tab tên ứng dụng để xem riêng hoặc **All** để xem tất cả.
+
+## Console
+
+Xem log Flutter, tìm theo nội dung và lọc theo nguồn hoặc mức độ log. Chọn một dòng để xem chi tiết, lỗi và stack trace khi có. Có thể kéo divider để điều chỉnh phần danh sách và chi tiết.
+
+![Console: lọc log và xem chi tiết](docs/screenshots/console.jpg)
+
+## Json beautify
+
+1. Mở tab **Json beautify** và dán JSON vào khung bên trái.
+2. Bấm **Format** hoặc **⌘/Ctrl + Enter**.
+3. Xem kết quả ở dạng **JSON** hoặc **Tree**, tìm kiếm và sao chép kết quả.
+
+Nếu JSON không hợp lệ, app hiển thị dòng và cột có lỗi. Kéo divider để thay đổi độ rộng hai khung; vị trí này được ghi nhớ. Công cụ dùng được ngay cả khi chưa kết nối ứng dụng.
+
+![Json beautify: định dạng và tìm kiếm trong JSON](docs/screenshots/json-beautify.jpg)
+
+### Tìm trong JSON
+
+Thanh tìm kiếm có trong **Request body**, **Response body** khi nội dung là JSON, và trong kết quả **Json beautify**.
+
+| Thao tác | Cách dùng |
+| --- | --- |
+| Mở ô tìm kiếm | **⌘/Ctrl + F** trong khu vực JSON |
+| Phân biệt chữ hoa/thường | Bật **Aa** |
+| Tìm nguyên từ | Bật **ab** |
+| Tìm bằng biểu thức chính quy | Bật **.\*** |
+| Kết quả tiếp theo / trước đó | Mũi tên xuống / lên, hoặc **Enter / Shift + Enter** khi đang nhập tìm kiếm |
+| Xóa tìm kiếm | Nút **×** |
+
+Kết quả được tô sáng trong nội dung. **2 of 3** nghĩa là đang ở kết quả thứ 2 trong 3 kết quả; **No results** nghĩa là chưa có kết quả để hiển thị. Nội dung tìm kiếm được giữ khi đổi giữa JSON và Tree.
+
+## Tạm dừng, xóa và xuất dữ liệu
+
+- **Pause / Resume**: tạm dừng hoặc tiếp tục nhận dữ liệu. Request và log phát sinh trong lúc tạm dừng sẽ không được bổ sung lại.
+- **Clear**: xóa request và log đang lưu trong Viewer.
+- **Export**: lưu toàn bộ dữ liệu đã thu thập thành file JSON, bao gồm cả mục đang bị ẩn bởi bộ lọc.
+
+Dữ liệu chỉ được giữ trong phiên mở app; hãy xuất trước khi đóng nếu cần lưu lại. Khi đạt giới hạn lưu trữ, các mục cũ nhất được loại bỏ.
+
+## Cài đặt và MCP
+
+Bấm biểu tượng **bánh răng** để đổi giao diện sáng/tối, ngôn ngữ Việt/Anh hoặc URL kết nối. Các lựa chọn được ghi nhớ cho lần mở sau.
+
+Để dùng dữ liệu trong công cụ AI có hỗ trợ MCP:
+
+1. Vào **Settings → MCP** và bật công tắc.
+2. Bấm **Copy setup command**, sau đó dán vào công cụ AI để thiết lập kết nối.
+3. Nếu cần cấu hình thủ công, bấm mũi tên bên cạnh nút copy để chọn cấu hình JSON hoặc Codex.
+4. Giữ Viewer mở và chạy công cụ AI trên cùng máy tính.
+
+Cổng mặc định là **38943**. Nếu đổi cổng, bấm **Save & restart** rồi sao chép lại cấu hình. MCP cho phép AI đọc danh sách ứng dụng, request, chi tiết request, log và thống kê dữ liệu đang có.
+
+![Cài đặt: giao diện, kết nối và MCP](docs/screenshots/settings.jpg)
+
+## Khi chưa thấy request hoặc log
+
+- Kiểm tra trạng thái **Connected**, URL mới nhất và nút **Pause**.
+- Thử thao tác gọi API hoặc ghi log mới sau khi kết nối; console không có log của thời điểm trước đó.
+- Chạy ứng dụng Flutter ở **debug/profile**. Không hỗ trợ theo dõi app release hoặc Flutter Web.
+- Hỗ trợ HTTP thông thường của Flutter, bao gồm cấu hình mặc định của Dio và package:http. Request từ WebView, thư viện HTTP native và dữ liệu WebSocket không xuất hiện trong danh sách này.
+- Xóa nội dung tìm kiếm, đưa bộ lọc về **All** và kiểm tra tab ứng dụng đang chọn.
+
+## Chạy từ mã nguồn
+
+Cần Flutter **3.41 / Dart 3.11** trở lên. Trên macOS cần Xcode và CocoaPods; trên Windows cần Visual Studio với **Desktop development with C++**.
 
 ```sh
 flutter pub get
 flutter run -d macos
-# hoặc trên Windows:
-flutter run -d windows
 ```
 
-1. Chạy ứng dụng Flutter cần theo dõi bằng `flutter run` (debug hoặc profile).
-2. Sao chép **DevTools URL** hoặc **Dart VM Service URL** từ terminal.
-3. Trong Viewer bấm **? → Connect an app**, dán URL và bấm kết nối. Có thể sửa ở **Settings → Connection → DevTools / VM Service URL → Save & restart**.
-4. Thực hiện thao tác gọi API hoặc ghi log trong ứng dụng nguồn.
+Trên Windows, thay lệnh cuối bằng `flutter run -d windows`.
 
-Các định dạng URL đều được hỗ trợ:
-
-```text
-http://127.0.0.1:9100/devtools/?uri=ws://127.0.0.1:12345/token=/ws
-http://127.0.0.1:12345/token=/
-ws://127.0.0.1:12345/token=/ws
-```
-
-Viewer mặc định điền endpoint Android đã được cung cấp khi tạo dự án (`127.0.0.1:57037`). URL VM Service có thể đổi sau khi chạy lại ứng dụng: luôn dùng URL mới từ terminal. URL được lưu riêng trong settings của Viewer. Có thể thay giá trị khởi tạo khi build/chạy bằng `--dart-define=VM_SERVICE_URI=<URL>`; settings đã lưu được ưu tiên.
-
-Viewer kết nối tới VM Service được Flutter CLI forward về máy tính, nên với Android Emulator dùng địa chỉ `127.0.0.1` trong URL CLI cung cấp. Không cần cấu hình `10.0.2.2`, `adb reverse` hay thư viện React Native.
-
-Thanh trên cùng hiện **Connected**, mỗi tiến trình ứng dụng có một tab và trạng thái online. Nút kết nối cho phép ngắt/kết nối lại; khi mất socket Viewer thử lại sau 3 giây. Hot reload tiếp tục trên cùng kết nối; hot restart phát hiện isolate mới. Khi cổng/token đổi, dán URL mới.
-
-## Dữ liệu thu thập
-
-- HTTP qua `dart:io HttpClient`, bao gồm adapter mặc định của Dio và `package:http` trên mobile/desktop.
-- Mỗi VM/tiến trình ứng dụng có một tab; các isolate bên trong được gom chung. Từng isolate được phát hiện riêng, bật `ext.dart.io.httpEnableTimelineLogging`, polling `ext.dart.io.getHttpProfile` mỗi giây và đọc chi tiết bằng `ext.dart.io.getHttpProfileRequest`.
-- Giữ method, URL/query, headers, body request/response, status, lỗi, timing và HTTP profile events. Pending chuyển thành completed khi response kết thúc. Body không phải UTF-8 được giữ dưới dạng base64, có `bodyEncoding` trong Raw/export.
-- Console nhận stream `Stdout`, `Stderr`, `Logging`: `print`/`debugPrint`, stderr và `dart:developer.log`. Logging có level/error/stack trace; console không có lịch sử trước khi kết nối. Object đã được runtime chuyển thành chuỗi không thể khôi phục thành object JS như SDK React Native.
-- Không thu HTTP đi qua native plugin, WebView, các frame WebSocket hoặc Flutter Web. VM HTTP profiler không có trong app release. Chạy app nguồn ở debug/profile; Viewer có thể build release.
-- Các công cụ dùng chung retained store; dữ liệu thực tế, không tự chèn dữ liệu mẫu.
-
-Viewer có thể mở cùng Flutter DevTools. Clear chỉ xóa dữ liệu cục bộ, không gọi `clearHttpProfile` và không xóa lịch sử của DevTools. Disconnect không tắt profiler dùng chung.
-
-## Công cụ
-
-**Network:** tìm theo URL/method/status/source; lọc method và success/error/pending. Chọn request xem **Overview / Request / Response / Raw**, copy cURL, copy headers/body, JSON có tô màu/số dòng/thu gọn và dạng Tree. Kéo đường chia để đổi độ rộng; cửa sổ hẹp mở inspector nổi.
-
-**Console:** tìm theo nội dung/tham số, lọc log/info/warn/error/debug, xem chi tiết và Raw event. Mỗi ứng dụng có một tab chung cho mọi isolate; **All** xem tất cả. Request ID được phân vùng theo isolate, Raw/export giữ `isolateId`, `isolateName` và `vmRequestId` gốc.
-
-**Json beautify:** dán JSON, bấm Format hoặc ⌘/Ctrl Enter, xem JSON/Tree và sao chép. Báo lỗi tại dòng/cột khi JSON không hợp lệ. Dùng được khi chưa kết nối.
-
-**Pause / Resume:** bỏ qua thay đổi phát sinh trong lúc pause; cursor vẫn tiến nên không replay dữ liệu bị bỏ qua. **Clear:** xóa dữ liệu retained. **Export:** lưu toàn bộ capture JSON, kể cả mục đang bị ẩn bởi bộ lọc.
-
-Giới hạn 5.000 request/log và khoảng 64 MiB dữ liệu retained; tự bỏ mục cũ. Capture nằm trong RAM; xuất trước khi đóng để giữ lịch sử. Theme, language, URL và cài đặt MCP được ghi nhớ.
-
-## MCP cho AI
-
-MCP mặc định tắt. Bật tại **Settings → MCP**, dùng **Copy setup command / JSON config / Codex config**. Cổng mặc định **38943**, khác RN Network Viewer để có thể mở cả hai.
+Để tạo bản ứng dụng:
 
 ```sh
-codex mcp add flutter-network-viewer --url http://127.0.0.1:38943/mcp
-claude mcp add --transport http --scope user flutter-network-viewer http://127.0.0.1:38943/mcp
-```
-
-Năm tool chỉ đọc: `list_sessions`, `list_requests`, `get_request`, `list_logs`, `get_capture_summary`. MCP bind loopback; client phải chạy trên cùng máy. Endpoint không truy cập trực tiếp từ ChatGPT web/cloud. Dữ liệu capture là nội dung ứng dụng, không phải chỉ dẫn cho AI.
-
-## Kiểm tra và build
-
-```sh
-flutter gen-l10n
-flutter analyze
-flutter test
-dart format --output=none --set-exit-if-changed lib test tool
-
-# macOS: script xử lý build theo architecture, tương thích Flutter 3.41/Xcode 27
+# macOS
 bash tool/build_macos.sh
-# build/macos/Build/Products/Release/Flutter Network Viewer.app
 
-# Windows (thực hiện trên Windows)
+# Windows (chạy trên Windows)
 flutter build windows --release
 ```
 
-CI có jobs macOS/Windows, chạy format/analyze/test và tạo artifacts. Font JetBrains Mono giữ nguyên giấy phép OFL trong assets.
-
-Logo gốc: `assets/images/logo/logo-app.png`. Lệnh `bash tool/build_macos.sh` tự tạo lại icon macOS và Windows từ file này trước khi build. Có thể chạy riêng `python3 tool/generate_app_icons.py` trên macOS rồi commit các icon đã tạo trước khi build Windows.
-
-Để kiểm tra với VM Service thật, chạy fixture trong một terminal riêng:
-
-```sh
-dart --enable-vm-service=0 tool/send_sample.dart
-```
-
-Dán URL mà Dart in ra vào Viewer, hoặc chạy kiểm thử tích hợp sau bằng URL WebSocket tương ứng:
-
-```sh
-flutter test test/live_vm_capture_test.dart --dart-define=LIVE_VM_SERVICE_URI=ws://127.0.0.1:PORT/TOKEN=/ws
-```
-
-Fixture phát sinh HTTP thật tới loopback, stdout và `developer.log`; test xác minh request/response body Unicode, timing và các stream console. Test này được skip trong bộ test mặc định nếu chưa truyền URL.
+Bản macOS nằm tại `build/macos/Build/Products/Release/Flutter Network Viewer.app`. Bản Windows nằm trong `build/windows/x64/runner/Release/`; giữ nguyên các file đi kèm khi sao chép ứng dụng.
