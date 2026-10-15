@@ -1,0 +1,16 @@
+{
+  "sdk": {"name": "rnv_network_sdk_ios", "version": "0.1.0", "schemaVersion": 1},
+  "session": {
+    "id": "ios-session-1", "platform": "ios", "bundleIdentifier": "dev.example.shop",
+    "appName": "Example Shop", "deviceName": "iPhone Simulator", "systemName": "iOS",
+    "systemVersion": "18.0", "isSimulator": true
+  },
+  "events": [
+    {"schemaVersion": 1, "platform": "ios", "timestamp": "2026-10-14T08:00:00.000Z", "requestId": "fetch-1", "phase": "request", "source": "js.fetch", "startedAt": 1791964800000, "request": {"method": "POST", "url": "https://api.example.com/orders?draft=true", "headers": {"content-type": "application/json", "authorization": "[REDACTED]"}, "body": "{\"product\":\"Coffee\",\"quantity\":2}", "bodyPreview": "{\"product\":\"Coffee\"}", "requestKind": "fetch"}},
+    {"schemaVersion": 1, "platform": "ios", "timestamp": "2026-10-14T08:00:00.124Z", "requestId": "fetch-1", "phase": "response", "source": "js.fetch", "durationMs": 124, "response": {"statusCode": 201, "statusText": "Created", "headers": {"content-type": "application/json"}, "body": "{\"id\":42,\"status\":\"created\"}", "bodyPreview": "{\"id\":42}"}},
+    {"schemaVersion": 1, "platform": "ios", "timestamp": "2026-10-14T08:00:00.125Z", "source": "js.console", "level": "info", "message": "Order created {\"id\":42}", "args": [{"type":"string","value":"Order created"},{"type":"object","value":{"id":42,"items":["Coffee"],"customer":{"name":"An"}}}]},
+    {"schemaVersion": 1, "platform": "ios", "timestamp": "2026-10-14T08:00:01.000Z", "requestId": "xhr-2", "phase": "request", "source": "js.xhr", "request": {"method": "GET", "url": "https://api.example.com/profile", "headers": {}, "body": null, "requestKind": "xhr"}},
+    {"schemaVersion": 1, "platform": "ios", "timestamp": "2026-10-14T08:00:01.082Z", "requestId": "xhr-2", "phase": "error", "source": "js.xhr", "durationMs": 82, "error": {"message": "Network request failed"}},
+    {"schemaVersion": 1, "platform": "ios", "timestamp": "2026-10-14T08:00:02.000Z", "requestId": "fetch-3", "phase": "request", "source": "js.fetch", "request": {"method": "GET", "url": "https://api.example.com/feed", "headers": {}, "body": null, "requestKind": "fetch"}}
+  ]
+}

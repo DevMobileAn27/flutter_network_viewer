@@ -1,0 +1,266 @@
+{
+  "@@locale": "en",
+  "settings": "Settings",
+  "appearance": "Interface",
+  "language": "Language",
+  "connection": "Connection",
+  "webSocketPort": "WebSocket port",
+  "portValidation": "Enter a port from 1 to 65535",
+  "saveRestart": "Save & restart",
+  "saving": "Saving…",
+  "portSaved": "Connection saved.",
+  "settingsSaveFailed": "Could not save settings. Please try again.",
+  "network": "Network",
+  "console": "Console",
+  "allMethods": "All methods",
+  "allStatuses": "All statuses",
+  "allLevels": "All levels",
+  "success": "Success",
+  "errors": "Errors",
+  "pending": "Pending",
+  "error": "Error",
+  "aborted": "Aborted",
+  "guideTitle": "Connect your Flutter app",
+  "availableEndpoints": "Endpoints",
+  "physicalDeviceGuide": "Physical device: VIEWER_HOST = computer LAN IP (same network).",
+  "copyEndpoint": "Copy local endpoint",
+  "gotIt": "Close",
+  "pausedBanner": "Capture paused · Incoming events discarded",
+  "starting": "Starting…",
+  "serverStopped": "●  Disconnected",
+  "stopServer": "Disconnect VM Service",
+  "startServer": "Connect VM Service",
+  "connectionGuide": "Connection guide",
+  "workspace": "WORKSPACE",
+  "allSessions": "All sessions",
+  "allApps": "All",
+  "applications": "APPLICATIONS",
+  "noApps": "No apps connected",
+  "connected": "Connected",
+  "disconnected": "Disconnected",
+  "resumeCapture": "Resume capture",
+  "pauseCapture": "Pause capture (discard incoming events)",
+  "clearCapture": "Clear all captured data",
+  "exportCapture": "Export all captured data as JSON",
+  "session": "Session",
+  "searchConsole": "Search message, logger, error, stack trace…",
+  "searchNetwork": "Filter URL, method, status…",
+  "clearSearch": "Clear search",
+  "methodColumn": "METHOD",
+  "urlColumn": "URL / APPLICATION",
+  "statusColumn": "STATUS",
+  "timeColumn": "TIME",
+  "consoleEmptyTitle": "No logs",
+  "networkEmptyTitle": "No requests",
+  "noResults": "No matching results",
+  "connectApp": "Connect an app",
+  "resetFilters": "Reset filters",
+  "selectionTitle": "Select an entry",
+  "closeInspector": "Close inspector",
+  "unsupportedEvent": "Unsupported event received",
+  "copied": "Copied to clipboard",
+  "notCaptured": "Not captured",
+  "requestInspector": "Request inspector",
+  "copyCurl": "Copy as cURL",
+  "curlCopied": "cURL copied",
+  "overview": "Overview",
+  "request": "Request",
+  "response": "Response",
+  "raw": "Raw",
+  "requestId": "Request ID",
+  "source": "Source",
+  "started": "Started",
+  "status": "Status",
+  "waitingResponse": "Waiting for response…",
+  "responseSize": "Response size",
+  "queryParameters": "Query parameters",
+  "headers": "Headers",
+  "body": "Body",
+  "consoleInspector": "Console inspector",
+  "level": "Level",
+  "timestamp": "Timestamp",
+  "message": "Message",
+  "arguments": "Arguments",
+  "rawEvent": "Raw event",
+  "missingRequest": "(request not received)",
+  "listening": "●  Listening :{port}",
+  "@listening": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionCount": "{count} sessions",
+  "@sessionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "connectionCount": "{count, plural, =1{1 connection} other{{count} connections}}",
+  "@connectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "captureStats": "{visible} visible · {evicted} evicted · {skipped} skipped",
+  "@captureStats": {
+    "placeholders": {
+      "visible": {
+        "type": "int"
+      },
+      "evicted": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "invalidCount": "{count} invalid",
+  "@invalidCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copySection": "Copy {title}",
+  "@copySection": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "itemCount": "{count} items",
+  "@itemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "capturedBytes": "{count} bytes (captured UTF-8 body)",
+  "@capturedBytes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportedTo": "Capture exported to {path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "serverStartFailed": "Connection failed: {error}",
+  "@serverStartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "usbGuide": "iOS simulator: 127.0.0.1\nAndroid emulator: 10.0.2.2\nAndroid USB: adb reverse tcp:{port} tcp:{port}, then set VIEWER_HOST to 127.0.0.1.",
+  "@usbGuide": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "theme": "Theme",
+  "lightTheme": "Light",
+  "darkTheme": "Dark",
+  "resizeInspector": "Resize inspector",
+  "formattedJson": "Formatted JSON",
+  "treeView": "Tree view",
+  "treeTab": "Tree",
+  "jsonInput": "Input",
+  "resizeJsonPanels": "Resize JSON panels",
+  "mcpListening": "Listening",
+  "mcpOtherFormats": "Other formats",
+  "enableMcp": "Enable MCP",
+  "mcpDisabled": "Disabled",
+  "mcpPort": "MCP port",
+  "mcpEndpoint": "Endpoint",
+  "copyMcpJson": "Copy JSON config",
+  "copyMcpSetup": "Copy setup command",
+  "copyMcpCodex": "Copy Codex config",
+  "formatJson": "Format",
+  "invalidJson": "Invalid JSON",
+  "jsonErrorAt": "Line {line}, column {column}",
+  "@jsonErrorAt": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "copyFormattedJson": "Copy formatted JSON",
+  "collapseJsonRange": "Click to collapse the range",
+  "expandJsonRange": "Click to expand the range",
+  "vmServiceUrl": "DevTools / VM Service URL",
+  "urlValidation": "Enter a DevTools link with uri=, an HTTP VM Service root, or a ws:// URL.",
+  "flutterConnectionGuide": "Run your Flutter app in debug or profile mode. Copy the DevTools URL or Dart VM Service URL printed by flutter run and paste it below. Keep the Flutter process running; update the URL when its port or authentication token changes.",
+  "flutterCaptureScope": "Captures dart:io HttpClient traffic (including standard Dio/package:http adapters), stdout/stderr and dart:developer logging. Native HTTP plugins, WebView traffic, WebSocket frames and release builds are outside the VM HTTP profiler. Console capture starts after connection.",
+  "imagePreview": "Image preview",
+  "openImage": "Open image",
+  "imageUnavailable": "Unable to preview this image. The captured body may be incomplete or the image format unsupported. Use Raw to inspect the body.",
+  "zoomIn": "Zoom in",
+  "zoomOut": "Zoom out",
+  "fitImage": "Fit image",
+  "requestHeader": "Request header",
+  "requestBody": "Request body",
+  "responseHeader": "Response header",
+  "responseBody": "Response body",
+  "loggerName": "Logger",
+  "stackTrace": "Stack trace",
+  "logLines": "{count} lines",
+  "@logLines": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allLogSources": "All sources",
+  "findInJson": "Find in JSON",
+  "findMatchCase": "Match case",
+  "findWholeWord": "Match whole word",
+  "findRegex": "Use regular expression",
+  "findPrevious": "Previous match (Shift+Enter)",
+  "findNext": "Next match (Enter)",
+  "findNoResults": "No results",
+  "findInvalidRegex": "Invalid regex",
+  "findMatchCount": "{current} of {total}",
+  "@findMatchCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
+}

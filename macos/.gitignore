@@ -1,0 +1,12 @@
+# Flutter-related
+**/Flutter/ephemeral/
+**/Pods/
+/Flutter/GeneratedPluginRegistrant.swift
+
+# Xcode-related
+**/dgph
+**/xcuserdata/
+**/DerivedData/
+*.xcuserstate
+**/xcshareddata/IDEWorkspaceChecks.plist
+*.dSYM/

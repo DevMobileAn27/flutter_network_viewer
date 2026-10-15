@@ -1,0 +1,43 @@
+name: flutter_network_viewer
+description: Flutter desktop network and console inspector powered by Dart VM Service.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  vm_service: ^15.3.0
+  file_selector: ^1.1.0
+  shared_preferences: ^2.5.6
+  flutter_localizations:
+    sdk: flutter
+
+  intl: ^0.20.2
+  mcp_dart: ^2.4.3
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/fonts/jetbrains_mono/OFL.txt
+  fonts:
+    - family: JetBrains Mono
+      fonts:
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/jetbrains_mono/JetBrainsMono-Bold.ttf
+          weight: 700

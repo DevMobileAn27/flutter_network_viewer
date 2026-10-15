@@ -1,0 +1,266 @@
+{
+  "@@locale": "vi",
+  "settings": "Cài đặt",
+  "appearance": "Giao diện",
+  "language": "Ngôn ngữ",
+  "connection": "Kết nối",
+  "webSocketPort": "Cổng WebSocket",
+  "portValidation": "Nhập cổng từ 1 đến 65535",
+  "saveRestart": "Lưu và khởi động lại",
+  "saving": "Đang lưu…",
+  "portSaved": "Đã lưu kết nối.",
+  "settingsSaveFailed": "Không thể lưu cài đặt. Vui lòng thử lại.",
+  "network": "Mạng",
+  "console": "Nhật ký",
+  "allMethods": "Mọi method",
+  "allStatuses": "Mọi trạng thái",
+  "allLevels": "Mọi mức log",
+  "success": "Thành công",
+  "errors": "Có lỗi",
+  "pending": "Đang chờ",
+  "error": "Lỗi",
+  "aborted": "Đã hủy",
+  "guideTitle": "Kết nối ứng dụng Flutter",
+  "availableEndpoints": "Endpoint",
+  "physicalDeviceGuide": "Thiết bị thật: VIEWER_HOST = IP LAN máy tính (cùng mạng).",
+  "copyEndpoint": "Sao chép địa chỉ nội bộ",
+  "gotIt": "Đóng",
+  "pausedBanner": "Đã tạm dừng · Bỏ qua dữ liệu mới",
+  "starting": "Đang khởi động…",
+  "serverStopped": "●  Đã ngắt kết nối",
+  "stopServer": "Ngắt kết nối VM Service",
+  "startServer": "Kết nối VM Service",
+  "connectionGuide": "Hướng dẫn kết nối",
+  "workspace": "KHÔNG GIAN LÀM VIỆC",
+  "allSessions": "Tất cả phiên",
+  "allApps": "Tất cả",
+  "applications": "ỨNG DỤNG",
+  "noApps": "Chưa có ứng dụng kết nối",
+  "connected": "Đã kết nối",
+  "disconnected": "Đã ngắt kết nối",
+  "resumeCapture": "Tiếp tục thu thập",
+  "pauseCapture": "Tạm dừng (bỏ qua dữ liệu mới)",
+  "clearCapture": "Xóa toàn bộ dữ liệu đã thu thập",
+  "exportCapture": "Xuất toàn bộ dữ liệu thành JSON",
+  "session": "Phiên kết nối",
+  "searchConsole": "Tìm nội dung, logger, lỗi, stack trace…",
+  "searchNetwork": "Tìm URL, method, trạng thái…",
+  "clearSearch": "Xóa tìm kiếm",
+  "methodColumn": "METHOD",
+  "urlColumn": "URL / ỨNG DỤNG",
+  "statusColumn": "TRẠNG THÁI",
+  "timeColumn": "THỜI GIAN",
+  "consoleEmptyTitle": "Chưa có log",
+  "networkEmptyTitle": "Chưa có request",
+  "noResults": "Không có kết quả phù hợp",
+  "connectApp": "Kết nối ứng dụng",
+  "resetFilters": "Đặt lại bộ lọc",
+  "selectionTitle": "Chọn một mục",
+  "closeInspector": "Đóng khung chi tiết",
+  "unsupportedEvent": "Nhận được sự kiện chưa hỗ trợ",
+  "copied": "Đã sao chép",
+  "notCaptured": "Chưa thu thập",
+  "requestInspector": "Chi tiết request",
+  "copyCurl": "Sao chép dạng cURL",
+  "curlCopied": "Đã sao chép cURL",
+  "overview": "Tổng quan",
+  "request": "Request",
+  "response": "Response",
+  "raw": "Dữ liệu gốc",
+  "requestId": "ID request",
+  "source": "Nguồn",
+  "started": "Bắt đầu",
+  "status": "Trạng thái",
+  "waitingResponse": "Đang chờ phản hồi…",
+  "responseSize": "Kích thước phản hồi",
+  "queryParameters": "Tham số truy vấn",
+  "headers": "Headers",
+  "body": "Nội dung",
+  "consoleInspector": "Chi tiết nhật ký",
+  "level": "Mức log",
+  "timestamp": "Thời điểm",
+  "message": "Nội dung",
+  "arguments": "Tham số",
+  "rawEvent": "Sự kiện gốc",
+  "missingRequest": "(chưa nhận được request)",
+  "listening": "●  Đang nghe :{port}",
+  "@listening": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionCount": "{count} phiên",
+  "@sessionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "connectionCount": "{count} kết nối",
+  "@connectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "captureStats": "{visible} mục · đã loại {evicted} · bỏ qua {skipped}",
+  "@captureStats": {
+    "placeholders": {
+      "visible": {
+        "type": "int"
+      },
+      "evicted": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "invalidCount": "{count} mục lỗi",
+  "@invalidCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copySection": "Sao chép {title}",
+  "@copySection": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "itemCount": "{count} mục",
+  "@itemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "capturedBytes": "{count} byte (nội dung UTF-8 đã thu thập)",
+  "@capturedBytes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportedTo": "Đã xuất dữ liệu đến {path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "Không thể xuất dữ liệu: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "serverStartFailed": "Kết nối thất bại: {error}",
+  "@serverStartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "usbGuide": "iOS simulator: 127.0.0.1\nAndroid emulator: 10.0.2.2\nAndroid USB: adb reverse tcp:{port} tcp:{port}, sau đó đặt VIEWER_HOST thành 127.0.0.1.",
+  "@usbGuide": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
+  "theme": "Giao diện",
+  "lightTheme": "Sáng",
+  "darkTheme": "Đêm",
+  "resizeInspector": "Đổi độ rộng khung chi tiết",
+  "formattedJson": "JSON định dạng",
+  "treeView": "Dạng cây",
+  "treeTab": "Cây",
+  "jsonInput": "Đầu vào",
+  "resizeJsonPanels": "Đổi độ rộng khung JSON",
+  "mcpListening": "Đang lắng nghe",
+  "mcpOtherFormats": "Định dạng khác",
+  "enableMcp": "Bật MCP",
+  "mcpDisabled": "Đã tắt",
+  "mcpPort": "Cổng MCP",
+  "mcpEndpoint": "Địa chỉ kết nối",
+  "copyMcpJson": "Sao chép cấu hình JSON",
+  "copyMcpSetup": "Sao chép lệnh thiết lập",
+  "copyMcpCodex": "Sao chép cấu hình Codex",
+  "formatJson": "Format",
+  "invalidJson": "JSON không hợp lệ",
+  "jsonErrorAt": "Dòng {line}, cột {column}",
+  "@jsonErrorAt": {
+    "placeholders": {
+      "line": {
+        "type": "int"
+      },
+      "column": {
+        "type": "int"
+      }
+    }
+  },
+  "copyFormattedJson": "Sao chép JSON đã định dạng",
+  "collapseJsonRange": "Bấm để thu gọn vùng này",
+  "expandJsonRange": "Bấm để mở rộng vùng này",
+  "vmServiceUrl": "DevTools / VM Service URL",
+  "urlValidation": "Nhập URL DevTools có uri=, địa chỉ gốc HTTP VM Service hoặc URL ws://.",
+  "flutterConnectionGuide": "Chạy ứng dụng Flutter ở chế độ debug hoặc profile. Sao chép URL DevTools hoặc Dart VM Service từ flutter run rồi dán bên dưới. Giữ tiến trình Flutter đang chạy; cập nhật URL khi cổng hoặc token thay đổi.",
+  "flutterCaptureScope": "Thu thập HTTP qua dart:io HttpClient (gồm adapter mặc định của Dio/package:http), stdout/stderr và dart:developer log. HTTP native plugin, WebView, frame WebSocket và bản release nằm ngoài HTTP profiler của VM. Console được thu từ lúc kết nối.",
+  "imagePreview": "Xem ảnh",
+  "openImage": "Mở ảnh lớn",
+  "imageUnavailable": "Không thể xem ảnh. Dữ liệu có thể chưa đầy đủ hoặc định dạng ảnh chưa được hỗ trợ. Chọn Thô để xem body.",
+  "zoomIn": "Phóng to",
+  "zoomOut": "Thu nhỏ",
+  "fitImage": "Vừa khung ảnh",
+  "requestHeader": "Request header",
+  "requestBody": "Request body",
+  "responseHeader": "Response header",
+  "responseBody": "Response body",
+  "loggerName": "Logger",
+  "stackTrace": "Stack trace",
+  "logLines": "{count} dòng",
+  "@logLines": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "allLogSources": "Mọi nguồn log",
+  "findInJson": "Tìm trong JSON",
+  "findMatchCase": "Phân biệt hoa thường",
+  "findWholeWord": "Tìm từ nguyên vẹn",
+  "findRegex": "Dùng biểu thức chính quy",
+  "findPrevious": "Kết quả trước (Shift+Enter)",
+  "findNext": "Kết quả sau (Enter)",
+  "findNoResults": "Không có kết quả",
+  "findInvalidRegex": "Regex không hợp lệ",
+  "findMatchCount": "{current} / {total}",
+  "@findMatchCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
+}
