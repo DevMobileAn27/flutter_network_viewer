@@ -126,7 +126,7 @@ jobs:
           UPDATE_SIGNING_KEY: ${{ secrets.WINDOWS_UPDATE_PRIVATE_KEY }}
         run: python tool/create_update_feed.py windows-x64 "build/release/${env:ARCHIVE_NAME}-setup.exe"
       - name: Upload app (kept for 7 days)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARCHIVE_NAME }}
           path: build/release/*
