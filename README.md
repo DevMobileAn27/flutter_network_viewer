@@ -2,7 +2,30 @@
 
 Ứng dụng desktop dành cho macOS và Windows, giúp xem API request/response, đọc log Flutter và định dạng JSON trong cùng một cửa sổ. Không cần thêm thư viện vào ứng dụng đang theo dõi.
 
+Tự tìm project Flutter đang chạy, tìm kiếm trong JSON, xem nhanh màu và ảnh base64. App ghi nhớ cách chia các khung, độ rộng cột và tab chi tiết bạn đang dùng.
+
 ![Network: danh sách request và chi tiết response](docs/screenshots/network.jpg)
+
+Các ảnh trong hướng dẫn sử dụng dữ liệu demo.
+
+## Cài đặt
+
+Tải bản phù hợp từ [GitHub Releases](https://github.com/DevMobileAn27/flutter_network_viewer/releases):
+
+- **macOS chip M:** chọn bản `macos-arm64.zip`.
+- **macOS Intel:** chọn bản `macos-x86_64.zip`.
+- **Windows x64:** chọn bản `windows-x64-setup.exe`, hoặc ZIP nếu muốn dùng bản portable.
+
+Trên macOS, giải nén và kéo **Flutter Network Viewer.app** vào **Applications**. Nếu macOS báo nhà phát triển chưa được xác minh hoặc ứng dụng bị hỏng, mở **Terminal** và chạy:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/Flutter Network Viewer.app"
+open "/Applications/Flutter Network Viewer.app"
+```
+
+Chỉ dùng các lệnh này với bản tải xuống đáng tin cậy từ GitHub Releases chính thức của repository.
+
+Trên Windows, chạy installer. Với bản portable, giải nén rồi mở **flutter_network_viewer.exe**, giữ nguyên các DLL và thư mục `data` đi kèm.
 
 ## Kết nối ứng dụng Flutter
 
@@ -13,22 +36,36 @@
 
 Khi chạy lại project và URL thay đổi, Viewer tự tìm lại project đã chọn. Có thể bật/tắt tại **Settings → Connection → Automatically detect Flutter apps**. Nút **Stop** dừng cả việc tự tìm và kết nối lại.
 
-Tự phát hiện hỗ trợ các phiên chạy có Dart Development Service (DDS) trên cùng máy, bao gồm Flutter chạy trên Android emulator qua `flutter run`. Nếu không tìm thấy project, chạy Flutter trên máy khác, hoặc dùng `--disable-dds`, hãy bấm **?**, dán **Flutter DevTools URL** hoặc **Dart VM Service URL** từ terminal, rồi bấm **Connect an app**. Cũng có thể nhập URL tại **Settings → Connection → Save & restart**; thao tác này chuyển sang kết nối thủ công.
+Tự tìm hỗ trợ ứng dụng chạy trên cùng máy, bao gồm Android emulator. Nếu không tìm thấy project hoặc cần kết nối thủ công, bấm **?**, dán **Flutter DevTools URL** hoặc **Dart VM Service URL** từ terminal, rồi bấm **Connect an app**. Cũng có thể nhập URL tại **Settings → Connection → Save & restart**; thao tác này chuyển sang kết nối thủ công.
 
 ## Network
 
 - Tìm request theo URL, method hoặc status; kết hợp bộ lọc method và trạng thái.
-- Kéo divider giữa các cột **Method**, **URL / Application**, **Status** và **Time** để đổi độ rộng. App ghi nhớ khi chuyển tab và mở lại; bảng có thể cuộn ngang nếu khung hiển thị quá hẹp.
+- Kéo divider giữa các cột **Method**, **URL / Application**, **Status** và **Time** để đổi độ rộng. Method và Status mặc định gọn ở chiều rộng tối thiểu. App ghi nhớ khi chuyển tab và mở lại; bảng có thể cuộn ngang nếu khung hiển thị quá hẹp.
 - Chọn một request để xem **Overview**, **Request header**, **Request body**, **Response header**, **Response body** và **Raw**.
 - Với body JSON, chuyển giữa **JSON** và **Tree**, thu gọn các nhánh hoặc sao chép nội dung.
-- Với response ảnh, xem trước và phóng to ảnh ngay trong phần body.
-- Kéo divider giữa danh sách và chi tiết để đổi độ rộng. App ghi nhớ vị trí divider và tab chi tiết đang chọn khi chuyển request.
+- Chuỗi màu có ô preview bên cạnh, trong cả **JSON** và **Tree**. Hỗ trợ mã HEX như `#B45309`, `rgb/rgba`, `hsl/hsla`, màu Flutter dạng `0xAARRGGBB` và một số tên màu thông dụng. Copy vẫn giữ nguyên dữ liệu gốc.
+- Danh sách và chi tiết mặc định chia đôi cửa sổ. Kéo divider để đổi độ rộng; nhấp đúp để đưa về giữa. App ghi nhớ vị trí đã kéo và giữ tab chi tiết khi chuyển request hoặc mở lại.
+- Khi các tab chi tiết không đủ chỗ, cuộn ngang để xem thêm; gradient xanh ở hai đầu cho biết phía còn tab bị ẩn.
 
 Nếu có nhiều ứng dụng, chọn tab tên ứng dụng để xem riêng hoặc **All** để xem tất cả.
 
+### Xem ảnh trong body
+
+Chọn **Response body** để xem ảnh đã thu thập. App tự nhận diện ảnh base64, kể cả khi response thiếu thông tin kiểu ảnh. Hỗ trợ cả data URI và chuỗi base64 được bọc trong JSON.
+
+- Bấm ảnh hoặc biểu tượng **phóng to** để mở cửa sổ xem ảnh.
+- Dùng nút **Zoom in / Zoom out**, cuộn hoặc kéo để xem; **Fit image** đưa về khung mặc định.
+- Chọn **Raw** để đọc hoặc copy chuỗi gốc, rồi chuyển lại **Image preview** khi cần.
+- Body không phải ảnh hoặc không giải mã được vẫn có thể đọc ở dạng văn bản/Raw.
+
+![Response body: tự nhận diện và xem ảnh base64](docs/screenshots/image-preview.jpg)
+
 ## Console
 
-Xem log Flutter, tìm theo nội dung và lọc theo nguồn hoặc mức độ log. Chọn một dòng để xem chi tiết, lỗi và stack trace khi có. Có thể kéo divider để điều chỉnh phần danh sách và chi tiết.
+Xem log từ `print/debugPrint`, lỗi stderr và `dart:developer`. Tìm theo nội dung, logger, lỗi hoặc stack trace; lọc theo nguồn và mức độ log.
+
+Chọn một dòng để xem chi tiết. Log JSON có thể xem ở dạng **JSON / Tree**; các khối JSON hoặc lỗi Flutter được ghép lại khi nhận diện được. Có thể copy nội dung và kéo divider để điều chỉnh phần danh sách/chi tiết; vị trí được ghi nhớ riêng với Network.
 
 ![Console: lọc log và xem chi tiết](docs/screenshots/console.jpg)
 
@@ -36,7 +73,7 @@ Xem log Flutter, tìm theo nội dung và lọc theo nguồn hoặc mức độ 
 
 1. Mở tab **Json beautify** và dán JSON vào khung bên trái.
 2. Bấm **Format** hoặc **⌘/Ctrl + Enter**.
-3. Xem kết quả ở dạng **JSON** hoặc **Tree**, tìm kiếm và sao chép kết quả.
+3. Xem kết quả ở dạng **JSON** hoặc **Tree**, tìm kiếm, xem preview màu và sao chép kết quả.
 
 Nếu JSON không hợp lệ, app hiển thị dòng và cột có lỗi. Kéo divider để thay đổi độ rộng hai khung; vị trí này được ghi nhớ. Công cụ dùng được ngay cả khi chưa kết nối ứng dụng.
 
@@ -116,8 +153,6 @@ flutter build windows --release
 ```
 
 Bản macOS nằm tại `build/macos/Build/Products/Release/Flutter Network Viewer.app`. Bản Windows nằm trong `build/windows/x64/runner/Release/`; giữ nguyên các file đi kèm khi sao chép ứng dụng.
-
-
 ## Phát hành bản mới
 
 GitHub Actions kiểm tra format, analyze và test cho pull request. Khi tăng version và build number trong `pubspec.yaml`, điền `github_release_info.md` rồi push lên `main`, workflow build macOS chip M, macOS Intel và Windows x64, tạo draft release kèm ZIP, installer Windows, feed cập nhật đã ký và checksum. Bạn kiểm tra draft trước khi publish.
