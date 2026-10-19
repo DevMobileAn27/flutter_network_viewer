@@ -31,6 +31,9 @@ Future<void> main() async {
   });
   unawaited(
     server.start(
+      automatic:
+          preferences.getBool('autoDetectVmService') ??
+          ViewerServer.defaultServiceUri.isEmpty,
       uri:
           preferences.getString('vmServiceUri') ??
           ViewerServer.defaultServiceUri,

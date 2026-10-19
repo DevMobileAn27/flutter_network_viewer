@@ -7,16 +7,18 @@
 ## Kết nối ứng dụng Flutter
 
 1. Chạy ứng dụng cần theo dõi ở chế độ **debug** hoặc **profile**.
-2. Sao chép **Flutter DevTools URL** hoặc **Dart VM Service URL** được in trong terminal sau khi chạy app.
-3. Mở Flutter Network Viewer, bấm **Connect an app** khi chưa có dữ liệu, hoặc bấm biểu tượng **?** ở góc trên bên phải.
-4. Dán URL, bấm **Connect an app** và đợi trạng thái **Connected**.
-5. Thao tác trên ứng dụng Flutter để phát sinh request và log.
+2. Mở Flutter Network Viewer. App tự tìm và kết nối khi có một ứng dụng Flutter đang chạy trên cùng máy tính.
+3. Nếu có nhiều ứng dụng, chọn tên project trong danh sách xuất hiện phía trên. Có thể bấm biểu tượng **radar** để tìm lại.
+4. Đợi trạng thái **Connected**, rồi thao tác trên ứng dụng Flutter để phát sinh request và log.
 
-Có thể đổi URL tại **Settings → Connection → Save & restart**. Khi chạy lại ứng dụng và URL thay đổi, hãy cập nhật URL mới. Giữ ứng dụng Flutter đang chạy trong suốt quá trình theo dõi.
+Khi chạy lại project và URL thay đổi, Viewer tự tìm lại project đã chọn. Có thể bật/tắt tại **Settings → Connection → Automatically detect Flutter apps**. Nút **Stop** dừng cả việc tự tìm và kết nối lại.
+
+Tự phát hiện hỗ trợ các phiên chạy có Dart Development Service (DDS) trên cùng máy, bao gồm Flutter chạy trên Android emulator qua `flutter run`. Nếu không tìm thấy project, chạy Flutter trên máy khác, hoặc dùng `--disable-dds`, hãy bấm **?**, dán **Flutter DevTools URL** hoặc **Dart VM Service URL** từ terminal, rồi bấm **Connect an app**. Cũng có thể nhập URL tại **Settings → Connection → Save & restart**; thao tác này chuyển sang kết nối thủ công.
 
 ## Network
 
 - Tìm request theo URL, method hoặc status; kết hợp bộ lọc method và trạng thái.
+- Kéo divider giữa các cột **Method**, **URL / Application**, **Status** và **Time** để đổi độ rộng. App ghi nhớ khi chuyển tab và mở lại; bảng có thể cuộn ngang nếu khung hiển thị quá hẹp.
 - Chọn một request để xem **Overview**, **Request header**, **Request body**, **Response header**, **Response body** và **Raw**.
 - Với body JSON, chuyển giữa **JSON** và **Tree**, thu gọn các nhánh hoặc sao chép nội dung.
 - Với response ảnh, xem trước và phóng to ảnh ngay trong phần body.

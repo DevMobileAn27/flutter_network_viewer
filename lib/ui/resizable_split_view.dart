@@ -8,13 +8,16 @@ class ResizableSplitView extends StatefulWidget {
     super.key,
     required this.list,
     required this.inspector,
-    this.initialWidth = 400,
+    this.initialWidth,
+    this.defaultWidth = 400,
     this.onWidthChanged,
   });
 
   final Widget list;
   final Widget inspector;
-  final double initialWidth;
+  final double? initialWidth;
+  // A null default centers the divider until the user resizes it.
+  final double? defaultWidth;
   final ValueChanged<double>? onWidthChanged;
 
   @override
@@ -22,11 +25,10 @@ class ResizableSplitView extends StatefulWidget {
 }
 
 class _ResizableSplitViewState extends State<ResizableSplitView> {
-  static const _defaultWidth = 400.0;
   static const _minInspectorWidth = 320.0;
   static const _minListWidth = 360.0;
   static const _dividerWidth = 8.0;
-  late double _width = widget.initialWidth;
+  late double? _width = widget.initialWidth;
   bool _hovered = false;
   bool _dragging = false;
 
@@ -34,17 +36,22 @@ class _ResizableSplitViewState extends State<ResizableSplitView> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final maxWidth = constraints.maxWidth - _minListWidth - _dividerWidth;
-      final width = _width.clamp(_minInspectorWidth, maxWidth).toDouble();
+      final defaultWidth =
+          widget.defaultWidth ?? (constraints.maxWidth - _dividerWidth) / 2;
+      final width = (_width ?? defaultWidth)
+          .clamp(_minInspectorWidth, maxWidth)
+          .toDouble();
       void resize(double nextWidth) => setState(
         () => _width = nextWidth.clamp(_minInspectorWidth, maxWidth).toDouble(),
       );
-      void commit() => widget.onWidthChanged?.call(_width);
+      void commit() => widget.onWidthChanged?.call(_width!);
       void resizeAndCommit(double nextWidth) {
         resize(nextWidth);
         commit();
       }
 
       void endDrag() {
+        if (!_dragging) return;
         setState(() => _dragging = false);
         commit();
       }
@@ -71,10 +78,10 @@ class _ResizableSplitViewState extends State<ResizableSplitView> {
                   _width = width;
                 }),
                 onHorizontalDragUpdate: (details) =>
-                    resize(_width - details.delta.dx),
+                    resize(_width! - details.delta.dx),
                 onHorizontalDragEnd: (_) => endDrag(),
                 onHorizontalDragCancel: endDrag,
-                onDoubleTap: () => resizeAndCommit(_defaultWidth),
+                onDoubleTap: () => resizeAndCommit(defaultWidth),
                 child: SizedBox(
                   width: _dividerWidth,
                   height: double.infinity,

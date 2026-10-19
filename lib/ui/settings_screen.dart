@@ -98,6 +98,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           !await preferences.setString('vmServiceUri', uri)) {
         throw StateError('Could not persist port preference');
       }
+      if (preferences != null &&
+          !await preferences.setBool('autoDetectVmService', false)) {
+        throw StateError('Could not persist discovery preference');
+      }
       await widget.server.stop();
       await widget.server.start(uri: uri);
       if (mounted) {
@@ -107,6 +111,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               : context.l10n.serverStartFailed(widget.server.error ?? ''),
         );
       }
+    } catch (_) {
+      if (mounted) _notice(context.l10n.settingsSaveFailed);
+    } finally {
+      if (mounted) setState(() => _savingPort = false);
+    }
+  }
+
+  Future<void> _setAutoDetect(bool enabled) async {
+    setState(() => _savingPort = true);
+    try {
+      final preferences = widget.settings.preferences;
+      if (preferences != null &&
+          !await preferences.setBool('autoDetectVmService', enabled)) {
+        throw StateError('Could not persist discovery preference');
+      }
+      await widget.server.start(
+        automatic: enabled,
+        uri: _port.text.trim().isEmpty ? null : _port.text,
+      );
     } catch (_) {
       if (mounted) _notice(context.l10n.settingsSaveFailed);
     } finally {
@@ -209,6 +232,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
               const SizedBox(height: 20),
               _section(Icons.lan_outlined, context.l10n.connection, [
+                SwitchListTile(
+                  key: const ValueKey('auto-detect-vm-service'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(context.l10n.autoDetectFlutterApps),
+                  subtitle: Text(context.l10n.autoDetectFlutterAppsDescription),
+                  value: widget.server.autoDetect,
+                  onChanged: _savingPort ? null : _setAutoDetect,
+                ),
+                const SizedBox(height: 16),
                 _field(
                   context.l10n.vmServiceUrl,
                   TextField(

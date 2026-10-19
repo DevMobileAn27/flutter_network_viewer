@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
 import 'components.dart';
 import 'json_find_controller.dart';
+import 'body_color.dart';
 
 /// Terminal-style branches, with children built only for expanded nodes.
 class JsonTreeView extends StatefulWidget {
@@ -105,6 +106,7 @@ class _JsonTreeViewState extends State<JsonTreeView> {
         ? ''
         : '${encodedName.substring(1, encodedName.length - 1)}: ';
     final bracket = value is Map ? '{}' : '[]';
+    final colorPreview = value is String ? parseBodyColor(value) : null;
     final text = Text.rich(
       TextSpan(
         children: [
@@ -175,7 +177,16 @@ class _JsonTreeViewState extends State<JsonTreeView> {
             ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 2),
-        child: text,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            text,
+            if (colorPreview != null) ...[
+              const SizedBox(width: 8),
+              BodyColorSwatch(value: value as String, color: colorPreview),
+            ],
+          ],
+        ),
       ),
     );
     final result = <Widget>[

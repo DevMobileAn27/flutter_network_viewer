@@ -21,7 +21,7 @@ void main() {
       'requestDetailTab': 4,
     });
     final settings = AppSettings(await SharedPreferences.getInstance());
-    expect(settings.networkInspectorWidth, 400);
+    expect(settings.networkInspectorWidth, isNull);
     expect(settings.consoleInspectorWidth, 400);
     expect(settings.jsonInputFraction, .5);
     expect(settings.requestDetailTab, 0);
@@ -151,6 +151,14 @@ void main() {
     }
 
     await launch();
+    expect(inspectorWidth(), (1440 - 8) / 2);
+    expect(tester.getCenter(divider).dx, 1440 / 2);
+    tester.view.physicalSize = const Size(1200, 900);
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(divider).dx, 1200 / 2);
+    expect(preferences.getDouble('networkInspectorWidth'), isNull);
+    tester.view.physicalSize = const Size(1440, 900);
+    await tester.pumpAndSettle();
     await tester.drag(divider, const Offset(-240, 0));
     await tester.pumpAndSettle();
     final networkWidth = inspectorWidth();
@@ -199,7 +207,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     await tester.tap(divider);
     await tester.pumpAndSettle();
-    expect(preferences.getDouble('networkInspectorWidth'), 400);
+    expect(preferences.getDouble('networkInspectorWidth'), (1440 - 8) / 2);
+    expect(tester.getCenter(divider).dx, 1440 / 2);
     expect(preferences.getDouble('consoleInspectorWidth'), consoleWidth);
     await select('Json beautify');
     await tester.tap(jsonDivider);

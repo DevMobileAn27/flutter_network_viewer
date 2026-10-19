@@ -11,12 +11,22 @@ class FakeVmService {
   final isolateIds = ['isolates/1'];
   int clock = 2000000;
   bool profilerAvailable = true;
+  bool flutterApp = true;
+  int vmPid = 10;
+  int vmStartTime = 1000;
+  String rootLibrary = 'package:shop/main.dart';
+  String authToken = 'token=';
   Completer<void>? detailGate;
-  String get uri => 'ws://127.0.0.1:${server.port}/token=/ws';
+  String get uri => 'ws://127.0.0.1:${server.port}/$authToken/ws';
 
   Future<void> start() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
+      if (!WebSocketTransformer.isUpgradeRequest(request)) {
+        request.response.write('Dart VM Service');
+        await request.response.close();
+        return;
+      }
       final socket = await WebSocketTransformer.upgrade(request);
       sockets.add(socket);
       socket.listen((raw) async {
@@ -35,8 +45,8 @@ class FakeVmService {
           case 'getVM':
             result = {
               'type': 'VM',
-              'pid': 10,
-              'startTime': 1000,
+              'pid': vmPid,
+              'startTime': vmStartTime,
               'operatingSystem': 'android',
               'targetCPU': 'arm64',
               'isolates': [
@@ -58,12 +68,13 @@ class FakeVmService {
               'rootLib': {
                 'type': '@Library',
                 'id': 'libraries/1',
-                'uri': 'package:shop/main.dart',
+                'uri': rootLibrary,
                 'name': '',
               },
-              'extensionRPCs': profilerAvailable
-                  ? ['ext.dart.io.getHttpProfile']
-                  : [],
+              'extensionRPCs': [
+                if (profilerAvailable) 'ext.dart.io.getHttpProfile',
+                if (flutterApp) 'ext.flutter.inspector.show',
+              ],
             };
           case 'ext.dart.io.getHttpProfile':
             final since = int.tryParse('${args['updatedSince']}') ?? 0;
@@ -86,6 +97,7 @@ class FakeVmService {
           default:
             result = {'type': 'Success'};
         }
+        if (socket.readyState != WebSocket.open) return;
         socket.add(
           jsonEncode({'jsonrpc': '2.0', 'id': call['id'], 'result': result}),
         );

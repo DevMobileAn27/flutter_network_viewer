@@ -131,9 +131,8 @@ void main() {
         await tester.ensureVisible(find.text(tab));
         await tester.tap(find.text(tab));
         await tester.pumpAndSettle();
-        final body = tab.endsWith('body');
-        expect(find.text('HEADERS'), body ? findsNothing : findsOneWidget);
-        expect(find.text('BODY'), body ? findsOneWidget : findsNothing);
+        expect(find.text('HEADERS'), findsNothing);
+        expect(find.text('BODY'), findsNothing);
       }
       await tester.ensureVisible(find.text('Response body'));
       await tester.tap(find.text('Response body'));
@@ -185,7 +184,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       await tester.tap(divider);
       await tester.pumpAndSettle();
-      expect(tester.getSize(pane).width, 400);
+      expect(tester.getSize(pane).width, (1200 - 8) / 2);
 
       await tester.tap(find.text('Console'));
       await tester.pumpAndSettle();

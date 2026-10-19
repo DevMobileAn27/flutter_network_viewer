@@ -115,6 +115,14 @@ void main() {
 
   for (final kind in [
     'missing-mime',
+    'unmarked',
+    'wrapped',
+    'json-string',
+    'text-mime',
+    'transport-base64',
+    'url-safe',
+    'ordinary-base64',
+    'broken-unmarked',
     'jpeg',
     'data-uri',
     'invalid-base64',
@@ -139,6 +147,39 @@ void main() {
       await tester.tap(find.text('Response body'));
       await tester.pumpAndSettle();
       final data = switch (kind) {
+        'unmarked' || 'text-mime' => {
+          'headers': {'content-type': 'text/plain'},
+          'body': base64Encode(
+            File('test/fixtures/preview.png').readAsBytesSync(),
+          ),
+        },
+        'wrapped' => {
+          'body': base64Encode(
+            File('test/fixtures/preview.png').readAsBytesSync(),
+          ).replaceAllMapped(RegExp(r'.{40}'), (match) => '${match[0]}\r\n'),
+        },
+        'json-string' => {
+          'body': jsonEncode(
+            base64Encode(File('test/fixtures/preview.png').readAsBytesSync()),
+          ),
+        },
+        'transport-base64' => {
+          'body': base64Encode(
+            utf8.encode(
+              base64Encode(File('test/fixtures/preview.png').readAsBytesSync()),
+            ),
+          ),
+          'bodyEncoding': 'base64',
+        },
+        'url-safe' => {
+          'body': base64UrlEncode(
+            File('test/fixtures/preview.jpg').readAsBytesSync(),
+          ).replaceAll('=', ''),
+        },
+        'ordinary-base64' => {
+          'body': base64Encode(utf8.encode('ordinary text')),
+        },
+        'broken-unmarked' => {'body': 'iVBORw0KGgo%%%invalid'},
         'jpeg' => {
           'headers': {'CONTENT-TYPE': 'image/jpeg; charset=binary'},
           'body': base64Encode(
@@ -191,7 +232,9 @@ void main() {
       if (kind == 'json') {
         expect(find.byType(JsonCodeView), findsOneWidget);
         expect(preview, findsNothing);
-      } else if (kind == 'binary') {
+      } else if (kind == 'binary' ||
+          kind == 'ordinary-base64' ||
+          kind == 'broken-unmarked') {
         expect(find.text(data['body'] as String), findsOneWidget);
         expect(preview, findsNothing);
       } else {

@@ -221,7 +221,7 @@
   "expandJsonRange": "Bấm để mở rộng vùng này",
   "vmServiceUrl": "DevTools / VM Service URL",
   "urlValidation": "Nhập URL DevTools có uri=, địa chỉ gốc HTTP VM Service hoặc URL ws://.",
-  "flutterConnectionGuide": "Chạy ứng dụng Flutter ở chế độ debug hoặc profile. Sao chép URL DevTools hoặc Dart VM Service từ flutter run rồi dán bên dưới. Giữ tiến trình Flutter đang chạy; cập nhật URL khi cổng hoặc token thay đổi.",
+  "flutterConnectionGuide": "Chạy ứng dụng Flutter ở chế độ debug hoặc profile. Bấm Tìm ứng dụng Flutter đang chạy để tự kết nối, hoặc dán URL DevTools hay Dart VM Service từ flutter run vào bên dưới.",
   "flutterCaptureScope": "Thu thập HTTP qua dart:io HttpClient (gồm adapter mặc định của Dio/package:http), stdout/stderr và dart:developer log. HTTP native plugin, WebView, frame WebSocket và bản release nằm ngoài HTTP profiler của VM. Console được thu từ lúc kết nối.",
   "imagePreview": "Xem ảnh",
   "openImage": "Mở ảnh lớn",
@@ -270,5 +270,19 @@
   "updateAvailable": "Có phiên bản mới. Xác nhận trong cửa sổ cập nhật để cài đặt.",
   "updateCurrent": "Bạn đang dùng phiên bản mới nhất.",
   "updateFailed": "Không thể kiểm tra cập nhật. Kiểm tra kết nối rồi thử lại.",
-  "updateInstalling": "Đang đóng ứng dụng để cài bản cập nhật…"
+  "updateInstalling": "Đang đóng ứng dụng để cài bản cập nhật…",
+  "autoDetectFlutterApps": "Tự phát hiện ứng dụng Flutter",
+  "autoDetectFlutterAppsDescription": "Tìm ứng dụng được chạy bằng Flutter trên máy này và tự kết nối lại khi URL thay đổi. Bạn vẫn có thể nhập URL thủ công.",
+  "findFlutterApps": "Tìm ứng dụng Flutter đang chạy",
+  "searchingFlutterApps": "Đang tìm…",
+  "waitingForFlutterApps": "Đang chờ ứng dụng Flutter… Hãy chạy project ở chế độ debug hoặc profile. Bạn cũng có thể nhập URL qua nút ?.",
+  "chooseFlutterApp": "Chọn ứng dụng Flutter đang chạy:",
+  "resizeNetworkColumn": "Điều chỉnh độ rộng cột {column}",
+  "@resizeNetworkColumn": {
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  }
 }

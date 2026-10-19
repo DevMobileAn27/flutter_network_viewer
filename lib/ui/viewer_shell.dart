@@ -16,6 +16,7 @@ import 'animated_pill_indicator.dart';
 import 'application_tabs.dart';
 import 'viewer_dropdown.dart';
 import 'inspector.dart';
+import 'network_request_table.dart';
 import 'resizable_split_view.dart';
 import 'json_beautify_screen.dart';
 
@@ -219,6 +220,11 @@ class _ViewerShellState extends State<ViewerShell>
               ),
             ),
             actions: [
+              TextButton.icon(
+                onPressed: () => Navigator.pop(context, 'auto'),
+                icon: const Icon(Icons.radar, size: 18),
+                label: Text(context.l10n.findFlutterApps),
+              ),
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text(context.l10n.gotIt),
@@ -239,9 +245,18 @@ class _ViewerShellState extends State<ViewerShell>
         ),
       );
       if (value == null || !mounted) return;
+      if (value == 'auto') {
+        await _autoConnect();
+        return;
+      }
       final preferences = widget.settings.preferences;
       if (preferences != null &&
           !await preferences.setString('vmServiceUri', value)) {
+        if (mounted) _notice(context.l10n.settingsSaveFailed);
+        return;
+      }
+      if (preferences != null &&
+          !await preferences.setBool('autoDetectVmService', false)) {
         if (mounted) _notice(context.l10n.settingsSaveFailed);
         return;
       }
@@ -250,6 +265,19 @@ class _ViewerShellState extends State<ViewerShell>
       // The route's closing animation may still be using the input controller.
       await Future<void>.delayed(const Duration(milliseconds: 300));
       input.dispose();
+    }
+  }
+
+  Future<void> _autoConnect({String? uri}) async {
+    final preferences = widget.settings.preferences;
+    try {
+      if (preferences != null &&
+          !await preferences.setBool('autoDetectVmService', true)) {
+        throw StateError('Could not save discovery preference');
+      }
+      await server.start(automatic: true, uri: uri);
+    } catch (_) {
+      if (mounted) _notice(context.l10n.settingsSaveFailed);
     }
   }
 
@@ -266,6 +294,32 @@ class _ViewerShellState extends State<ViewerShell>
         child: Column(
           children: [
             _header(),
+            if (server.searching)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                color: context.palette.accent.withValues(alpha: .08),
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    Text(
+                      server.discoveredApps.isEmpty
+                          ? context.l10n.waitingForFlutterApps
+                          : context.l10n.chooseFlutterApp,
+                    ),
+                    for (final app in server.discoveredApps)
+                      OutlinedButton(
+                        onPressed: () => _autoConnect(uri: app.uri),
+                        child: Text('${app.name} · ${Uri.parse(app.uri).port}'),
+                      ),
+                  ],
+                ),
+              ),
             if (server.error != null)
               _banner(
                 context.l10n.serverStartFailed(server.error!),
@@ -291,6 +345,7 @@ class _ViewerShellState extends State<ViewerShell>
                                   child: inspector
                                       ? ResizableSplitView(
                                           key: ValueKey(_console),
+                                          defaultWidth: _console ? 400 : null,
                                           initialWidth: _console
                                               ? widget
                                                     .settings
@@ -387,6 +442,8 @@ class _ViewerShellState extends State<ViewerShell>
               ? context.l10n.starting
               : server.running
               ? context.l10n.connected
+              : server.searching
+              ? context.l10n.searchingFlutterApps
               : context.l10n.serverStopped,
           color: server.running
               ? context.palette.accent
@@ -394,16 +451,17 @@ class _ViewerShellState extends State<ViewerShell>
         ),
         SizedBox(width: 8),
         IconButton(
-          tooltip: server.running
+          tooltip: server.running || server.searching
               ? context.l10n.stopServer
               : context.l10n.startServer,
-          onPressed: server.busy
+          onPressed: server.busy && !server.searching
               ? null
               : () async {
-                  if (server.running) {
+                  if (server.running || server.searching) {
                     await server.stop();
                   } else {
                     await server.start(
+                      automatic: server.autoDetect,
                       uri:
                           widget.settings.preferences?.getString(
                             'vmServiceUri',
@@ -413,11 +471,16 @@ class _ViewerShellState extends State<ViewerShell>
                   }
                 },
           icon: Icon(
-            server.running
+            server.running || server.searching
                 ? Icons.stop_circle_outlined
                 : Icons.play_circle_outline,
             size: 21,
           ),
+        ),
+        IconButton(
+          tooltip: context.l10n.findFlutterApps,
+          onPressed: server.busy ? null : _autoConnect,
+          icon: const Icon(Icons.radar, size: 20),
         ),
         IconButton(
           tooltip: context.l10n.settings,
@@ -679,168 +742,17 @@ class _ViewerShellState extends State<ViewerShell>
 
   Widget _networkList(List<NetworkRecord> requests, bool inspector) {
     if (requests.isEmpty) return _empty(store.network.isEmpty);
-    return Column(
-      children: [
-        Container(
-          height: 33,
-          padding: EdgeInsets.symmetric(horizontal: 18),
-          color: context.palette.surface,
-          child: Row(
-            children: [
-              SizedBox(
-                width: 70,
-                child: Text(
-                  context.l10n.methodColumn,
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: context.palette.muted,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  context.l10n.urlColumn,
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: context.palette.muted,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: 82,
-                child: Text(
-                  context.l10n.statusColumn,
-                  style: TextStyle(fontSize: 9, color: context.palette.muted),
-                ),
-              ),
-              SizedBox(
-                width: 82,
-                child: Text(
-                  context.l10n.timeColumn,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 9, color: context.palette.muted),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: requests.length,
-            itemExtent: 68,
-            itemBuilder: (context, index) {
-              final r = requests[index];
-              final selected = _networkKey == r.key;
-              final colors = context.palette;
-              final secondaryColor = selected
-                  ? colors.onSelectedRowMuted
-                  : colors.muted;
-              final uri = Uri.tryParse(r.url);
-              final path = uri == null || uri.host.isEmpty
-                  ? (r.request.isEmpty ? context.l10n.missingRequest : r.url)
-                  : '${uri.path.isEmpty ? '/' : uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
-              return Material(
-                color: selected ? colors.selectedRow : Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    setState(() => _networkKey = r.key);
-                    if (!inspector) _detail(() => _networkInspector(r));
-                  },
-                  child: Container(
-                    padding: EdgeInsets.only(left: 14, right: 18),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        left: BorderSide(
-                          width: 4,
-                          color: selected
-                              ? colors.selectedRowMarker
-                              : Colors.transparent,
-                        ),
-                        bottom: BorderSide(color: colors.line),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 70,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: StatusChip(
-                              r.method,
-                              prominent: true,
-                              selected: selected,
-                              color: colors.methodColor(r.method),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                path,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: selected ? colors.onSelectedRow : null,
-                                  fontWeight: selected
-                                      ? FontWeight.w600
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                '${uri?.host ?? ''} · ${store.sessions[r.sessionId]?.name ?? ''} · ${clockTime(r.time)}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: secondaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        SizedBox(
-                          width: 82,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: StatusChip(
-                              filterLabel(context, r.state),
-                              prominent: true,
-                              selected: selected,
-                              color: colors.statusColor(
-                                r.status,
-                                transportError: r.error.isNotEmpty,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 82,
-                          child: Text(
-                            r.duration == null ? '—' : '${r.duration} ms',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: secondaryColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+    return NetworkRequestTable(
+      records: requests,
+      selectedKey: _networkKey,
+      applicationName: (record) => store.sessions[record.sessionId]?.name ?? '',
+      initialWidths: widget.settings.networkColumnWidths,
+      onWidthsChanged: (widths) =>
+          _rememberLayout(widget.settings.setNetworkColumnWidths(widths)),
+      onSelected: (record) {
+        setState(() => _networkKey = record.key);
+        if (!inspector) _detail(() => _networkInspector(record));
+      },
     );
   }
 

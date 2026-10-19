@@ -10,6 +10,7 @@ import 'json_code_view.dart';
 import 'json_tree_view.dart';
 import 'json_find_bar.dart';
 import 'json_find_controller.dart';
+import 'body_color.dart';
 
 export 'viewer_theme.dart';
 
@@ -128,6 +129,7 @@ class DataSection extends StatefulWidget {
     this.preview,
     this.searchable = false,
     this.fillAvailable = false,
+    this.showTitle = true,
   });
   final String title;
   final dynamic value;
@@ -136,6 +138,7 @@ class DataSection extends StatefulWidget {
   final Widget? preview;
   final bool searchable;
   final bool fillAvailable;
+  final bool showTitle;
 
   @override
   State<DataSection> createState() => _DataSectionState();
@@ -214,6 +217,19 @@ class _DataSectionState extends State<DataSection> {
         initiallyExpanded: widget.initiallyExpanded,
       );
     }
+    final color = widget.body && value is String ? parseBodyColor(value) : null;
+    if (color != null) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: SelectableText('$value', style: mono)),
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 8),
+            child: BodyColorSwatch(value: value as String, color: color),
+          ),
+        ],
+      );
+    }
     return SelectableText('$value', style: mono);
   }
 
@@ -226,7 +242,7 @@ class _DataSectionState extends State<DataSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_canFind)
+          if (_canFind && widget.showTitle)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
@@ -260,7 +276,8 @@ class _DataSectionState extends State<DataSection> {
                                   focusNode: _findFocus,
                                 ),
                               )
-                            : Text(
+                            : widget.showTitle
+                            ? Text(
                                 title.toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 10,
@@ -268,7 +285,8 @@ class _DataSectionState extends State<DataSection> {
                                   letterSpacing: 1.2,
                                   color: context.palette.muted,
                                 ),
-                              ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
                       if (_canFind) const SizedBox(width: 8),
                       if (widget.body && _isJson) ...[

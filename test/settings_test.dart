@@ -21,8 +21,9 @@ class TrackingServer extends ViewerServer {
   int restarts = 0;
 
   @override
-  Future<void> start({String? uri}) async {
+  Future<void> start({String? uri, bool automatic = false}) async {
     restarts++;
+    autoDetect = automatic;
   }
 }
 

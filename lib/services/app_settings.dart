@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,7 +13,7 @@ class AppSettings extends ChangeNotifier {
           : ThemeMode.light,
       _mcpEnabled = preferences?.getBool('mcpEnabled') ?? false,
       _mcpPort = _restoreMcpPort(preferences?.getInt('mcpPort')),
-      _networkInspectorWidth = _restoreWidth(
+      _networkInspectorWidth = _validWidth(
         preferences?.getDouble('networkInspectorWidth'),
       ),
       _consoleInspectorWidth = _restoreWidth(
@@ -20,29 +22,75 @@ class AppSettings extends ChangeNotifier {
       _jsonInputFraction = _restoreFraction(
         preferences?.getDouble('jsonInputFraction'),
       ),
-      _requestDetailTab = _restoreTab(preferences);
+      _requestDetailTab = _restoreTab(preferences),
+      _networkColumnWidths = _restoreNetworkColumns(preferences);
 
   final SharedPreferences? preferences;
   String _languageCode;
   ThemeMode _themeMode;
   bool _mcpEnabled;
   int _mcpPort;
-  double _networkInspectorWidth;
+  double? _networkInspectorWidth;
   double _consoleInspectorWidth;
   double _jsonInputFraction;
   int _requestDetailTab;
+  List<double> _networkColumnWidths;
+  static const minNetworkColumnWidths = [64.0, 56.0, 96.0];
+  static const defaultNetworkColumnWidths = [64.0, 56.0, 108.0];
+  List<double> get networkColumnWidths =>
+      List.unmodifiable(_networkColumnWidths);
   ThemeMode get themeMode => _themeMode;
   String get languageCode => _languageCode;
   Locale get locale => Locale(_languageCode);
   bool get mcpEnabled => _mcpEnabled;
   int get mcpPort => _mcpPort;
-  double get networkInspectorWidth => _networkInspectorWidth;
+  double? get networkInspectorWidth => _networkInspectorWidth;
   double get consoleInspectorWidth => _consoleInspectorWidth;
   double get jsonInputFraction => _jsonInputFraction;
   int get requestDetailTab => _requestDetailTab;
 
-  static double _restoreWidth(double? value) =>
-      value != null && value.isFinite && value >= 320 ? value : 400;
+  static bool _validNetworkColumns(List<dynamic> widths) =>
+      widths.length == 3 &&
+      List.generate(
+        3,
+        (i) =>
+            widths[i] is num &&
+            (widths[i] as num).isFinite &&
+            widths[i] >= minNetworkColumnWidths[i] &&
+            widths[i] <= 1600,
+      ).every((valid) => valid);
+
+  static List<double> _restoreNetworkColumns(SharedPreferences? preferences) {
+    try {
+      final value = jsonDecode(
+        preferences?.getString('networkColumnWidths') ?? 'null',
+      );
+      if (value is List && _validNetworkColumns(value)) {
+        return value.map((width) => (width as num).toDouble()).toList();
+      }
+    } on FormatException {
+      // Ignore an incomplete or invalid layout from an older installation.
+    }
+    return [...defaultNetworkColumnWidths];
+  }
+
+  Future<void> setNetworkColumnWidths(List<double> widths) async {
+    if (!_validNetworkColumns(widths)) {
+      throw ArgumentError.value(widths, 'widths');
+    }
+    _networkColumnWidths = List.of(widths);
+    if (preferences != null &&
+        !await preferences!.setString(
+          'networkColumnWidths',
+          jsonEncode(widths),
+        )) {
+      throw StateError('Could not persist network columns');
+    }
+  }
+
+  static double? _validWidth(double? value) =>
+      value != null && value.isFinite && value >= 320 ? value : null;
+  static double _restoreWidth(double? value) => _validWidth(value) ?? 400;
   static double _restoreFraction(double? value) =>
       value != null && value.isFinite && value > 0 && value < 1 ? value : .5;
   static const _detailTabs = [

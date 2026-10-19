@@ -92,48 +92,53 @@ class _NetworkInspectorState extends State<NetworkInspector>
               color: context.palette.input,
               borderRadius: BorderRadius.circular(30),
               clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.all(3),
-                child: ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(
-                    context,
-                  ).copyWith(dragDevices: {...PointerDeviceKind.values}),
-                  child: TabBar(
-                    controller: _tabs,
-                    isScrollable: true,
-                    tabAlignment: TabAlignment.start,
-                    dividerColor: Colors.transparent,
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    indicatorAnimation: TabIndicatorAnimation.linear,
-                    indicatorPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    indicator: AnimatedPillIndicator(
-                      animation: _tabs.animation!,
-                      color: context.palette.primaryFill,
-                      start: _tabs.previousIndex.toDouble(),
-                      end: _tabs.index.toDouble(),
+              child: _TabScrollHints(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(
+                      context,
+                    ).copyWith(dragDevices: {...PointerDeviceKind.values}),
+                    child: TabBar(
+                      controller: _tabs,
+                      isScrollable: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      tabAlignment: TabAlignment.start,
+                      dividerColor: Colors.transparent,
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicatorAnimation: TabIndicatorAnimation.linear,
+                      indicatorPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                      ),
+                      indicator: AnimatedPillIndicator(
+                        animation: _tabs.animation!,
+                        color: context.palette.primaryFill,
+                        start: _tabs.previousIndex.toDouble(),
+                        end: _tabs.index.toDouble(),
+                      ),
+                      splashBorderRadius: BorderRadius.circular(30),
+                      overlayColor: WidgetStateProperty.resolveWith(
+                        (states) => states.contains(WidgetState.hovered)
+                            ? Colors.transparent
+                            : null,
+                      ),
+                      labelColor: Colors.white,
+                      unselectedLabelColor: context.palette.muted,
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      unselectedLabelStyle: const TextStyle(fontSize: 12),
+                      labelPadding: const EdgeInsets.symmetric(horizontal: 18),
+                      tabs: [
+                        Tab(text: context.l10n.overview),
+                        Tab(text: context.l10n.requestHeader),
+                        Tab(text: context.l10n.requestBody),
+                        Tab(text: context.l10n.responseHeader),
+                        Tab(text: context.l10n.responseBody),
+                        Tab(text: context.l10n.raw),
+                      ],
                     ),
-                    splashBorderRadius: BorderRadius.circular(30),
-                    overlayColor: WidgetStateProperty.resolveWith(
-                      (states) => states.contains(WidgetState.hovered)
-                          ? Colors.transparent
-                          : null,
-                    ),
-                    labelColor: Colors.white,
-                    unselectedLabelColor: context.palette.muted,
-                    labelStyle: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    unselectedLabelStyle: const TextStyle(fontSize: 12),
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 18),
-                    tabs: [
-                      Tab(text: context.l10n.overview),
-                      Tab(text: context.l10n.requestHeader),
-                      Tab(text: context.l10n.requestBody),
-                      Tab(text: context.l10n.responseHeader),
-                      Tab(text: context.l10n.responseBody),
-                      Tab(text: context.l10n.raw),
-                    ],
                   ),
                 ),
               ),
@@ -173,10 +178,18 @@ class _NetworkInspectorState extends State<NetworkInspector>
             ),
             ListView(
               children: [
-                DataSection(context.l10n.headers, record.request['headers']),
+                DataSection(
+                  context.l10n.headers,
+                  record.request['headers'],
+                  showTitle: false,
+                ),
               ],
             ),
-            NetworkBodySection(data: record.request, fillAvailable: true),
+            NetworkBodySection(
+              data: record.request,
+              fillAvailable: true,
+              showTitle: false,
+            ),
             _responsePane(body: false),
             _responsePane(body: true),
             SingleChildScrollView(
@@ -212,6 +225,7 @@ class _NetworkInspectorState extends State<NetworkInspector>
             child: NetworkBodySection(
               data: record.response,
               fillAvailable: true,
+              showTitle: false,
             ),
           ),
         ],
@@ -229,10 +243,97 @@ class _NetworkInspectorState extends State<NetworkInspector>
           ),
         if (record.error.isNotEmpty)
           DataSection(context.l10n.error, record.error),
-        DataSection(context.l10n.headers, record.response['headers']),
+        DataSection(
+          context.l10n.headers,
+          record.response['headers'],
+          showTitle: false,
+        ),
       ],
     );
   }
+}
+
+/// The TabBar owns its scroll controller; its notifications also report changes
+/// caused by resizing, selecting a tab, or restoring the saved tab.
+class _TabScrollHints extends StatefulWidget {
+  const _TabScrollHints({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_TabScrollHints> createState() => _TabScrollHintsState();
+}
+
+class _TabScrollHintsState extends State<_TabScrollHints> {
+  bool _left = false;
+  bool _right = false;
+
+  void _update(ScrollMetrics metrics) {
+    if (metrics.axis != Axis.horizontal) return;
+    final reversed = metrics.axisDirection == AxisDirection.left;
+    final before = metrics.extentBefore > 1;
+    final after = metrics.extentAfter > 1;
+    final left = reversed ? after : before;
+    final right = reversed ? before : after;
+    if (left == _left && right == _right) return;
+    setState(() {
+      _left = left;
+      _right = right;
+    });
+  }
+
+  Widget _edge({required bool left, required bool visible}) {
+    final blue = context.palette.primaryFill;
+    return Positioned(
+      left: left ? 0 : null,
+      right: left ? null : 0,
+      top: 0,
+      bottom: 0,
+      width: 32,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 160),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: left ? Alignment.centerLeft : Alignment.centerRight,
+                end: left ? Alignment.centerRight : Alignment.centerLeft,
+                colors: [
+                  blue.withValues(alpha: .5),
+                  blue.withValues(alpha: .18),
+                  blue.withValues(alpha: 0),
+                ],
+                stops: const [0, .45, 1],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      NotificationListener<ScrollMetricsNotification>(
+        onNotification: (notification) {
+          _update(notification.metrics);
+          return false;
+        },
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            _update(notification.metrics);
+            return false;
+          },
+          child: Stack(
+            children: [
+              widget.child,
+              _edge(left: true, visible: _left),
+              _edge(left: false, visible: _right),
+            ],
+          ),
+        ),
+      );
 }
 
 class ConsoleInspector extends StatelessWidget {

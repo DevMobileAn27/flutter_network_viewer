@@ -13,9 +13,11 @@ class NetworkBodySection extends StatefulWidget {
     super.key,
     required this.data,
     this.fillAvailable = false,
+    this.showTitle = true,
   });
   final Json data;
   final bool fillAvailable;
+  final bool showTitle;
 
   @override
   State<NetworkBodySection> createState() => _NetworkBodySectionState();
@@ -47,6 +49,7 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
 
   void _decode() {
     _bytes = null;
+    _raw = false;
     final headers = objectOf(widget.data['headers']);
     final contentType = headers.entries
         .where((entry) => entry.key.toLowerCase() == 'content-type')
@@ -55,33 +58,40 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     _image = contentType.contains('image/');
     if (_body is! String) return;
     try {
-      final text = _body as String;
-      if (text.startsWith('data:image/')) {
-        _image = true;
-        _bytes = UriData.parse(text).contentAsBytes();
-      } else if (widget.data['bodyEncoding'] == 'base64') {
-        _bytes = base64Decode(text);
-      } else if (_image) {
-        _bytes = Uint8List.fromList(utf8.encode(text));
+      var text = (_body as String).trim();
+      if (widget.data['bodyEncoding'] == 'base64') {
+        final captured = base64Decode(text.replaceAll(RegExp(r'\s'), ''));
+        if (_hasImageSignature(captured)) {
+          _bytes = captured;
+        } else {
+          if (_image) _bytes = captured;
+          // The captured bytes can themselves contain a base64 response string.
+          text = utf8.decode(captured);
+        }
+      }
+      if (_bytes == null || !_hasImageSignature(_bytes!)) {
+        if (text.startsWith('"')) {
+          final decoded = jsonDecode(text);
+          if (decoded is String) text = decoded.trim();
+        }
+        if (text.toLowerCase().startsWith('data:image/')) {
+          _image = true;
+          _bytes = UriData.parse(text).contentAsBytes();
+        } else {
+          final image = _decodeBase64Image(text);
+          if (image != null) {
+            _bytes = image;
+          } else if (_image && _bytes == null) {
+            _bytes = Uint8List.fromList(utf8.encode(text));
+          }
+        }
       }
     } on FormatException {
       // Malformed or truncated bodies remain available in the raw view.
     }
     final bytes = _bytes;
     if (bytes == null) return;
-    bool starts(List<int> signature, [int offset = 0]) =>
-        bytes.length >= offset + signature.length &&
-        List.generate(
-          signature.length,
-          (i) => bytes[offset + i] == signature[i],
-        ).every((match) => match);
-    _image =
-        _image ||
-        starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ||
-        starts([0xff, 0xd8, 0xff]) ||
-        starts(ascii.encode('GIF8')) ||
-        starts(ascii.encode('BM')) ||
-        (starts(ascii.encode('RIFF')) && starts(ascii.encode('WEBP'), 8));
+    _image = _image || _hasImageSignature(bytes);
     if (!_image) _bytes = null;
   }
 
@@ -97,6 +107,7 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
         : context.l10n.body,
     _body,
     body: true,
+    showTitle: widget.showTitle,
     searchable: !_image && widget.data['bodyEncoding'] != 'base64',
     fillAvailable: widget.fillAvailable,
     preview: !_image
@@ -159,6 +170,36 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
             ],
           ),
   );
+}
+
+bool _hasImageSignature(Uint8List bytes) {
+  bool starts(List<int> signature, [int offset = 0]) =>
+      bytes.length >= offset + signature.length &&
+      List.generate(
+        signature.length,
+        (i) => bytes[offset + i] == signature[i],
+      ).every((match) => match);
+  return starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ||
+      starts([0xff, 0xd8, 0xff]) ||
+      starts(ascii.encode('GIF87a')) ||
+      starts(ascii.encode('GIF89a')) ||
+      starts(ascii.encode('BM')) ||
+      (starts(ascii.encode('RIFF')) && starts(ascii.encode('WEBP'), 8));
+}
+
+Uint8List? _decodeBase64Image(String text) {
+  final compact = text.replaceAll(RegExp(r'\s'), '');
+  if (compact.length < 4) return null;
+  try {
+    // Inspect a small prefix before allocating decoded bytes for a large body.
+    final prefix = base64Decode(
+      compact.substring(0, compact.length < 64 ? compact.length : 64),
+    );
+    if (!_hasImageSignature(prefix)) return null;
+    return base64Decode(compact);
+  } on FormatException {
+    return null;
+  }
 }
 
 class _ImageUnavailable extends StatelessWidget {

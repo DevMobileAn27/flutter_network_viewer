@@ -8,17 +8,26 @@ import 'package:vm_service/vm_service.dart';
 import '../models/capture.dart';
 import 'capture_store.dart';
 import 'flutter_capture_adapter.dart';
+import 'vm_service_discovery.dart';
 
 /// A DevTools-compatible VM Service client. The historical name is retained so
 /// the copied UI and MCP tools share the same capture/presence interface.
 class ViewerServer extends ChangeNotifier {
-  ViewerServer(this.store, {this.pollInterval = const Duration(seconds: 1)});
-  static const defaultServiceUri = String.fromEnvironment(
-    'VM_SERVICE_URI',
-    defaultValue: 'ws://127.0.0.1:57037/SfP6AjEheVE=/ws',
-  );
+  ViewerServer(
+    this.store, {
+    this.pollInterval = const Duration(seconds: 1),
+    this.retryInterval = const Duration(seconds: 3),
+    VmServiceDiscovery? discovery,
+  }) : _discovery = discovery ?? VmServiceDiscovery();
+  static const defaultServiceUri = String.fromEnvironment('VM_SERVICE_URI');
   final CaptureStore store;
   final Duration pollInterval;
+  final Duration retryInterval;
+  final VmServiceDiscovery _discovery;
+  bool autoDetect = false;
+  bool get searching => autoDetect && _wanted && !running;
+  List<VmServiceTarget> discoveredApps = const [];
+  String? _preferredProject;
   VmService? _service;
   WebSocket? _socket;
   Timer? _timer;
@@ -77,12 +86,19 @@ class ViewerServer extends ChangeNotifier {
     );
   }
 
-  Future<void> start({String? uri}) async {
+  Future<void> start({String? uri, bool automatic = false}) async {
     if (_disposed) return;
     final requestedGeneration = _generation + 1;
     await stop();
     if (_disposed || _generation != requestedGeneration) return;
     _wanted = true;
+    autoDetect = automatic;
+    if (!automatic || uri != null) _preferredProject = null;
+    if (automatic) {
+      if (uri != null) endpoint = uri;
+      await _discoverAndConnect();
+      return;
+    }
     try {
       endpoint = normalizeUri(uri ?? endpoint).toString();
     } on FormatException catch (e) {
@@ -92,6 +108,48 @@ class ViewerServer extends ChangeNotifier {
       return;
     }
     await _connect();
+  }
+
+  Future<void> _discoverAndConnect() async {
+    if (_disposed || !_wanted || busy || running) return;
+    final generation = _generation;
+    busy = true;
+    error = null;
+    _notify();
+    VmServiceTarget? selected;
+    try {
+      final targets = await _discovery.discover();
+      if (_generation != generation || _disposed) return;
+      discoveredApps = List.unmodifiable(targets);
+      selected = targets.where((app) => app.uri == endpoint).firstOrNull;
+      if (selected == null) {
+        final matching = _preferredProject == null
+            ? targets
+            : targets
+                  .where((app) => app.projectKey == _preferredProject)
+                  .toList();
+        if (matching.length == 1) selected = matching.single;
+      }
+    } catch (_) {
+      if (_generation == generation && !_disposed) {
+        discoveredApps = const [];
+        error =
+            'Automatic discovery is unavailable. Enter the VM Service URL manually.';
+      }
+    } finally {
+      if (_generation == generation) {
+        busy = false;
+        _notify();
+      }
+    }
+    if (_generation != generation || _disposed) return;
+    if (selected == null) {
+      _scheduleRetry();
+    } else {
+      endpoint = selected.uri;
+      _preferredProject = selected.projectKey;
+      await _connect();
+    }
   }
 
   Future<void> _connect() async {
@@ -193,6 +251,8 @@ class ViewerServer extends ChangeNotifier {
     _timer?.cancel();
     _service = null;
     _socket = null;
+    discoveredApps = const [];
+    error = null;
     _isolates.clear();
     _application = null;
     _cursors.clear();
@@ -202,7 +262,7 @@ class ViewerServer extends ChangeNotifier {
       unawaited(subscription.cancel());
     }
     _subscriptions.clear();
-    error = 'VM Service disconnected. Reconnecting…';
+    error = autoDetect ? null : 'VM Service disconnected. Reconnecting…';
     _notify();
     _scheduleRetry();
   }
@@ -210,7 +270,10 @@ class ViewerServer extends ChangeNotifier {
   void _scheduleRetry() {
     _retry?.cancel();
     if (_wanted && !_disposed) {
-      _retry = Timer(const Duration(seconds: 3), () => unawaited(_connect()));
+      _retry = Timer(
+        retryInterval,
+        () => unawaited(autoDetect ? _discoverAndConnect() : _connect()),
+      );
     }
   }
 
@@ -519,6 +582,8 @@ class ViewerServer extends ChangeNotifier {
     final socket = _socket;
     _service = null;
     _socket = null;
+    discoveredApps = const [];
+    error = null;
     _isolates.clear();
     _application = null;
     _cursors.clear();

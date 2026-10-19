@@ -221,7 +221,7 @@
   "expandJsonRange": "Click to expand the range",
   "vmServiceUrl": "DevTools / VM Service URL",
   "urlValidation": "Enter a DevTools link with uri=, an HTTP VM Service root, or a ws:// URL.",
-  "flutterConnectionGuide": "Run your Flutter app in debug or profile mode. Copy the DevTools URL or Dart VM Service URL printed by flutter run and paste it below. Keep the Flutter process running; update the URL when its port or authentication token changes.",
+  "flutterConnectionGuide": "Run your Flutter app in debug or profile mode. Use Find running Flutter apps to connect automatically, or paste the DevTools URL or Dart VM Service URL printed by flutter run below.",
   "flutterCaptureScope": "Captures dart:io HttpClient traffic (including standard Dio/package:http adapters), stdout/stderr and dart:developer logging. Native HTTP plugins, WebView traffic, WebSocket frames and release builds are outside the VM HTTP profiler. Console capture starts after connection.",
   "imagePreview": "Image preview",
   "openImage": "Open image",
@@ -270,5 +270,19 @@
   "updateAvailable": "A new version is available. Confirm in the update window to install.",
   "updateCurrent": "You’re up to date.",
   "updateFailed": "Could not check for updates. Check your connection and try again.",
-  "updateInstalling": "Closing the app to install the update…"
+  "updateInstalling": "Closing the app to install the update…",
+  "autoDetectFlutterApps": "Automatically detect Flutter apps",
+  "autoDetectFlutterAppsDescription": "Find apps started by Flutter on this computer and reconnect when their URL changes. You can still enter a URL manually.",
+  "findFlutterApps": "Find running Flutter apps",
+  "searchingFlutterApps": "Searching…",
+  "waitingForFlutterApps": "Waiting for a Flutter app… Run your project in debug or profile mode. You can also enter a URL using ?.",
+  "chooseFlutterApp": "Select a running Flutter app:",
+  "resizeNetworkColumn": "Resize {column} column",
+  "@resizeNetworkColumn": {
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  }
 }

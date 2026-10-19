@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
 import 'components.dart';
 import 'json_find_controller.dart';
+import 'body_color.dart';
 
 /// A selectable JSON document; the gutter is kept out of copied text.
 class JsonCodeView extends StatefulWidget {
@@ -137,6 +138,7 @@ class _JsonCodeViewState extends State<JsonCodeView> {
       r'"(?:\\.|[^"\\])*"|true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?',
     );
     final spans = <TextSpan>[];
+    final swatches = <({int line, String value, Color color})>[];
     int? activeOffset;
     var renderedOffset = 0;
     for (var i = 0; i < visibleLines.length; i++) {
@@ -174,6 +176,13 @@ class _JsonCodeViewState extends State<JsonCodeView> {
             ? colors.method
             : colors.warning;
         add(token, match.start, TextStyle(color: color));
+        if (!isKey && token.startsWith('"')) {
+          final value = jsonDecode(token) as String;
+          final preview = parseBodyColor(value);
+          if (preview != null) {
+            swatches.add((line: i, value: value, color: preview));
+          }
+        }
         offset = match.end;
       }
       add(text.substring(offset), offset);
@@ -277,13 +286,30 @@ class _JsonCodeViewState extends State<JsonCodeView> {
                 ),
                 Stack(
                   children: [
-                    SelectableText.rich(
-                      TextSpan(children: spans),
-                      strutStyle: strut,
-                      style: codeStyle.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
+                    Padding(
+                      padding: EdgeInsets.only(
+                        right: swatches.isEmpty ? 0 : 28,
+                      ),
+                      child: SelectableText.rich(
+                        TextSpan(children: spans),
+                        strutStyle: strut,
+                        style: codeStyle.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ),
+                    for (final swatch in swatches)
+                      Positioned(
+                        left: lineMetrics[swatch.line].width + 8,
+                        top:
+                            lineMetrics[swatch.line].baseline -
+                            lineMetrics[swatch.line].ascent +
+                            (lineMetrics[swatch.line].height - 12) / 2,
+                        child: BodyColorSwatch(
+                          value: swatch.value,
+                          color: swatch.color,
+                        ),
+                      ),
                     if (matchRect != null)
                       Positioned(
                         left: matchRect.left,
