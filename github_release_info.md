@@ -1,22 +1,23 @@
 ---
-tag: v0.1.2
-title: Flutter Network Viewer v0.1.2
+tag: v0.1.3
+title: Flutter Network Viewer v0.1.3
 ---
 
-## What’s new
+## Có gì mới
 
-- Check for updates at startup or from **Settings → App updates → Check for updates**.
-- Confirm in the update window to download and install a new version.
-- Signed update feeds for macOS Apple Silicon, macOS Intel and Windows x64.
-- Windows installer alongside the portable ZIP download.
-- Current app version and author displayed in Settings.
+- Tự tìm ứng dụng Flutter đang chạy trên cùng máy; chọn project khi có nhiều ứng dụng và tự kết nối lại khi URL thay đổi.
+- Kéo divider để thay đổi độ rộng các cột Network, ghi nhớ khi chuyển tab hoặc mở lại app. Method và Status mặc định ở chiều rộng tối thiểu; danh sách và chi tiết mặc định chia đôi cửa sổ.
+- Thanh tab chi tiết có gradient xanh báo còn nội dung để cuộn ngang; bỏ tiêu đề Headers/Body lặp bên dưới.
+- Xem preview chuỗi màu trong JSON và Tree, gồm HEX, RGB/HSL và màu Flutter.
+- Tự nhận diện ảnh base64 trong body, kể cả thiếu thông tin encoding/content-type; hỗ trợ phóng to và xem Raw.
+- Cập nhật README với hướng dẫn sử dụng và screenshot dữ liệu demo.
 
 ## Downloads
 
-- **macOS Apple Silicon (M-series):** `flutter-network-viewer-0.1.2-macos-arm64.zip`
-- **macOS Intel:** `flutter-network-viewer-0.1.2-macos-x86_64.zip`
-- **Windows x64 installer:** `flutter-network-viewer-0.1.2-windows-x64-setup.exe`
-- **Windows x64 portable:** `flutter-network-viewer-0.1.2-windows-x64.zip`
+- **macOS Apple Silicon (M-series):** `flutter-network-viewer-0.1.3-macos-arm64.zip`
+- **macOS Intel:** `flutter-network-viewer-0.1.3-macos-x86_64.zip`
+- **Windows x64 installer:** `flutter-network-viewer-0.1.3-windows-x64-setup.exe`
+- **Windows x64 portable:** `flutter-network-viewer-0.1.3-windows-x64.zip`
 
 On macOS, unzip and drag **Flutter Network Viewer.app** into **Applications**.
 On Windows, run the installer. For the portable ZIP, unzip and run **flutter_network_viewer.exe**. Keep the DLL files and `data` folder alongside the executable.
@@ -38,4 +39,4 @@ Các lệnh trên gỡ thuộc tính cách ly (quarantine) của ứng dụng v�
 
 Versions without the updater need to install **0.1.2** manually once. This version can receive future published updates from within the app. Export captures you want to keep before updating.
 
-Run your Flutter app in debug/profile mode and connect using its Flutter DevTools or Dart VM Service URL. No SDK integration is required in the app being monitored.
+Chạy ứng dụng Flutter ở chế độ debug/profile và mở Viewer để tự tìm project. Có thể nhập Flutter DevTools hoặc Dart VM Service URL khi cần kết nối thủ công. Không cần thêm thư viện vào ứng dụng đang theo dõi.
