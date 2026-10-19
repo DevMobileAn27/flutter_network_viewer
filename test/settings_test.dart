@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,6 +13,7 @@ import 'package:flutter_network_viewer/main.dart';
 import 'package:flutter_network_viewer/services/app_settings.dart';
 import 'package:flutter_network_viewer/services/capture_store.dart';
 import 'package:flutter_network_viewer/services/viewer_server.dart';
+import 'package:flutter_network_viewer/services/vm_service_discovery.dart';
 import 'package:flutter_network_viewer/services/viewer_mcp_server.dart';
 import 'package:flutter_network_viewer/ui/settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,8 +52,92 @@ class TrackingMcpServer extends ViewerMcpServer {
   }
 }
 
+class PendingDiscovery extends VmServiceDiscovery {
+  final scans = <Completer<List<VmServiceTarget>>>[];
+
+  @override
+  Future<List<VmServiceTarget>> discover() {
+    final scan = Completer<List<VmServiceTarget>>();
+    scans.add(scan);
+    return scan.future;
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets(
+    'background discovery keeps connection controls and draft stable',
+    (tester) async {
+      tester.view.physicalSize = const Size(1360, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({});
+      final preferences = await SharedPreferences.getInstance();
+      final settings = AppSettings(preferences);
+      final store = CaptureStore();
+      final discovery = PendingDiscovery();
+      final viewer = ViewerServer(store, discovery: discovery);
+      final mcp = TrackingMcpServer(store, viewer);
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: viewerTheme(Brightness.light),
+          home: SettingsScreen(
+            settings: settings,
+            server: viewer,
+            mcpServer: mcp,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final input = find.byKey(const ValueKey('vm-service-uri'));
+      final draft = const TextEditingValue(
+        text: 'ws://127.0.0.1:12345/draft=/ws',
+        selection: TextSelection(baseOffset: 15, extentOffset: 20),
+      );
+      await tester.tap(input);
+      tester.testTextInput.updateEditingValue(draft);
+      await tester.pump();
+      final editable = find.descendant(
+        of: input,
+        matching: find.byType(EditableText),
+      );
+      final state = tester.state<EditableTextState>(editable);
+      final save = find.widgetWithText(FilledButton, 'Save & restart').first;
+      final bounds = tester.getRect(input);
+
+      void expectStable() {
+        expect(tester.widget<TextField>(input).enabled, isTrue);
+        expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+        expect(state.widget.focusNode.hasFocus, isTrue);
+        expect(state.widget.controller.value, draft);
+        expect(tester.getRect(input), bounds);
+      }
+
+      final firstScan = viewer.start(automatic: true);
+      await tester.pump();
+      for (var i = 0; i < 3; i++) {
+        expect(viewer.busy, isTrue);
+        expectStable();
+        discovery.scans.last.complete(const []);
+        await tester.pump();
+        expect(viewer.busy, isFalse);
+        expectStable();
+        if (i < 2) await tester.pump(const Duration(seconds: 3));
+      }
+      await firstScan;
+      await viewer.stop();
+      await tester.pumpWidget(const SizedBox());
+      settings.dispose();
+      mcp.dispose();
+      viewer.dispose();
+      store.dispose();
+    },
+  );
 
   for (final mode in ['light', 'dark']) {
     testWidgets(

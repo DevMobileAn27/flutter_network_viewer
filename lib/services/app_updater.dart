@@ -104,7 +104,13 @@ class AppUpdater extends ChangeNotifier with UpdaterListener {
   @override
   void onUpdaterCheckingForUpdate(Appcast? appcast) {}
   @override
-  void onUpdaterError(UpdaterError? error) => _setStatus(UpdateStatus.failed);
+  void onUpdaterError(UpdaterError? error) {
+    // Sparkle also aborts with SUNoUpdateError after reporting no update.
+    // auto_updater forwards it as a generic error without the native code.
+    // Keep that completed result; a new check resets the status to checking.
+    if (!isWindows && status == UpdateStatus.current) return;
+    _setStatus(UpdateStatus.failed);
+  }
   @override
   void onUpdaterUpdateNotAvailable(UpdaterError? error) =>
       _setStatus(UpdateStatus.current);

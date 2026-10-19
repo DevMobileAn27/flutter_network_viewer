@@ -247,7 +247,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     key: const ValueKey('vm-service-uri'),
                     controller: _port,
                     keyboardType: TextInputType.url,
-                    enabled: !_savingPort && !widget.server.busy,
+                    // Background discovery/retries must not disable editing.
+                    enabled: !_savingPort,
                     decoration: InputDecoration(
                       hintText: 'ws://127.0.0.1:12345/token=/ws',
                       errorMaxLines: 3,
@@ -259,7 +260,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (_invalidPort) setState(() => _invalidPort = false);
                     },
                     onSubmitted: (_) {
-                      if (!_savingPort && !widget.server.busy) _savePort();
+                      if (!_savingPort) _savePort();
                     },
                   ),
                 ),
@@ -267,9 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: FilledButton.icon(
-                    onPressed: _savingPort || widget.server.busy
-                        ? null
-                        : _savePort,
+                    onPressed: _savingPort ? null : _savePort,
                     icon: const Icon(Icons.save_outlined, size: 18),
                     label: Text(
                       _savingPort

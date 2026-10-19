@@ -66,6 +66,40 @@ void main() {
     expect(updater.status, UpdateStatus.current);
   });
 
+  test('macOS keeps no-update result after Sparkle abort callback', () async {
+    final native = FakeUpdates();
+    final updater = AppUpdater(
+      backend: native,
+      feed: 'https://example.test/feed',
+      isWindows: false,
+    );
+    addTearDown(updater.dispose);
+
+    await updater.check(background: true);
+    native.listener!.onUpdaterUpdateNotAvailable(null);
+    native.listener!.onUpdaterError(null);
+    expect(updater.status, UpdateStatus.current);
+
+    // A real failure on the next attempt must still be visible.
+    await updater.check();
+    native.listener!.onUpdaterError(null);
+    expect(updater.status, UpdateStatus.failed);
+  });
+
+  test('Windows errors after no-update are still reported', () async {
+    final native = FakeUpdates();
+    final updater = AppUpdater(
+      backend: native,
+      feed: 'https://example.test/feed',
+      isWindows: true,
+    );
+    addTearDown(updater.dispose);
+    await updater.check();
+    native.listener!.onUpdaterUpdateNotAvailable(null);
+    native.listener!.onUpdaterError(null);
+    expect(updater.status, UpdateStatus.failed);
+  });
+
   test('Windows background discovery opens confirmation only once', () async {
     final native = FakeUpdates();
     var quits = 0;
