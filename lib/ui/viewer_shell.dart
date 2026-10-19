@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import '../services/app_settings.dart';
+import '../services/app_updater.dart';
 import '../l10n/strings.dart';
 import 'settings_screen.dart';
 
@@ -25,11 +26,13 @@ class ViewerShell extends StatefulWidget {
     required this.server,
     required this.settings,
     required this.mcpServer,
+    this.updater,
   });
   final CaptureStore store;
   final ViewerServer server;
   final AppSettings settings;
   final ViewerMcpServer mcpServer;
+  final AppUpdater? updater;
   @override
   State<ViewerShell> createState() => _ViewerShellState();
 }
@@ -174,6 +177,7 @@ class _ViewerShellState extends State<ViewerShell>
         settings: widget.settings,
         server: server,
         mcpServer: widget.mcpServer,
+        updater: widget.updater,
       ),
     ),
   );

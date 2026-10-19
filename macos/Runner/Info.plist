@@ -30,5 +30,15 @@
 	<string>NSApplication</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Connect to Flutter Dart VM Service to inspect network requests and console logs.</string>
+	<key>SUPublicEDKey</key>
+	<string>TNPdGQZDTuvlcdgdReTFjir/+sfSLq5+o92dT4IolFY=</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
 </dict>
 </plist>

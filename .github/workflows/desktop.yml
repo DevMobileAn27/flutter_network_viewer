@@ -1,21 +1,82 @@
-name: Desktop checks and builds
+name: Build and draft release
+run-name: ${{ github.event_name == 'push' && format('Release · {0}', github.event.head_commit.message) || format('Manual release · {0}', github.ref_name) }}
 
 on:
   push:
-  pull_request:
+    branches: [main]
+    paths: [pubspec.yaml]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
 jobs:
-  desktop:
+  version:
+    name: Validate release version
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.version.outputs.should_release }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      title: ${{ steps.version.outputs.title }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require main branch
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo '::error::Run release builds from main.'
+            exit 1
+          fi
+      - name: Read version and verify tag
+        id: version
+        env:
+          BEFORE_COMMIT: ${{ github.event_name == 'push' && github.event.before || '' }}
+        run: python3 tool/prepare_github_release.py
+      - name: Require update signing secrets
+        if: steps.version.outputs.should_release == 'true'
+        env:
+          MACOS_KEY: ${{ secrets.MACOS_UPDATE_PRIVATE_KEY }}
+          WINDOWS_KEY: ${{ secrets.WINDOWS_UPDATE_PRIVATE_KEY }}
+        run: |
+          if [ -z "$MACOS_KEY" ] || [ -z "$WINDOWS_KEY" ]; then
+            echo '::error::Set MACOS_UPDATE_PRIVATE_KEY and WINDOWS_UPDATE_PRIVATE_KEY repository secrets. See docs/app-updates.md.'
+            exit 1
+          fi
+
+  checks:
+    name: Check source
+    needs: version
+    if: needs.version.outputs.should_release == 'true'
+    uses: ./.github/workflows/checks.yml
+
+  build:
+    name: Build ${{ matrix.label }}
+    needs: [version, checks]
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-latest
             target: macos
+            arch: arm64
+            label: macOS Apple Silicon
+          - os: macos-latest
+            target: macos
+            arch: x86_64
+            label: macOS Intel
           - os: windows-latest
             target: windows
+            arch: x64
+            label: Windows x64
     runs-on: ${{ matrix.os }}
+    env:
+      ARCHIVE_NAME: flutter-network-viewer-${{ needs.version.outputs.version }}-${{ matrix.target }}-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -23,18 +84,101 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed lib test tool
-      - run: flutter analyze
-      - run: flutter test
-      - if: matrix.target == 'macos'
-        run: bash tool/build_macos.sh
-      - if: matrix.target == 'windows'
+      - name: Build macOS
+        if: matrix.target == 'macos'
+        run: bash tool/build_macos.sh ${{ matrix.arch }}
+      - name: Build Windows
+        if: matrix.target == 'windows'
         run: flutter build windows --release
-      - if: matrix.target == 'macos'
-        run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Flutter Network Viewer.app" build/flutter-network-viewer-macos.zip
-      - uses: actions/upload-artifact@v4
+      - name: Package macOS
+        if: matrix.target == 'macos'
+        run: |
+          mkdir -p build/release
+          lipo "build/macos/Build/Products/Release/Flutter Network Viewer.app/Contents/MacOS/Flutter Network Viewer" -verify_arch ${{ matrix.arch }}
+          ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Flutter Network Viewer.app" "build/release/$ARCHIVE_NAME.zip"
+          cd build/release
+          shasum -a 256 "$ARCHIVE_NAME.zip" > "$ARCHIVE_NAME.sha256"
+      - name: Package Windows
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/release | Out-Null
+          $archive = "$env:ARCHIVE_NAME.zip"
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "build/release/$archive"
+          $hash = (Get-FileHash "build/release/$archive" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $archive" | Set-Content "build/release/$env:ARCHIVE_NAME.sha256"
+      - name: Create Windows installer
+        if: matrix.target == 'windows'
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:APP_VERSION" "/DOutputName=${env:ARCHIVE_NAME}-setup" windows/installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Sign macOS update
+        if: matrix.target == 'macos'
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.MACOS_UPDATE_PRIVATE_KEY }}
+        run: python3 tool/create_update_feed.py ${{ matrix.target }}-${{ matrix.arch }} "build/release/$ARCHIVE_NAME.zip"
+      - name: Sign Windows update
+        if: matrix.target == 'windows'
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.WINDOWS_UPDATE_PRIVATE_KEY }}
+        run: python tool/create_update_feed.py windows-x64 "build/release/${env:ARCHIVE_NAME}-setup.exe"
+      - name: Upload app (kept for 7 days)
+        uses: actions/upload-artifact@v4
         with:
-          name: flutter-network-viewer-${{ matrix.target }}
-          path: |
-            build/flutter-network-viewer-macos.zip
-            build/windows/x64/runner/Release/
+          name: ${{ env.ARCHIVE_NAME }}
+          path: build/release/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Create draft ${{ needs.version.outputs.tag }}
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.version.outputs.tag }}
+      RELEASE_TITLE: ${{ needs.version.outputs.title }}
+      RELEASE_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Prepare description and recheck tag
+        run: python3 tool/prepare_github_release.py
+      - name: Download all three app builds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: flutter-network-viewer-${{ needs.version.outputs.version }}-*
+          path: dist
+          merge-multiple: true
+      - name: Verify downloads and generate checksums
+        run: |
+          cd dist
+          for platform in macos-arm64 macos-x86_64 windows-x64; do
+            test -s "flutter-network-viewer-$RELEASE_VERSION-$platform.zip"
+          done
+          sha256sum --check ./*.sha256
+          test -s "flutter-network-viewer-$RELEASE_VERSION-windows-x64-setup.exe"
+          for platform in macos-arm64 macos-x86_64 windows-x64; do
+            test -s "appcast-$platform.xml"
+          done
+          sha256sum ./*.zip ./*.exe ./*.xml > SHA256SUMS.txt
+      - name: Create draft with app downloads
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "::error::Release $RELEASE_TAG already exists. It will not be overwritten."
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "$RELEASE_TITLE" \
+            --notes-file build/release-notes.md \
+            dist/*.zip dist/*.exe dist/*.xml dist/SHA256SUMS.txt
+          printf '## Draft ready\n\nReview and publish: %s\n' \
+            "$(gh release view "$RELEASE_TAG" --json url --jq .url)" >> "$GITHUB_STEP_SUMMARY"

@@ -78,6 +78,12 @@ Cổng mặc định là **38943**. Nếu đổi cổng, bấm **Save & restart*
 
 ![Cài đặt: giao diện, kết nối và MCP](docs/screenshots/settings.jpg)
 
+## Cập nhật ứng dụng
+
+App kiểm tra phiên bản mới khi mở. Bạn cũng có thể vào **Settings → App updates → Check for updates** để kiểm tra thủ công. Khi có bản mới, xác nhận trong cửa sổ cập nhật để tải và cài đặt; app sẽ đóng rồi mở lại. Hãy xuất capture cần giữ trước khi cập nhật.
+
+Bản **0.1.0** cần tải và cài thủ công bản có updater một lần. Trên macOS, kéo app vào **Applications**. Trên Windows, nên dùng file `windows-x64-setup.exe`.
+
 ## Khi chưa thấy request hoặc log
 
 - Kiểm tra trạng thái **Connected**, URL mới nhất và nút **Pause**.
@@ -108,3 +114,10 @@ flutter build windows --release
 ```
 
 Bản macOS nằm tại `build/macos/Build/Products/Release/Flutter Network Viewer.app`. Bản Windows nằm trong `build/windows/x64/runner/Release/`; giữ nguyên các file đi kèm khi sao chép ứng dụng.
+
+
+## Phát hành bản mới
+
+GitHub Actions kiểm tra format, analyze và test cho pull request. Khi tăng version và build number trong `pubspec.yaml`, điền `github_release_info.md` rồi push lên `main`, workflow build macOS chip M, macOS Intel và Windows x64, tạo draft release kèm ZIP, installer Windows, feed cập nhật đã ký và checksum. Bạn kiểm tra draft trước khi publish.
+
+Xem [hướng dẫn phát hành](docs/releasing.md) và [cấu hình khóa ký cập nhật](docs/app-updates.md). Cần cấu hình hai Actions secrets trước lần release đầu tiên.

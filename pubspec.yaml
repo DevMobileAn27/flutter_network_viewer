@@ -1,7 +1,7 @@
 name: flutter_network_viewer
 description: Flutter desktop network and console inspector powered by Dart VM Service.
 publish_to: none
-version: 0.1.0+1
+version: 0.1.2+3
 
 environment:
   sdk: ^3.11.0
@@ -17,6 +17,8 @@ dependencies:
 
   intl: ^0.20.2
   mcp_dart: ^2.4.3
+  auto_updater: ^1.0.0
+  package_info_plus: ^10.2.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

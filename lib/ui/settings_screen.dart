@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../l10n/strings.dart';
 import '../services/app_settings.dart';
+import '../services/app_updater.dart';
 import '../services/viewer_server.dart';
 import '../services/viewer_mcp_server.dart';
 import 'components.dart';
@@ -13,10 +15,12 @@ class SettingsScreen extends StatefulWidget {
     required this.settings,
     required this.server,
     required this.mcpServer,
+    this.updater,
   });
   final AppSettings settings;
   final ViewerServer server;
   final ViewerMcpServer mcpServer;
+  final AppUpdater? updater;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -25,6 +29,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _port;
   late final TextEditingController _mcpPort;
+  late final Future<String> _version;
   bool _savingLanguage = false;
   bool _savingTheme = false;
   bool _savingPort = false;
@@ -35,6 +40,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _version = PackageInfo.fromPlatform()
+        .then((info) => info.version)
+        .onError((_, _) => '—');
     _port = TextEditingController(
       text:
           widget.settings.preferences?.getString('vmServiceUri') ??
@@ -153,6 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       widget.settings,
       widget.server,
       widget.mcpServer,
+      if (widget.updater != null) widget.updater!,
     ]),
     builder: (context, child) => Scaffold(
       appBar: AppBar(
@@ -240,6 +249,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ]),
               const SizedBox(height: 20),
               _mcpSection(),
+              if (widget.updater case final updater?) ...[
+                const SizedBox(height: 20),
+                _section(Icons.system_update_alt, context.l10n.appUpdates, [
+                  FutureBuilder<String>(
+                    future: _version,
+                    builder: (context, snapshot) => Text(
+                      'Version ${snapshot.data ?? '…'} - Nguyễn Quốc An',
+                      key: const ValueKey('app-version'),
+                      style: TextStyle(color: context.palette.muted),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    switch (updater.status) {
+                      UpdateStatus.idle => context.l10n.updateReady,
+                      UpdateStatus.checking => context.l10n.updateChecking,
+                      UpdateStatus.available => context.l10n.updateAvailable,
+                      UpdateStatus.current => context.l10n.updateCurrent,
+                      UpdateStatus.failed => context.l10n.updateFailed,
+                      UpdateStatus.installing => context.l10n.updateInstalling,
+                    },
+                    style: TextStyle(
+                      color: switch (updater.status) {
+                        UpdateStatus.idle => context.palette.muted,
+                        UpdateStatus.failed => context.palette.danger,
+                        UpdateStatus.available || UpdateStatus.current =>
+                          context.palette.methodColor('POST'),
+                        UpdateStatus.checking ||
+                        UpdateStatus.installing => context.palette.info,
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    key: const ValueKey('check-app-updates'),
+                    onPressed: updater.supported && !updater.busy
+                        ? () => updater.check()
+                        : null,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: Text(context.l10n.checkForUpdates),
+                  ),
+                ]),
+              ],
             ],
           );
         },

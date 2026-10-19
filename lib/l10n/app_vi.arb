@@ -262,5 +262,13 @@
         "type": "int"
       }
     }
-  }
+  },
+  "appUpdates": "Cập nhật ứng dụng",
+  "checkForUpdates": "Kiểm tra cập nhật",
+  "updateReady": "Kiểm tra phiên bản mới.",
+  "updateChecking": "Đang kiểm tra cập nhật…",
+  "updateAvailable": "Có phiên bản mới. Xác nhận trong cửa sổ cập nhật để cài đặt.",
+  "updateCurrent": "Bạn đang dùng phiên bản mới nhất.",
+  "updateFailed": "Không thể kiểm tra cập nhật. Kiểm tra kết nối rồi thử lại.",
+  "updateInstalling": "Đang đóng ứng dụng để cài bản cập nhật…"
 }

@@ -262,5 +262,13 @@
         "type": "int"
       }
     }
-  }
+  },
+  "appUpdates": "App updates",
+  "checkForUpdates": "Check for updates",
+  "updateReady": "Check for a new version.",
+  "updateChecking": "Checking for updates…",
+  "updateAvailable": "A new version is available. Confirm in the update window to install.",
+  "updateCurrent": "You’re up to date.",
+  "updateFailed": "Could not check for updates. Check your connection and try again.",
+  "updateInstalling": "Closing the app to install the update…"
 }
