@@ -23,16 +23,16 @@ On Windows, run the installer. For the portable ZIP, unzip and run **flutter_net
 
 Use `SHA256SUMS.txt` to verify downloads. The `appcast-*.xml` files are used by the app updater.
 
-### If macOS blocks the app
+### Nếu macOS chặn ứng dụng
 
-After moving the app into **Applications**, if macOS reports an unverified developer or a damaged app, run in **Terminal**:
+Sau khi chuyển ứng dụng vào **Applications**, nếu macOS báo nhà phát triển chưa được xác minh hoặc ứng dụng bị hỏng, hãy chạy các lệnh sau trong **Terminal**:
 
 ```sh
 xattr -dr com.apple.quarantine "/Applications/Flutter Network Viewer.app"
 open "/Applications/Flutter Network Viewer.app"
 ```
 
-Only use this for a trusted download from this repository’s official GitHub Releases.
+Các lệnh trên gỡ thuộc tính cách ly (quarantine) của ứng dụng và mở lại app. Chỉ sử dụng với bản tải xuống đáng tin cậy từ GitHub Releases chính thức của kho mã nguồn này.
 
 ## Upgrading
 
