@@ -71,32 +71,32 @@ def verify_tag_commit(tag, commit):
 
 
 def main():
-    source = Path('pubspec.yaml').read_text()
+    source = Path('pubspec.yaml').read_text(encoding='utf-8')
     version = app_version(source)
     build = app_build(source)
     before = os.environ.get('BEFORE_COMMIT', '')
     if before and set(before) != {'0'}:
         previous_source = subprocess.check_output(
-            ['git', 'show', f'{before}:pubspec.yaml'], text=True,
+            ['git', 'show', f'{before}:pubspec.yaml'], text=True, encoding='utf-8',
         )
         previous = app_version(previous_source)
         if not version_increased(version, previous):
-            with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+            with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
                 output.write('should_release=false\n')
             print(f'Version remains {version}; no release build needed.')
             return
         if build <= app_build(previous_source):
             raise ValueError('Increase the Flutter build number so installed macOS apps detect the update')
 
-    tag, title, body = release_info(Path('github_release_info.md').read_text(), version)
+    tag, title, body = release_info(Path('github_release_info.md').read_text(encoding='utf-8'), version)
     commit = os.environ['GITHUB_SHA']
     verify_tag_commit(tag, commit)
     body_path = Path('build/release-notes.md')
     body_path.parent.mkdir(parents=True, exist_ok=True)
-    body_path.write_text(body)
-    with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+    body_path.write_text(body, encoding='utf-8')
+    with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
         output.write(f'should_release=true\nversion={version}\ntag={tag}\ntitle={title}\n')
-    with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+    with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
         summary.write(f'## {tag}\n\nCommit: `{commit}`\n\n')
         summary.write('Build all three desktop apps, then create a draft from github_release_info.md.\n')
 

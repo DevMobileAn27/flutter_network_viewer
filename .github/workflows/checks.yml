@@ -13,13 +13,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release_tools:
+    name: Test release tools (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test release tools with locale encoding
+        run: python -X utf8=0 -m unittest discover -s tool -p 'test_*.py'
+
   checks:
     name: Format, analyze and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Test release metadata validation
-        run: python3 -m unittest discover -s tool -p 'test_*.py'
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

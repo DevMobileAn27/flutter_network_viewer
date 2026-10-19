@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -70,7 +71,7 @@ class ReleasePreparationTest(unittest.TestCase):
                    GITHUB_OUTPUT=str(self.root / 'output'),
                    GITHUB_STEP_SUMMARY=str(self.root / 'summary'))
         return subprocess.run(
-            ['python3', str(SCRIPT)], cwd=self.root, env=env,
+            [sys.executable, str(SCRIPT)], cwd=self.root, env=env,
             capture_output=True, text=True, check=False,
         )
 

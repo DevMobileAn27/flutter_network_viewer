@@ -31,7 +31,7 @@ def sign_archive(archive, platform, private_key):
         return 'edSignature', result.decode().strip()
     with tempfile.TemporaryDirectory(prefix='fnv-sign-') as folder:
         key = Path(folder) / 'private.pem'
-        key.write_text(private_key)
+        key.write_text(private_key, encoding='utf-8')
         key.chmod(0o600)
         public = subprocess.check_output(['openssl', 'dsa', '-in', str(key), '-pubout'],
                                          stderr=subprocess.DEVNULL)
@@ -80,10 +80,10 @@ def main():
     parser.add_argument('platform', choices=['macos-arm64', 'macos-x86_64', 'windows-x64'])
     parser.add_argument('archive', type=Path)
     args = parser.parse_args()
-    source = Path('pubspec.yaml').read_text()
+    source = Path('pubspec.yaml').read_text(encoding='utf-8')
     version = app_version(source)
     build = str(app_build(source))
-    _, title, body = release_info(Path('github_release_info.md').read_text(), version)
+    _, title, body = release_info(Path('github_release_info.md').read_text(encoding='utf-8'), version)
     extension = '-setup.exe' if args.platform == 'windows-x64' else '.zip'
     expected = f'flutter-network-viewer-{version}-{args.platform}{extension}'
     if args.archive.name != expected:
