@@ -6,6 +6,7 @@ import '../services/app_settings.dart';
 import '../services/app_updater.dart';
 import '../l10n/strings.dart';
 import 'settings_screen.dart';
+import 'help_dialog.dart';
 
 import '../models/capture.dart';
 import '../services/capture_store.dart';
@@ -488,8 +489,11 @@ class _ViewerShellState extends State<ViewerShell>
           icon: Icon(Icons.settings_outlined, size: 20),
         ),
         IconButton(
-          tooltip: context.l10n.connectionGuide,
-          onPressed: _connectionGuide,
+          tooltip: context.l10n.helpTitle,
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (_) => const HelpDialog(),
+          ),
           icon: Icon(Icons.help_outline, size: 20),
         ),
       ],

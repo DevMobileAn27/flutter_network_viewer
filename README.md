@@ -36,7 +36,9 @@ Trên Windows, chạy installer. Với bản portable, giải nén rồi mở **
 
 Khi chạy lại project và URL thay đổi, Viewer tự tìm lại project đã chọn. Có thể bật/tắt tại **Settings → Connection → Automatically detect Flutter apps**. Nút **Stop** dừng cả việc tự tìm và kết nối lại.
 
-Tự tìm hỗ trợ ứng dụng chạy trên cùng máy, bao gồm Android emulator. Nếu không tìm thấy project hoặc cần kết nối thủ công, bấm **?**, dán **Flutter DevTools URL** hoặc **Dart VM Service URL** từ terminal, rồi bấm **Connect an app**. Cũng có thể nhập URL tại **Settings → Connection → Save & restart**; thao tác này chuyển sang kết nối thủ công.
+Tự tìm hỗ trợ ứng dụng chạy trên cùng máy, bao gồm Android emulator. Nếu không tìm thấy project hoặc cần kết nối thủ công, bấm **Connect an app** khi danh sách trống, dán **Flutter DevTools URL** hoặc **Dart VM Service URL** từ terminal, rồi bấm **Connect an app**. Cũng có thể nhập URL tại **Settings → Connection → Save & restart**; thao tác này chuyển sang kết nối thủ công.
+
+Bấm **?** trên thanh đầu trang để mở hướng dẫn sử dụng cơ bản. Nút **Go to Discussion** mở [GitHub Discussions](https://github.com/DevMobileAn27/flutter_network_viewer/discussions) để đặt câu hỏi, góp ý hoặc báo vấn đề.
 
 ## Network
 
