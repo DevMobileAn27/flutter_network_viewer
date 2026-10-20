@@ -125,7 +125,11 @@ void main() {
     'popup stays open, leaves app interactive and replaces previous',
     (tester) async {
       await mount(tester);
-      final old = showViewerNotification(pageContext, description: 'First');
+      final old = showViewerNotification(
+        pageContext,
+        description: 'First',
+        autoHide: false,
+      );
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 10));
       expect(find.text('First'), findsOneWidget);
@@ -145,6 +149,53 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('success and info auto-hide after 3 seconds by default', (
+    tester,
+  ) async {
+    await mount(tester);
+    for (final type in [
+      ViewerNotificationType.success,
+      ViewerNotificationType.info,
+    ]) {
+      final result = showViewerNotification(
+        pageContext,
+        type: type,
+        description: 'Timed message',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 2999));
+      expect(find.text('Timed message'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(find.text('Timed message'), findsNothing);
+      expect(await result, isFalse);
+    }
+  });
+
+  testWidgets('warnings, errors and confirmations stay open by default', (
+    tester,
+  ) async {
+    await mount(tester);
+    for (final (type, confirmation) in [
+      (ViewerNotificationType.warning, false),
+      (ViewerNotificationType.danger, false),
+      (ViewerNotificationType.success, true),
+      (ViewerNotificationType.info, true),
+    ]) {
+      final result = showViewerNotification(
+        pageContext,
+        type: type,
+        confirmation: confirmation,
+        description: 'Needs attention',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 10));
+      expect(find.text('Needs attention'), findsOneWidget);
+      await tester.tap(find.text(confirmation ? 'Confirm' : 'OK'));
+      await tester.pump();
+      expect(await result, isTrue);
+    }
+  });
 
   testWidgets('autoHide honors the requested delay and never confirms', (
     tester,

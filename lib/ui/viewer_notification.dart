@@ -12,15 +12,16 @@ final _notifications = Expando<_NotificationSession>();
 
 /// Shows a non-modal notification. Returns true for OK/Confirm, false for
 /// Cancel, auto-hide, replacement, or disposal of the overlay.
-/// Auto-hide is disabled by default. When enabled, the delay is measured from
-/// when the popup is mounted; [hideAfterMilisecond] must be non-negative.
+/// Success and info notifications auto-hide after 3 seconds by default, except
+/// confirmations. The delay is measured from when the popup is mounted;
+/// [hideAfterMilisecond] must be non-negative.
 Future<bool> showViewerNotification(
   BuildContext context, {
   required String description,
   String? title,
   ViewerNotificationType type = ViewerNotificationType.info,
   bool confirmation = false,
-  bool autoHide = false,
+  bool? autoHide,
   int hideAfterMilisecond = 3000,
 }) {
   if (hideAfterMilisecond < 0) {
@@ -33,7 +34,11 @@ Future<bool> showViewerNotification(
   final overlay = Overlay.of(context, rootOverlay: true);
   _notifications[overlay]?.close(false);
   final session = _NotificationSession(
-    autoHide: autoHide,
+    autoHide:
+        autoHide ??
+        (!confirmation &&
+            (type == ViewerNotificationType.success ||
+                type == ViewerNotificationType.info)),
     hideAfterMilisecond: hideAfterMilisecond,
   );
   _notifications[overlay] = session;
