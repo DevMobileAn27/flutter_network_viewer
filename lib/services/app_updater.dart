@@ -111,6 +111,7 @@ class AppUpdater extends ChangeNotifier with UpdaterListener {
     if (!isWindows && status == UpdateStatus.current) return;
     _setStatus(UpdateStatus.failed);
   }
+
   @override
   void onUpdaterUpdateNotAvailable(UpdaterError? error) =>
       _setStatus(UpdateStatus.current);

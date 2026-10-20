@@ -299,30 +299,41 @@ void main() {
       );
       final formats = find.byKey(const ValueKey('copy-mcp-formats'));
       await tester.ensureVisible(formats);
-      expect(find.byKey(const ValueKey('copy-mcp-json')), findsNothing);
-      await tester.tap(formats);
-      await tester.pumpAndSettle();
-      final copyJson = find.byKey(const ValueKey('copy-mcp-json'));
-      await tester.tap(copyJson);
-      await tester.pumpAndSettle();
-      expect(
-        jsonDecode(copied!)['mcpServers']['flutter-network-viewer']['url'],
-        'http://127.0.0.1:39942/mcp',
-      );
-      expect(find.byKey(const ValueKey('copy-mcp-json')), findsNothing);
-      await tester.tap(formats);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('copy-mcp-codex')));
-      await tester.pumpAndSettle();
-      expect(
-        copied,
-        '[mcp_servers.flutter-network-viewer]\nurl = "http://127.0.0.1:39942/mcp"\n',
-      );
+      expect(find.widgetWithText(TextButton, 'Codex'), findsOneWidget);
       final copySetup = find.byKey(const ValueKey('copy-mcp-setup'));
-      await tester.ensureVisible(copySetup);
       await tester.tap(copySetup);
       await tester.pumpAndSettle();
-      expect(copied, mcp.setupCommand);
+      expect(copied, mcp.setupCommand(McpSetupClient.codex));
+      expect(copied, contains('codex mcp add flutter-network-viewer --url'));
+      expect(copied, contains(mcp.codexConfiguration));
+      expect(copied, isNot(contains('claude mcp add')));
+      expect(find.text('Copied successfully'), findsOneWidget);
+      final codexPrompt = copied;
+      await tester.tap(formats);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('copy-mcp-codex')), findsOneWidget);
+      final selectorRect = tester.getRect(formats);
+      final optionRect = tester.getRect(
+        find.byKey(const ValueKey('copy-mcp-codex')),
+      );
+      expect(
+        optionRect.left,
+        inInclusiveRange(selectorRect.left, selectorRect.left + 12),
+      );
+      // Flutter may flip the menu above the selector near the screen bottom.
+      expect(
+        optionRect.bottom <= selectorRect.top ||
+            optionRect.top >= selectorRect.bottom,
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('copy-mcp-claude')));
+      await tester.pumpAndSettle();
+      expect(copied, codexPrompt, reason: 'Choosing a client must not copy');
+      expect(find.byKey(const ValueKey('copy-mcp-claude')), findsNothing);
+      expect(find.widgetWithText(TextButton, 'Claude'), findsOneWidget);
+      await tester.tap(copySetup);
+      await tester.pumpAndSettle();
+      expect(copied, mcp.setupCommand(McpSetupClient.claude));
       expect(copied, contains('Transport: Streamable HTTP'));
       expect(copied, contains('Endpoint: http://127.0.0.1:39942/mcp'));
       expect(copied, isNot(contains('38943')));
@@ -332,7 +343,7 @@ void main() {
           'claude mcp add --transport http --scope user flutter-network-viewer',
         ),
       );
-      expect(copied, contains('codex mcp add flutter-network-viewer --url'));
+      expect(copied, isNot(contains('codex mcp add')));
       expect(copied, contains(mcp.clientConfiguration));
       expect(copied, contains('"mcp-remote"'));
       expect(copied, contains('ChatGPT web/cloud connectors cannot reach'));
@@ -340,6 +351,13 @@ void main() {
         copied,
         contains('Do not claim access until a tool call succeeds'),
       );
+      await tester.tap(formats);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('copy-mcp-codex')));
+      await tester.pumpAndSettle();
+      await tester.tap(copySetup);
+      await tester.pumpAndSettle();
+      expect(copied, codexPrompt);
       await tester.ensureVisible(toggle);
       await tester.tap(toggle);
       await tester.pumpAndSettle();

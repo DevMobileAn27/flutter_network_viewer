@@ -13,6 +13,7 @@ import '../services/capture_store.dart';
 import '../services/viewer_server.dart';
 import '../services/viewer_mcp_server.dart';
 import 'components.dart';
+import 'viewer_notification.dart';
 import 'animated_pill_indicator.dart';
 import 'application_tabs.dart';
 import 'viewer_dropdown.dart';
@@ -147,15 +148,21 @@ class _ViewerShellState extends State<ViewerShell>
       );
       if (location == null) return;
       await File(location.path).writeAsString(snapshot);
-      if (mounted) _notice(context.l10n.exportedTo(location.path));
+      if (mounted) {
+        _notice(
+          context.l10n.exportedTo(location.path),
+          type: ViewerNotificationType.success,
+        );
+      }
     } catch (e) {
       if (mounted) _notice(context.l10n.exportFailed(e.toString()));
     }
   }
 
-  void _notice(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _notice(
+    String message, {
+    ViewerNotificationType type = ViewerNotificationType.danger,
+  }) => showViewerNotification(context, type: type, description: message);
 
   Future<void> _rememberLayout(Future<void> save) async {
     try {
@@ -200,7 +207,10 @@ class _ViewerShellState extends State<ViewerShell>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(context.l10n.flutterConnectionGuide),
+                    Text(
+                      context.l10n.flutterConnectionGuide,
+                      style: TextStyle(color: context.palette.description),
+                    ),
                     const SizedBox(height: 20),
                     TextField(
                       key: const ValueKey('connect-vm-uri'),
@@ -215,7 +225,10 @@ class _ViewerShellState extends State<ViewerShell>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(context.l10n.flutterCaptureScope),
+                    Text(
+                      context.l10n.flutterCaptureScope,
+                      style: TextStyle(color: context.palette.description),
+                    ),
                   ],
                 ),
               ),
@@ -312,6 +325,7 @@ class _ViewerShellState extends State<ViewerShell>
                       server.discoveredApps.isEmpty
                           ? context.l10n.waitingForFlutterApps
                           : context.l10n.chooseFlutterApp,
+                      style: TextStyle(color: context.palette.description),
                     ),
                     for (final app in server.discoveredApps)
                       OutlinedButton(
@@ -439,13 +453,23 @@ class _ViewerShellState extends State<ViewerShell>
           ),
         ),
         StatusChip(
-          server.busy
+          server.searching
+              ? context.l10n.searchingFlutterApps
+              : server.busy
               ? context.l10n.starting
               : server.running
               ? context.l10n.connected
-              : server.searching
-              ? context.l10n.searchingFlutterApps
               : context.l10n.serverStopped,
+          leading: server.searching
+              ? SizedBox.square(
+                  dimension: 12,
+                  child: CircularProgressIndicator(
+                    key: const ValueKey('discovery-loading'),
+                    strokeWidth: 2,
+                    color: context.palette.accent,
+                  ),
+                )
+              : null,
           color: server.running
               ? context.palette.accent
               : context.palette.muted,
@@ -455,6 +479,9 @@ class _ViewerShellState extends State<ViewerShell>
           tooltip: server.running || server.searching
               ? context.l10n.stopServer
               : context.l10n.startServer,
+          color: server.running || server.searching
+              ? const Color(0xffeab308)
+              : context.palette.accent,
           onPressed: server.busy && !server.searching
               ? null
               : () async {
@@ -477,11 +504,6 @@ class _ViewerShellState extends State<ViewerShell>
                 : Icons.play_circle_outline,
             size: 21,
           ),
-        ),
-        IconButton(
-          tooltip: context.l10n.findFlutterApps,
-          onPressed: server.busy ? null : _autoConnect,
-          icon: const Icon(Icons.radar, size: 20),
         ),
         IconButton(
           tooltip: context.l10n.settings,

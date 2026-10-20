@@ -4,9 +4,7 @@
 
 Tự tìm project Flutter đang chạy, tìm kiếm trong JSON, xem nhanh màu và ảnh base64. App ghi nhớ cách chia các khung, độ rộng cột và tab chi tiết bạn đang dùng.
 
-![Network: danh sách request và chi tiết response](docs/screenshots/network.jpg)
-
-Các ảnh trong hướng dẫn sử dụng dữ liệu demo.
+Mỗi mục bên dưới có một GIF ngắn minh họa riêng, sử dụng dữ liệu demo. Mũi tên đỏ chỉ vị trí thao tác hoặc nội dung cần xem.
 
 ## Cài đặt
 
@@ -31,8 +29,10 @@ Trên Windows, chạy installer. Với bản portable, giải nén rồi mở **
 
 1. Chạy ứng dụng cần theo dõi ở chế độ **debug** hoặc **profile**.
 2. Mở Flutter Network Viewer. App tự tìm và kết nối khi có một ứng dụng Flutter đang chạy trên cùng máy tính.
-3. Nếu có nhiều ứng dụng, chọn tên project trong danh sách xuất hiện phía trên. Có thể bấm biểu tượng **radar** để tìm lại.
+3. Nếu có nhiều ứng dụng, chọn tên project trong danh sách xuất hiện phía trên. Có thể bấm **Dừng**, rồi **Start** để tìm lại khi bật tự phát hiện trong Cài đặt → Kết nối.
 4. Đợi trạng thái **Connected**, rồi thao tác trên ứng dụng Flutter để phát sinh request và log.
+
+![Kết nối: bấm Start và đợi Viewer tự kết nối với dự án Flutter](docs/screenshots/connection.gif)
 
 Khi chạy lại project và URL thay đổi, Viewer tự tìm lại project đã chọn. Có thể bật/tắt tại **Settings → Connection → Automatically detect Flutter apps**. Nút **Stop** dừng cả việc tự tìm và kết nối lại.
 
@@ -52,6 +52,8 @@ Bấm **?** trên thanh đầu trang để mở hướng dẫn sử dụng cơ b
 
 Nếu có nhiều ứng dụng, chọn tab tên ứng dụng để xem riêng hoặc **All** để xem tất cả.
 
+![Network: lọc request theo URL, chọn request và mở Response body](docs/screenshots/network.gif)
+
 ### Xem ảnh trong body
 
 Chọn **Response body** để xem ảnh đã thu thập. App tự nhận diện ảnh base64, kể cả khi response thiếu thông tin kiểu ảnh. Hỗ trợ cả data URI và chuỗi base64 được bọc trong JSON.
@@ -61,7 +63,7 @@ Chọn **Response body** để xem ảnh đã thu thập. App tự nhận diện
 - Chọn **Raw** để đọc hoặc copy chuỗi gốc, rồi chuyển lại **Image preview** khi cần.
 - Body không phải ảnh hoặc không giải mã được vẫn có thể đọc ở dạng văn bản/Raw.
 
-![Response body: tự nhận diện và xem ảnh base64](docs/screenshots/image-preview.jpg)
+![Xem ảnh: preview ảnh base64 và mở cửa sổ phóng to](docs/screenshots/image-preview.gif)
 
 ## Console
 
@@ -69,7 +71,7 @@ Xem log từ `print/debugPrint`, lỗi stderr và `dart:developer`. Tìm theo n�
 
 Chọn một dòng để xem chi tiết. Log JSON có thể xem ở dạng **JSON / Tree**; các khối JSON hoặc lỗi Flutter được ghép lại khi nhận diện được. Có thể copy nội dung và kéo divider để điều chỉnh phần danh sách/chi tiết; vị trí được ghi nhớ riêng với Network.
 
-![Console: lọc log và xem chi tiết](docs/screenshots/console.jpg)
+![Console: lọc nội dung log và chọn một dòng để xem chi tiết](docs/screenshots/console.gif)
 
 ## Json beautify
 
@@ -79,7 +81,7 @@ Chọn một dòng để xem chi tiết. Log JSON có thể xem ở dạng **JSO
 
 Nếu JSON không hợp lệ, app hiển thị dòng và cột có lỗi. Kéo divider để thay đổi độ rộng hai khung; vị trí này được ghi nhớ. Công cụ dùng được ngay cả khi chưa kết nối ứng dụng.
 
-![Json beautify: định dạng và tìm kiếm trong JSON](docs/screenshots/json-beautify.jpg)
+![Json beautify: nhập JSON, bấm Format, xem JSON rồi chuyển sang Tree](docs/screenshots/json-beautify.gif)
 
 ### Tìm trong JSON
 
@@ -96,11 +98,15 @@ Thanh tìm kiếm có trong **Request body**, **Response body** khi nội dung l
 
 Kết quả được tô sáng trong nội dung. **2 of 3** nghĩa là đang ở kết quả thứ 2 trong 3 kết quả; **No results** nghĩa là chưa có kết quả để hiển thị. Nội dung tìm kiếm được giữ khi đổi giữa JSON và Tree.
 
+![Tìm trong JSON: nhập từ khóa, chuyển kết quả tiếp theo và xem ở dạng Tree](docs/screenshots/json-search.gif)
+
 ## Tạm dừng, xóa và xuất dữ liệu
 
 - **Pause / Resume**: tạm dừng hoặc tiếp tục nhận dữ liệu. Request và log phát sinh trong lúc tạm dừng sẽ không được bổ sung lại.
 - **Clear**: xóa request và log đang lưu trong Viewer.
 - **Export**: lưu toàn bộ dữ liệu đã thu thập thành file JSON, bao gồm cả mục đang bị ẩn bởi bộ lọc.
+
+![Các nút capture: vị trí Pause/Resume, Export và Clear trên thanh công cụ](docs/screenshots/capture-controls.gif)
 
 Dữ liệu chỉ được giữ trong phiên mở app; hãy xuất trước khi đóng nếu cần lưu lại. Khi đạt giới hạn lưu trữ, các mục cũ nhất được loại bỏ.
 
@@ -111,13 +117,13 @@ Bấm biểu tượng **bánh răng** để đổi giao diện sáng/tối, ngô
 Để dùng dữ liệu trong công cụ AI có hỗ trợ MCP:
 
 1. Vào **Settings → MCP** và bật công tắc.
-2. Bấm **Copy setup command**, sau đó dán vào công cụ AI để thiết lập kết nối.
-3. Nếu cần cấu hình thủ công, bấm mũi tên bên cạnh nút copy để chọn cấu hình JSON hoặc Codex.
+2. Bấm phần **Codex ▾** để chọn **Codex** hoặc **Claude**.
+3. Bấm **Copy & Paste to**, sau đó dán vào công cụ AI đã chọn để thiết lập kết nối.
 4. Giữ Viewer mở và chạy công cụ AI trên cùng máy tính.
 
 Cổng mặc định là **38943**. Nếu đổi cổng, bấm **Save & restart** rồi sao chép lại cấu hình. MCP cho phép AI đọc danh sách ứng dụng, request, chi tiết request, log và thống kê dữ liệu đang có.
 
-![Cài đặt: giao diện, kết nối và MCP](docs/screenshots/settings.jpg)
+![MCP: mở danh sách Codex/Claude và sao chép lệnh thiết lập](docs/screenshots/settings-mcp.gif)
 
 ## Cập nhật ứng dụng
 

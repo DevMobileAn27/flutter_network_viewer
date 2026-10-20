@@ -23,7 +23,7 @@
   "guideTitle": "Kết nối ứng dụng Flutter",
   "helpTitle": "Hướng dẫn sử dụng cơ bản",
   "helpConnectTitle": "1. Kết nối ứng dụng Flutter",
-  "helpConnectBody": "Chạy project Flutter ở chế độ debug hoặc profile. Viewer tự tìm ứng dụng trên cùng máy; bấm nút radar để tìm lại hoặc chọn project khi có nhiều ứng dụng. Để kết nối thủ công, dán URL DevTools hoặc VM Service tại Cài đặt → Kết nối, rồi bấm Lưu và khởi động lại.",
+  "helpConnectBody": "Chạy project Flutter ở chế độ debug hoặc profile. Viewer tự tìm ứng dụng trên cùng máy; chọn project khi có nhiều ứng dụng. Khi bật tự phát hiện, bấm Dừng rồi Start để tìm lại. Để kết nối thủ công, dán URL DevTools hoặc VM Service tại Cài đặt → Kết nối, rồi bấm Lưu và khởi động lại.",
   "helpNetworkTitle": "2. Xem request trong tab Mạng",
   "helpNetworkBody": "Thao tác trên ứng dụng Flutter để phát sinh request, rồi chọn một dòng để xem header và body. Lọc theo URL, method hoặc trạng thái. JSON có chế độ JSON / Tree và tìm kiếm; ảnh và chuỗi màu có preview. Kéo divider giữa các khung và cột để đổi kích thước.",
   "helpConsoleTitle": "3. Đọc log trong tab Nhật ký",
@@ -32,7 +32,7 @@
   "helpJsonBody": "Dán JSON vào khung bên trái và bấm Định dạng, hoặc nhấn ⌘/Ctrl + Enter. Xem kết quả dưới dạng JSON / Tree, tìm kiếm và sao chép. Công cụ này dùng được cả khi chưa kết nối ứng dụng.",
   "helpCaptureTitle": "5. Tạm dừng, xóa và xuất dữ liệu",
   "helpCaptureBody": "Tạm dừng ngừng thu thập request và log mới; Tiếp tục bật lại việc thu thập. Xóa loại bỏ dữ liệu đã thu thập. Xuất lưu capture thành file JSON. Hãy xuất trước khi đóng Viewer nếu cần giữ lại dữ liệu.",
-  "goToDiscussion": "Go to Discussion",
+  "goToDiscussion": "Tham gia thảo luận",
   "openDiscussionFailed": "Không thể mở trình duyệt. Bạn có thể sao chép và mở địa chỉ này:",
   "availableEndpoints": "Endpoint",
   "physicalDeviceGuide": "Thiết bị thật: VIEWER_HOST = IP LAN máy tính (cùng mạng).",
@@ -214,7 +214,8 @@
   "mcpPort": "Cổng MCP",
   "mcpEndpoint": "Địa chỉ kết nối",
   "copyMcpJson": "Sao chép cấu hình JSON",
-  "copyMcpSetup": "Sao chép lệnh thiết lập",
+  "copyMcpSetup": "Copy & Paste to",
+  "mcpCopySuccess": "Sao chép thành công",
   "copyMcpCodex": "Sao chép cấu hình Codex",
   "formatJson": "Format",
   "invalidJson": "JSON không hợp lệ",
@@ -288,7 +289,7 @@
   "autoDetectFlutterAppsDescription": "Tìm ứng dụng được chạy bằng Flutter trên máy này và tự kết nối lại khi URL thay đổi. Bạn vẫn có thể nhập URL thủ công.",
   "findFlutterApps": "Tìm ứng dụng Flutter đang chạy",
   "searchingFlutterApps": "Đang tìm…",
-  "waitingForFlutterApps": "Đang chờ ứng dụng Flutter… Chạy project ở chế độ debug hoặc profile, hoặc nhập URL tại Cài đặt → Kết nối.",
+  "waitingForFlutterApps": "Vui lòng khởi động dự án Flutter của bạn. Hoặc vào Cài đặt -> Kết nối, nhập URL devtools dự án của bạn vào.",
   "chooseFlutterApp": "Chọn ứng dụng Flutter đang chạy:",
   "resizeNetworkColumn": "Điều chỉnh độ rộng cột {column}",
   "@resizeNetworkColumn": {
@@ -297,5 +298,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "notificationInfo": "Thông tin",
+  "notificationWarning": "Cảnh báo",
+  "notificationConfirm": "Xác nhận",
+  "notificationCancel": "Hủy",
+  "updateNewVersion": "Cập nhật phiên bản mới",
+  "manualEnterDevtoolsUrl": "Nhập URL DevTools thủ công"
 }

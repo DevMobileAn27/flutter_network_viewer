@@ -51,6 +51,15 @@ void main() {
         ),
       );
       final discussion = find.byKey(const ValueKey('go-to-discussion'));
+      expect(
+        find.descendant(
+          of: discussion,
+          matching: find.text(
+            language == 'en' ? 'Go to Discussion' : 'Tham gia thảo luận',
+          ),
+        ),
+        findsOneWidget,
+      );
       await tester.tap(discussion);
       await tester.pumpAndSettle();
       expect(find.text(HelpDialog.discussionUri.toString()), findsOneWidget);

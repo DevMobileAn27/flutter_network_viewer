@@ -8,6 +8,14 @@ import 'capture_store.dart';
 import 'mcp_capture_tools.dart';
 import 'viewer_server.dart';
 
+enum McpSetupClient {
+  codex('Codex'),
+  claude('Claude');
+
+  const McpSetupClient(this.label);
+  final String label;
+}
+
 class ViewerMcpServer extends ChangeNotifier {
   ViewerMcpServer(CaptureStore store, ViewerServer viewer)
     : _tools = McpCaptureTools(store, viewer);
@@ -32,7 +40,7 @@ class ViewerMcpServer extends ChangeNotifier {
   String get codexConfiguration =>
       '[mcp_servers.flutter-network-viewer]\nurl = "$endpoint"\n';
 
-  String get setupCommand =>
+  String setupCommand(McpSetupClient client) =>
       '''Connect to my local Flutter Network Viewer MCP server and use it to inspect my Flutter app's network requests and console logs.
 
 Server name: flutter-network-viewer
@@ -40,26 +48,27 @@ Transport: Streamable HTTP
 Endpoint: $endpoint
 Authentication: none (loopback only)
 
-Set up the MCP connection using the configuration supported by your client:
+Set up the MCP connection for ${client.label}:
 
-Claude Code:
-claude mcp add --transport http --scope user flutter-network-viewer $endpoint
-
-Codex CLI:
+${client == McpSetupClient.codex ? '''Codex CLI:
 codex mcp add flutter-network-viewer --url $endpoint
 
-Clients supporting HTTP MCP JSON configuration:
+Codex configuration:
+$codexConfiguration''' : '''Claude Code:
+claude mcp add --transport http --scope user flutter-network-viewer $endpoint
+
+Claude HTTP MCP configuration:
 $clientConfiguration
 
-For a stdio-only desktop client, use this bridge (requires Node.js and downloads mcp-remote on first run):
+For a stdio-only Claude desktop client, use this bridge (requires Node.js and downloads mcp-remote on first run):
 ${const JsonEncoder.withIndent('  ').convert({
-        'mcpServers': {
-          'flutter-network-viewer': {
-            'command': 'npx',
-            'args': ['-y', 'mcp-remote', endpoint],
-          },
-        },
-      })}
+              'mcpServers': {
+                'flutter-network-viewer': {
+                  'command': 'npx',
+                  'args': ['-y', 'mcp-remote', endpoint],
+                },
+              },
+            })}'''}
 
 Keep Flutter Network Viewer open with MCP enabled. The client must run on the same computer. ChatGPT web/cloud connectors cannot reach this localhost URL directly; use a client with local MCP support. If you cannot configure MCP in this environment, explain the required client setup instead of claiming to be connected.
 

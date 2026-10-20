@@ -23,7 +23,7 @@
   "guideTitle": "Connect your Flutter app",
   "helpTitle": "Basic usage guide",
   "helpConnectTitle": "1. Connect your Flutter app",
-  "helpConnectBody": "Run your Flutter project in debug or profile mode. Viewer automatically finds apps on this computer; use the radar button to search again or select a project if several are running. For a manual connection, paste a DevTools or VM Service URL in Settings → Connection, then choose Save & restart.",
+  "helpConnectBody": "Run your Flutter project in debug or profile mode. Viewer automatically finds apps on this computer; select a project if several are running. To search again with automatic detection enabled, stop the connection and press Start. For a manual connection, paste a DevTools or VM Service URL in Settings → Connection, then choose Save & restart.",
   "helpNetworkTitle": "2. Inspect requests in Network",
   "helpNetworkBody": "Use your Flutter app to generate requests, then select a row to inspect its headers and body. Filter by URL, method or status. JSON supports JSON / Tree views and search; images and color values have previews. Drag the panel and column dividers to resize them.",
   "helpConsoleTitle": "3. Read logs in Console",
@@ -214,7 +214,8 @@
   "mcpPort": "MCP port",
   "mcpEndpoint": "Endpoint",
   "copyMcpJson": "Copy JSON config",
-  "copyMcpSetup": "Copy setup command",
+  "copyMcpSetup": "Copy & Paste to",
+  "mcpCopySuccess": "Copied successfully",
   "copyMcpCodex": "Copy Codex config",
   "formatJson": "Format",
   "invalidJson": "Invalid JSON",
@@ -288,7 +289,7 @@
   "autoDetectFlutterAppsDescription": "Find apps started by Flutter on this computer and reconnect when their URL changes. You can still enter a URL manually.",
   "findFlutterApps": "Find running Flutter apps",
   "searchingFlutterApps": "Searching…",
-  "waitingForFlutterApps": "Waiting for a Flutter app… Run your project in debug or profile mode, or enter its URL in Settings → Connection.",
+  "waitingForFlutterApps": "Please start your Flutter project. Or go to Settings -> Connection and enter your project's DevTools URL.",
   "chooseFlutterApp": "Select a running Flutter app:",
   "resizeNetworkColumn": "Resize {column} column",
   "@resizeNetworkColumn": {
@@ -297,5 +298,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "notificationInfo": "Information",
+  "notificationWarning": "Warning",
+  "notificationConfirm": "Confirm",
+  "notificationCancel": "Cancel",
+  "updateNewVersion": "Update new version",
+  "manualEnterDevtoolsUrl": "Manual enter URL devtools"
 }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../models/capture.dart';
 import 'viewer_theme.dart';
+import 'viewer_notification.dart';
 import '../l10n/strings.dart';
 import 'json_code_view.dart';
 import 'json_tree_view.dart';
@@ -31,11 +32,10 @@ Future<void> copyText(
 ]) async {
   await Clipboard.setData(ClipboardData(text: text));
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message ?? context.l10n.copied),
-        duration: Duration(seconds: 2),
-      ),
+    showViewerNotification(
+      context,
+      type: ViewerNotificationType.success,
+      description: message ?? context.l10n.copied,
     );
   }
 }
@@ -47,24 +47,16 @@ class StatusChip extends StatelessWidget {
     this.color,
     this.prominent = false,
     this.selected = false,
+    this.leading,
   });
+  final Widget? leading;
   final String text;
   final Color? color;
   final bool prominent;
   final bool selected;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: (color ?? context.palette.accent).withValues(
-        alpha: prominent ? 1 : .1,
-      ),
-      borderRadius: BorderRadius.circular(5),
-      border: prominent && selected
-          ? Border.all(color: Colors.white.withValues(alpha: .8))
-          : null,
-    ),
-    child: Text(
+  Widget build(BuildContext context) {
+    final label = Text(
       text,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -75,8 +67,26 @@ class StatusChip extends StatelessWidget {
         fontSize: 11,
         fontWeight: prominent ? FontWeight.w700 : FontWeight.w600,
       ),
-    ),
-  );
+    );
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: (color ?? context.palette.accent).withValues(
+          alpha: prominent ? 1 : .1,
+        ),
+        borderRadius: BorderRadius.circular(5),
+        border: prominent && selected
+            ? Border.all(color: Colors.white.withValues(alpha: .8))
+            : null,
+      ),
+      child: leading == null
+          ? label
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [leading!, const SizedBox(width: 6), label],
+            ),
+    );
+  }
 }
 
 class EmptyState extends StatelessWidget {

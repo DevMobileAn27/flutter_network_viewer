@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/strings.dart';
+import 'viewer_theme.dart';
 
 class HelpDialog extends StatefulWidget {
   const HelpDialog({super.key});
@@ -116,7 +117,7 @@ class _HelpDialogState extends State<HelpDialog> {
             children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
-              Text(body),
+              Text(body, style: TextStyle(color: context.palette.description)),
             ],
           ),
         ),

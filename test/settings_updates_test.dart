@@ -92,11 +92,51 @@ void main() {
         backend.listener!.onUpdaterUpdateNotAvailable(null);
         await tester.pumpAndSettle();
         expect(backend.checks, [false, false]);
+        final statusIcon = find.byKey(const ValueKey('version-update-status'));
+        expect(
+          find.byTooltip(
+            language == 'en'
+                ? 'You’re up to date.'
+                : 'Bạn đang dùng phiên bản mới nhất.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester.widget<Icon>(statusIcon).icon,
+          Icons.check_circle_outline_rounded,
+        );
+        expect(tester.widget<Icon>(statusIcon).color, const Color(0xff22c55e));
         expect(
           find.text(
             language == 'en'
                 ? 'You’re up to date.'
                 : 'Bạn đang dùng phiên bản mới nhất.',
+          ),
+          findsNothing,
+        );
+
+        await tester.tap(button);
+        await tester.pump();
+        backend.listener!.onUpdaterUpdateAvailable(null);
+        await tester.pumpAndSettle();
+        expect(tester.widget<Icon>(statusIcon).icon, Icons.update_rounded);
+        expect(tester.widget<Icon>(statusIcon).color, const Color(0xff2563eb));
+        expect(
+          find.text(
+            language == 'en' ? 'Update new version' : 'Cập nhật phiên bản mới',
+          ),
+          findsOneWidget,
+        );
+        await tester.ensureVisible(button);
+        await tester.tap(button);
+        await tester.pump();
+        expect(backend.checks, [false, false, false, false]);
+        expect(tester.widget<FilledButton>(button).onPressed, isNull);
+        backend.listener!.onUpdaterUpdateNotAvailable(null);
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            language == 'en' ? 'Check for updates' : 'Kiểm tra cập nhật',
           ),
           findsOneWidget,
         );

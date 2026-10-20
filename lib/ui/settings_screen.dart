@@ -7,6 +7,7 @@ import '../services/app_updater.dart';
 import '../services/viewer_server.dart';
 import '../services/viewer_mcp_server.dart';
 import 'components.dart';
+import 'viewer_notification.dart';
 import 'viewer_dropdown.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _invalidPort = false;
   bool _savingMcp = false;
   bool _invalidMcpPort = false;
+  McpSetupClient _mcpClient = McpSetupClient.codex;
 
   @override
   void initState() {
@@ -109,6 +111,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           widget.server.running
               ? context.l10n.portSaved
               : context.l10n.serverStartFailed(widget.server.error ?? ''),
+          type: widget.server.running
+              ? ViewerNotificationType.success
+              : ViewerNotificationType.danger,
         );
       }
     } catch (_) {
@@ -137,8 +142,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _notice(String text) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  void _notice(
+    String text, {
+    ViewerNotificationType type = ViewerNotificationType.danger,
+  }) => showViewerNotification(context, type: type, description: text);
 
   Future<void> _changeMcp(bool enabled) async {
     setState(() => _savingMcp = true);
@@ -169,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         restart: !changed,
       );
       if (mounted && widget.mcpServer.error == null) {
-        _notice(context.l10n.portSaved);
+        _notice(context.l10n.portSaved, type: ViewerNotificationType.success);
       }
     } catch (_) {
       if (mounted) _notice(context.l10n.settingsSaveFailed);
@@ -236,11 +243,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   key: const ValueKey('auto-detect-vm-service'),
                   contentPadding: EdgeInsets.zero,
                   title: Text(context.l10n.autoDetectFlutterApps),
-                  subtitle: Text(context.l10n.autoDetectFlutterAppsDescription),
                   value: widget.server.autoDetect,
                   onChanged: _savingPort ? null : _setAutoDetect,
                 ),
                 const SizedBox(height: 16),
+                Text(
+                  context.l10n.manualEnterDevtoolsUrl,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 12),
                 _field(
                   context.l10n.vmServiceUrl,
                   TextField(
@@ -266,7 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 20),
                 Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: Alignment.centerRight,
                   child: FilledButton.icon(
                     onPressed: _savingPort ? null : _savePort,
                     icon: const Icon(Icons.save_outlined, size: 18),
@@ -285,41 +296,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _section(Icons.system_update_alt, context.l10n.appUpdates, [
                   FutureBuilder<String>(
                     future: _version,
-                    builder: (context, snapshot) => Text(
-                      'Version ${snapshot.data ?? '…'} - Nguyễn Quốc An',
+                    builder: (context, snapshot) => Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: 'Version ${snapshot.data ?? '…'}'),
+                          if (updater.status == UpdateStatus.current ||
+                              updater.status == UpdateStatus.available)
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 6),
+                                child: Tooltip(
+                                  message:
+                                      updater.status == UpdateStatus.current
+                                      ? context.l10n.updateCurrent
+                                      : context.l10n.updateAvailable,
+                                  child: Icon(
+                                    updater.status == UpdateStatus.current
+                                        ? Icons.check_circle_outline_rounded
+                                        : Icons.update_rounded,
+                                    key: const ValueKey(
+                                      'version-update-status',
+                                    ),
+                                    size: 18,
+                                    color:
+                                        updater.status == UpdateStatus.current
+                                        ? const Color(0xff22c55e)
+                                        : context.palette.accent,
+                                    semanticLabel:
+                                        updater.status == UpdateStatus.current
+                                        ? context.l10n.updateCurrent
+                                        : context.l10n.updateAvailable,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const TextSpan(text: ' - Nguyễn Quốc An'),
+                        ],
+                      ),
                       key: const ValueKey('app-version'),
                       style: TextStyle(color: context.palette.muted),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    switch (updater.status) {
-                      UpdateStatus.idle => context.l10n.updateReady,
-                      UpdateStatus.checking => context.l10n.updateChecking,
-                      UpdateStatus.available => context.l10n.updateAvailable,
-                      UpdateStatus.current => context.l10n.updateCurrent,
-                      UpdateStatus.failed => context.l10n.updateFailed,
-                      UpdateStatus.installing => context.l10n.updateInstalling,
-                    },
-                    style: TextStyle(
-                      color: switch (updater.status) {
-                        UpdateStatus.idle => context.palette.muted,
-                        UpdateStatus.failed => context.palette.danger,
-                        UpdateStatus.available || UpdateStatus.current =>
-                          context.palette.methodColor('POST'),
-                        UpdateStatus.checking ||
-                        UpdateStatus.installing => context.palette.info,
+                  if (updater.status != UpdateStatus.current &&
+                      updater.status != UpdateStatus.available) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      switch (updater.status) {
+                        UpdateStatus.idle => context.l10n.updateReady,
+                        UpdateStatus.checking => context.l10n.updateChecking,
+                        UpdateStatus.available => context.l10n.updateAvailable,
+                        UpdateStatus.current => context.l10n.updateCurrent,
+                        UpdateStatus.failed => context.l10n.updateFailed,
+                        UpdateStatus.installing =>
+                          context.l10n.updateInstalling,
                       },
+                      style: TextStyle(
+                        color: switch (updater.status) {
+                          UpdateStatus.idle => context.palette.muted,
+                          UpdateStatus.failed => context.palette.danger,
+                          UpdateStatus.available || UpdateStatus.current =>
+                            context.palette.methodColor('POST'),
+                          UpdateStatus.checking ||
+                          UpdateStatus.installing => context.palette.info,
+                        },
+                      ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 16),
-                  FilledButton.icon(
-                    key: const ValueKey('check-app-updates'),
-                    onPressed: updater.supported && !updater.busy
-                        ? () => updater.check()
-                        : null,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: Text(context.l10n.checkForUpdates),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.icon(
+                      key: const ValueKey('check-app-updates'),
+                      onPressed: updater.supported && !updater.busy
+                          ? () => updater.check()
+                          : null,
+                      icon: Icon(
+                        updater.status == UpdateStatus.available
+                            ? Icons.update_rounded
+                            : Icons.refresh,
+                        size: 18,
+                      ),
+                      label: Text(
+                        updater.status == UpdateStatus.available
+                            ? context.l10n.updateNewVersion
+                            : context.l10n.checkForUpdates,
+                      ),
+                    ),
                   ),
                 ]),
               ],
@@ -461,10 +524,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _mcpCopyButton() {
     final mcp = widget.mcpServer;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: ColoredBox(
+        color: context.palette.primaryFill,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: FilledButton.icon(
+                key: const ValueKey('copy-mcp-setup'),
+                onPressed: () {
+                  copyText(
+                    context,
+                    mcp.setupCommand(_mcpClient),
+                    context.l10n.mcpCopySuccess,
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  visualDensity: VisualDensity.standard,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  overlayColor: Colors.white,
+                  shape: const RoundedRectangleBorder(),
+                ),
+                icon: const Icon(Icons.copy_outlined, size: 18),
+                label: Text(context.l10n.copyMcpSetup),
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 24,
+              color: Colors.white.withValues(alpha: .3),
+            ),
+            _mcpClientMenu(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mcpClientMenu() {
     return MenuAnchor(
       consumeOutsideTap: true,
       alignmentOffset: const Offset(0, 6),
       style: MenuStyle(
+        alignment: AlignmentDirectional.bottomStart,
         backgroundColor: WidgetStatePropertyAll(context.palette.surface),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
         padding: const WidgetStatePropertyAll(EdgeInsets.all(6)),
@@ -476,75 +583,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       menuChildren: [
-        MenuItemButton(
-          key: const ValueKey('copy-mcp-json'),
-          onPressed: () => copyText(context, mcp.clientConfiguration),
-          style: const ButtonStyle(
-            minimumSize: WidgetStatePropertyAll(Size(0, 44)),
+        for (final client in McpSetupClient.values)
+          MenuItemButton(
+            key: ValueKey('copy-mcp-${client.name}'),
+            onPressed: () => setState(() => _mcpClient = client),
+            style: const ButtonStyle(
+              minimumSize: WidgetStatePropertyAll(Size(0, 44)),
+            ),
+            leadingIcon: _mcpClient == client
+                ? Icon(Icons.check, size: 18, color: context.palette.accent)
+                : const SizedBox(width: 18),
+            child: Text(client.label),
           ),
-          leadingIcon: const Icon(Icons.data_object, size: 18),
-          child: Text(context.l10n.copyMcpJson),
-        ),
-        MenuItemButton(
-          key: const ValueKey('copy-mcp-codex'),
-          onPressed: () => copyText(context, mcp.codexConfiguration),
-          style: const ButtonStyle(
-            minimumSize: WidgetStatePropertyAll(Size(0, 44)),
-          ),
-          leadingIcon: const Icon(Icons.terminal, size: 18),
-          child: Text(context.l10n.copyMcpCodex),
-        ),
       ],
-      builder: (context, controller, child) => ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: ColoredBox(
-          color: context.palette.primaryFill,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: FilledButton.icon(
-                  key: const ValueKey('copy-mcp-setup'),
-                  onPressed: () => copyText(context, mcp.setupCommand),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 44),
-                    visualDensity: VisualDensity.standard,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
-                    overlayColor: Colors.white,
-                    shape: const RoundedRectangleBorder(),
-                  ),
-                  icon: const Icon(Icons.copy_outlined, size: 18),
-                  label: Text(context.l10n.copyMcpSetup),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 24,
-                color: Colors.white.withValues(alpha: .3),
-              ),
-              Semantics(
-                expanded: controller.isOpen,
-                child: IconButton(
-                  key: const ValueKey('copy-mcp-formats'),
-                  tooltip: context.l10n.mcpOtherFormats,
-                  onPressed: () => controller.isOpen
-                      ? controller.close()
-                      : controller.open(),
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(44, 44),
-                    visualDensity: VisualDensity.standard,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: Colors.white,
-                    overlayColor: Colors.white,
-                    shape: const RoundedRectangleBorder(),
-                  ),
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-                ),
-              ),
-            ],
+      builder: (context, controller, child) => Semantics(
+        expanded: controller.isOpen,
+        child: TextButton.icon(
+          key: const ValueKey('copy-mcp-formats'),
+          onPressed: () =>
+              controller.isOpen ? controller.close() : controller.open(),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(44, 44),
+            visualDensity: VisualDensity.standard,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            foregroundColor: Colors.white,
+            overlayColor: Colors.white,
+            shape: const RoundedRectangleBorder(),
           ),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          iconAlignment: IconAlignment.end,
+          label: Text(_mcpClient.label),
         ),
       ),
     );
