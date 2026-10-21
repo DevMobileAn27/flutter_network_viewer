@@ -123,7 +123,21 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.byKey(const ValueKey('console-row-0')), findsOneWidget);
         expect(find.byKey(const ValueKey('console-row-1')), findsNothing);
-        expect(find.textContaining('stdout · Shop · 3 lines'), findsOneWidget);
+        expect(find.textContaining('stdout · Shop · 3 lines'), findsNothing);
+        final row = find.byKey(const ValueKey('console-row-0'));
+        expect(tester.getSize(row).height, greaterThan(36));
+        final rowText = tester
+            .widgetList<Text>(
+              find.descendant(of: row, matching: find.byType(Text)),
+            )
+            .toList();
+        expect(rowText.map((text) => text.data), [
+          'LOG',
+          clockTime(DateTime.parse('2026-10-15T08:20:58.000Z')),
+          '{\n  "answer": 42\n}',
+        ]);
+        expect(rowText.last.maxLines, isNull);
+        expect(rowText.last.softWrap, isTrue);
         final time = tester.widget<Text>(
           find
               .text(clockTime(DateTime.parse('2026-10-15T08:20:58.123Z')))
@@ -131,7 +145,7 @@ void main() {
         );
         expect(time.maxLines, 1);
         expect(time.softWrap, isFalse);
-        await tester.tap(find.text('{\n  "answer": 42\n}'));
+        await tester.tap(row);
         await tester.pumpAndSettle();
         expect(find.byType(JsonCodeView), findsOneWidget);
         if (width < 900) {

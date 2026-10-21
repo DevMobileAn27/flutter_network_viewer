@@ -98,9 +98,13 @@ class FakeVmService {
             result = {'type': 'Success'};
         }
         if (socket.readyState != WebSocket.open) return;
-        socket.add(
-          jsonEncode({'jsonrpc': '2.0', 'id': call['id'], 'result': result}),
-        );
+        try {
+          socket.add(
+            jsonEncode({'jsonrpc': '2.0', 'id': call['id'], 'result': result}),
+          );
+        } on StateError {
+          // close() can close the sink before readyState leaves WebSocket.open.
+        }
       });
     });
   }

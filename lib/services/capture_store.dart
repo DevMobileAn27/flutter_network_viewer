@@ -124,12 +124,35 @@ class CaptureStore extends ChangeNotifier {
 
   void clear() {
     revision++;
+    sessions.clear();
     network.clear();
     logs.clear();
     _retention.clear();
     _recordBytes.clear();
     _bytes = 0;
     rejected = ignoredWhilePaused = evicted = 0;
+    notifyListeners();
+  }
+
+  /// Remove a disconnected application and release all of its retained data.
+  void removeSession(String id) {
+    if (!sessions.containsKey(id)) return;
+    revision++;
+    sessions.remove(id);
+    network.removeWhere((_, record) => record.sessionId == id);
+    logs.removeWhere((record) => record.sessionId == id);
+    final logIds = logs.map((record) => '${record.id}').toSet();
+    _recordBytes.removeWhere((key, _) => !network.containsKey(key));
+    _retention.removeWhere(
+      (entry) => entry.log
+          ? !logIds.contains(entry.key)
+          : !network.containsKey(entry.key),
+    );
+    _bytes = _retention.fold(
+      0,
+      (bytes, entry) =>
+          bytes + (entry.log ? entry.bytes : _recordBytes[entry.key] ?? 0),
+    );
     notifyListeners();
   }
 

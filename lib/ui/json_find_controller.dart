@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'json_document.dart';
 
 /// Search offsets refer to the formatted document, shared by JSON and Tree.
 class JsonFindMatch {
@@ -10,16 +11,10 @@ class JsonFindMatch {
   final List<Object> path;
 }
 
-class JsonFindNode {
-  JsonFindNode(this.path, this.keyStart, this.valueStart);
-  final List<Object> path;
-  final int? keyStart;
-  final int valueStart;
-  int end = 0;
-}
-
 class JsonFindController extends ChangeNotifier {
-  String document = '';
+  JsonDocument? _prepared;
+  String get document => _prepared?.text ?? '';
+  Map<String, JsonFindNode> get nodes => _prepared?.nodes ?? const {};
   String query = '';
   bool matchCase = false;
   bool wholeWord = false;
@@ -27,38 +22,10 @@ class JsonFindController extends ChangeNotifier {
   String? error;
   List<JsonFindMatch> matches = [];
   int index = -1;
-  final nodes = <String, JsonFindNode>{};
   JsonFindMatch? get active => index < 0 ? null : matches[index];
 
-  void setValue(dynamic value) {
-    final buffer = StringBuffer();
-    nodes.clear();
-    void write(dynamic value, List<Object> path, int depth, int? keyStart) {
-      final node = JsonFindNode(path, keyStart, buffer.length);
-      nodes[jsonEncode(path)] = node;
-      if (value is Map || value is List) {
-        final entries = value is Map
-            ? value.entries.toList()
-            : (value as List).asMap().entries.toList();
-        buffer.write(value is Map ? '{' : '[');
-        for (var i = 0; i < entries.length; i++) {
-          final entry = entries[i];
-          buffer.write('\n${'  ' * (depth + 1)}');
-          final start = value is Map ? buffer.length : null;
-          if (value is Map) buffer.write('${jsonEncode(entry.key)}: ');
-          write(entry.value, [...path, entry.key as Object], depth + 1, start);
-          if (i < entries.length - 1) buffer.write(',');
-        }
-        if (entries.isNotEmpty) buffer.write('\n${'  ' * depth}');
-        buffer.write(value is Map ? '}' : ']');
-      } else {
-        buffer.write(jsonEncode(value));
-      }
-      node.end = buffer.length;
-    }
-
-    write(value, [], 0, null);
-    document = buffer.toString();
+  void setValue(dynamic value, {JsonDocument? prepared}) {
+    _prepared = prepared ?? JsonDocument.fromValue(value);
     _search();
   }
 

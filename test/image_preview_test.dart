@@ -46,6 +46,17 @@ void main() {
         await tester.pumpAndSettle();
         final preview = find.byKey(const ValueKey('captured-image-preview'));
         expect(preview, findsOneWidget);
+        expect(tester.getSize(preview).height, greaterThan(320));
+        expect(
+          tester.getRect(preview).bottom,
+          closeTo(
+            tester
+                .getRect(find.byKey(const ValueKey('json-body-scroll')))
+                .bottom,
+            .01,
+          ),
+        );
+        expect(find.text('Raw (2.6 KB)'), findsOneWidget);
         final image = tester.widget<Image>(find.byType(Image).first);
         await tester.runAsync(
           () => precacheImage(image.image, tester.element(preview)),
@@ -106,6 +117,18 @@ void main() {
         await tester.pumpAndSettle();
         expect(preview, findsOneWidget);
       }
+      await tester.tap(find.byKey(const ValueKey('open-image')));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+      store.clear();
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+      expect(
+        find.byKey(const ValueKey('captured-image-preview')),
+        findsNothing,
+      );
+      expect(PaintingBinding.instance.imageCache.currentSize, 0);
+      expect(PaintingBinding.instance.imageCache.liveImageCount, 0);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       server.dispose();

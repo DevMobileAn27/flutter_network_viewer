@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'json_document.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -158,6 +159,7 @@ class _DataSectionState extends State<DataSection> {
   bool _tree = false;
   late dynamic _decoded;
   late bool _isJson;
+  JsonDocument? _prepared;
   final _find = JsonFindController();
   final _findFocus = FocusNode();
   bool get _canFind =>
@@ -187,20 +189,23 @@ class _DataSectionState extends State<DataSection> {
   }
 
   void _decode() {
+    _prepared = null;
     _decoded = widget.value;
     _isJson = _decoded is Map || _decoded is List;
     if (widget.body && widget.value is String) {
       try {
-        _decoded = jsonDecode(widget.value as String);
+        _prepared = JsonDocumentCache.shared.decode(widget.value as String);
+        _decoded = _prepared!.value;
         _isJson = true;
       } on FormatException {
         /* plain text */
       }
     }
-    if (widget.searchable) _find.setValue(_decoded);
+    if (_isJson) _prepared ??= JsonDocument.fromValue(_decoded);
+    if (widget.searchable) _find.setValue(_decoded, prepared: _prepared);
   }
 
-  Widget _content(BuildContext context) {
+  Widget _content(BuildContext context, {double? viewportHeight}) {
     final value = widget.value;
     if (value == null || !widget.body && value is Map && value.isEmpty) {
       return Text(
@@ -219,7 +224,12 @@ class _DataSectionState extends State<DataSection> {
               initiallyExpanded: widget.initiallyExpanded,
               find: _canFind ? _find : null,
             )
-          : JsonCodeView(value: _decoded, find: _canFind ? _find : null);
+          : JsonCodeView(
+              value: _decoded,
+              find: _canFind ? _find : null,
+              viewportHeight: viewportHeight,
+              prepared: _prepared,
+            );
     }
     if (_decoded is Map || _decoded is List) {
       return JsonTree(
@@ -376,7 +386,10 @@ class _DataSectionState extends State<DataSection> {
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight,
                     ),
-                    child: _content(context),
+                    child: _content(
+                      context,
+                      viewportHeight: constraints.maxHeight,
+                    ),
                   ),
                 ),
               ),

@@ -150,57 +150,70 @@ class _NetworkInspectorState extends State<NetworkInspector>
         child: TabBarView(
           controller: _tabs,
           children: [
-            ListView(
-              children: [
-                DataSection(context.l10n.requestId, record.requestId),
-                DataSection(context.l10n.source, record.source),
-                DataSection(
-                  context.l10n.started,
-                  record.time?.toLocal().toIso8601String(),
-                ),
-                DataSection(
-                  context.l10n.status,
-                  record.pending
-                      ? context.l10n.waitingResponse
-                      : '${filterLabel(context, record.state)} ${record.response['statusText'] ?? ''}',
-                ),
-                DataSection(
-                  context.l10n.responseSize,
-                  context.l10n.capturedBytes(record.responseBytes),
-                ),
-                if (record.error.isNotEmpty)
-                  DataSection(context.l10n.error, record.error),
-                DataSection(
-                  context.l10n.queryParameters,
-                  Uri.tryParse(record.url)?.queryParametersAll,
-                ),
-              ],
-            ),
-            ListView(
-              children: [
-                DataSection(
-                  context.l10n.headers,
-                  record.request['headers'],
-                  showTitle: false,
-                ),
-              ],
-            ),
-            NetworkBodySection(
-              data: record.request,
-              fillAvailable: true,
-              showTitle: false,
-            ),
-            _responsePane(body: false),
-            _responsePane(body: true),
-            SingleChildScrollView(
-              padding: EdgeInsets.all(18),
-              child: SelectableText(pretty(record.toJson()), style: mono),
-            ),
+            for (var index = 0; index < 6; index++)
+              Builder(builder: (context) => _pane(index)),
           ],
         ),
       ),
     ],
   );
+
+  Widget _pane(int index) {
+    switch (index) {
+      case 0:
+        return ListView(
+          children: [
+            DataSection(context.l10n.requestId, record.requestId),
+            DataSection(context.l10n.source, record.source),
+            DataSection(
+              context.l10n.started,
+              record.time?.toLocal().toIso8601String(),
+            ),
+            DataSection(
+              context.l10n.status,
+              record.pending
+                  ? context.l10n.waitingResponse
+                  : '${filterLabel(context, record.state)} ${record.response['statusText'] ?? ''}',
+            ),
+            DataSection(
+              context.l10n.responseSize,
+              context.l10n.capturedBytes(record.responseBytes),
+            ),
+            if (record.error.isNotEmpty)
+              DataSection(context.l10n.error, record.error),
+            DataSection(
+              context.l10n.queryParameters,
+              Uri.tryParse(record.url)?.queryParametersAll,
+            ),
+          ],
+        );
+      case 1:
+        return ListView(
+          children: [
+            DataSection(
+              context.l10n.headers,
+              record.request['headers'],
+              showTitle: false,
+            ),
+          ],
+        );
+      case 2:
+        return NetworkBodySection(
+          data: record.request,
+          fillAvailable: true,
+          showTitle: false,
+        );
+      case 3:
+        return _responsePane(body: false);
+      case 4:
+        return _responsePane(body: true);
+      default:
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(18),
+          child: SelectableText(pretty(record.toJson()), style: mono),
+        );
+    }
+  }
 
   Widget _responsePane({required bool body}) {
     if (body) {
@@ -389,7 +402,10 @@ class ConsoleInspector extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.all(18),
-            child: SelectableText(pretty(record.event), style: mono),
+            child: Builder(
+              builder: (context) =>
+                  SelectableText(pretty(record.event), style: mono),
+            ),
           ),
         ],
       ),

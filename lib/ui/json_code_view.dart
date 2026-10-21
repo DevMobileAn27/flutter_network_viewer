@@ -6,12 +6,22 @@ import '../l10n/strings.dart';
 import 'components.dart';
 import 'json_find_controller.dart';
 import 'body_color.dart';
+import 'virtual_json_code_view.dart';
+import 'json_document.dart';
 
 /// A selectable JSON document; the gutter is kept out of copied text.
 class JsonCodeView extends StatefulWidget {
-  const JsonCodeView({super.key, required this.value, this.find});
+  const JsonCodeView({
+    super.key,
+    required this.value,
+    this.find,
+    this.viewportHeight,
+    this.prepared,
+  });
   final dynamic value;
   final JsonFindController? find;
+  final double? viewportHeight;
+  final JsonDocument? prepared;
 
   @override
   State<JsonCodeView> createState() => _JsonCodeViewState();
@@ -21,10 +31,18 @@ class _JsonCodeViewState extends State<JsonCodeView> {
   final _scroll = ScrollController();
   late String _document;
   late List<String> _lines;
-  final _ranges = <int, int>{};
+  late Map<int, int> _ranges;
+  late JsonDocument _prepared;
   final _collapsed = <int>{};
   final _matchAnchor = GlobalKey();
-  final _lineOffsets = <int>[];
+  late List<int> _lineOffsets;
+  Widget? _rendered;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _rendered = null;
+  }
 
   @override
   void initState() {
@@ -42,46 +60,22 @@ class _JsonCodeViewState extends State<JsonCodeView> {
       _revealMatch();
     }
     if (widget.find != oldWidget.find) {
+      _rendered = null;
       oldWidget.find?.removeListener(_searchChanged);
       widget.find?.addListener(_searchChanged);
       _revealMatch();
     }
+    if (widget.viewportHeight != oldWidget.viewportHeight) _rendered = null;
   }
 
   void _format() {
-    _document = const JsonEncoder.withIndent('  ').convert(widget.value);
-    _lines = _document.split('\n');
-    _lineOffsets.clear();
-    var offset = 0;
-    for (final text in _lines) {
-      _lineOffsets.add(offset);
-      offset += text.length + 1;
-    }
-    _ranges.clear();
+    _rendered = null;
+    _prepared = widget.prepared ?? JsonDocument.fromValue(widget.value);
+    _document = _prepared.text;
+    _lines = _prepared.lines;
+    _lineOffsets = _prepared.offsets;
+    _ranges = _prepared.ranges;
     _collapsed.clear();
-    final openings = <int>[];
-    var line = 0;
-    var inString = false;
-    var escaped = false;
-    for (final character in _document.codeUnits) {
-      if (character == 10) line++;
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (character == 92) {
-          escaped = true;
-        } else if (character == 34) {
-          inString = false;
-        }
-      } else if (character == 34) {
-        inString = true;
-      } else if (character == 123 || character == 91) {
-        openings.add(line);
-      } else if (character == 125 || character == 93) {
-        final start = openings.removeLast();
-        if (start < line) _ranges[start] = line;
-      }
-    }
   }
 
   @override
@@ -92,6 +86,7 @@ class _JsonCodeViewState extends State<JsonCodeView> {
   }
 
   void _searchChanged() {
+    _rendered = null;
     setState(_revealMatch);
   }
 
@@ -119,6 +114,21 @@ class _JsonCodeViewState extends State<JsonCodeView> {
 
   @override
   Widget build(BuildContext context) {
+    if (_lines.length > 512) {
+      return SizedBox(
+        height:
+            widget.viewportHeight ?? MediaQuery.sizeOf(context).height * .65,
+        child: VirtualJsonCodeView(
+          document: _document,
+          lines: _lines,
+          offsets: _lineOffsets,
+          ranges: _ranges,
+          columns: _prepared.columns,
+          find: widget.find,
+        ),
+      );
+    }
+    if (_rendered != null) return _rendered!;
     final colors = context.palette;
     final codeStyle = DefaultTextStyle.of(context).style.merge(mono);
     final visibleLines = <int>[];
@@ -212,7 +222,7 @@ class _JsonCodeViewState extends State<JsonCodeView> {
     metrics.layout();
     final numberWidth = metrics.width.ceilToDouble();
     metrics.dispose();
-    return Container(
+    return _rendered = Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: colors.surface,
@@ -347,6 +357,7 @@ class _JsonCodeViewState extends State<JsonCodeView> {
             key: ValueKey('json-fold-$line'),
             borderRadius: BorderRadius.circular(3),
             onTap: () => setState(() {
+              _rendered = null;
               if (collapsed) {
                 _collapsed.remove(line);
               } else {

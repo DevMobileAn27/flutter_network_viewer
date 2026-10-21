@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
 import '../models/capture.dart';
 import 'components.dart';
+import 'capture_scope.dart';
 
 /// Renders captured bytes only; opening an image never replays the HTTP request.
 class NetworkBodySection extends StatefulWidget {
@@ -95,10 +96,21 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     if (!_image) _bytes = null;
   }
 
-  void _open() => showDialog<void>(
+  void _open() => showCaptureDialog(
     context: context,
     builder: (context) => _ImageDialog(bytes: _bytes!),
   );
+
+  String _rawLabel(BuildContext context) {
+    final size = _bytes?.length;
+    if (size == null) return context.l10n.raw;
+    final amount = size < 1024
+        ? '$size B'
+        : size < 1024 * 1024
+        ? '${(size / 1024).toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '')} KB'
+        : '${(size / (1024 * 1024)).toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '')} MB';
+    return '${context.l10n.raw} ($amount)';
+  }
 
   @override
   Widget build(BuildContext context) => DataSection(
@@ -112,62 +124,72 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     fillAvailable: widget.fillAvailable,
     preview: !_image
         ? null
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+        : LayoutBuilder(
+            builder: (context, constraints) => SizedBox(
+              height: _raw
+                  ? null
+                  : constraints.minHeight > 0
+                  ? constraints.minHeight
+                  : 368,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton.icon(
-                    key: const ValueKey('image-preview-toggle'),
-                    onPressed: () => setState(() => _raw = !_raw),
-                    icon: Icon(
-                      _raw ? Icons.image_outlined : Icons.code,
-                      size: 17,
-                    ),
-                    label: Text(
-                      _raw ? context.l10n.imagePreview : context.l10n.raw,
-                    ),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        key: const ValueKey('image-preview-toggle'),
+                        onPressed: () => setState(() => _raw = !_raw),
+                        icon: Icon(
+                          _raw ? Icons.image_outlined : Icons.code,
+                          size: 17,
+                        ),
+                        label: Text(
+                          _raw ? context.l10n.imagePreview : _rawLabel(context),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (_bytes != null && _bytes!.isNotEmpty)
+                        IconButton(
+                          key: const ValueKey('open-image'),
+                          tooltip: context.l10n.openImage,
+                          onPressed: _open,
+                          icon: const Icon(Icons.open_in_full, size: 18),
+                        ),
+                    ],
                   ),
-                  const Spacer(),
-                  if (_bytes != null && _bytes!.isNotEmpty)
-                    IconButton(
-                      key: const ValueKey('open-image'),
-                      tooltip: context.l10n.openImage,
-                      onPressed: _open,
-                      icon: const Icon(Icons.open_in_full, size: 18),
+                  if (_raw)
+                    SelectableText('$_body', style: mono)
+                  else
+                    Expanded(
+                      child: Container(
+                        key: const ValueKey('captured-image-preview'),
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: context.palette.input,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: context.palette.line),
+                        ),
+                        child: _bytes == null || _bytes!.isEmpty
+                            ? const _ImageUnavailable()
+                            : InkWell(
+                                onTap: _open,
+                                child: Image(
+                                  image: ResizeImage(
+                                    MemoryImage(_bytes!),
+                                    width: 1600,
+                                    policy: ResizeImagePolicy.fit,
+                                  ),
+                                  fit: BoxFit.contain,
+                                  semanticLabel: context.l10n.imagePreview,
+                                  errorBuilder: (_, _, _) =>
+                                      const _ImageUnavailable(),
+                                ),
+                              ),
+                      ),
                     ),
                 ],
               ),
-              if (_raw)
-                SelectableText('$_body', style: mono)
-              else
-                Container(
-                  key: const ValueKey('captured-image-preview'),
-                  height: 320,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: context.palette.input,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: context.palette.line),
-                  ),
-                  child: _bytes == null || _bytes!.isEmpty
-                      ? const _ImageUnavailable()
-                      : InkWell(
-                          onTap: _open,
-                          child: Image(
-                            image: ResizeImage(
-                              MemoryImage(_bytes!),
-                              width: 1600,
-                              policy: ResizeImagePolicy.fit,
-                            ),
-                            fit: BoxFit.contain,
-                            semanticLabel: context.l10n.imagePreview,
-                            errorBuilder: (_, _, _) =>
-                                const _ImageUnavailable(),
-                          ),
-                        ),
-                ),
-            ],
+            ),
           ),
   );
 }
@@ -188,15 +210,29 @@ bool _hasImageSignature(Uint8List bytes) {
 }
 
 Uint8List? _decodeBase64Image(String text) {
-  final compact = text.replaceAll(RegExp(r'\s'), '');
-  if (compact.length < 4) return null;
+  // Ordinary JSON/text should not allocate a whitespace-stripped copy merely
+  // to discover that it is not an image. Only inspect a bounded prefix first.
+  final prefixText = StringBuffer();
+  for (var i = 0; i < text.length && prefixText.length < 64; i++) {
+    final code = text.codeUnitAt(i);
+    if (code == 32 || code == 9 || code == 10 || code == 13) continue;
+    if (!(code >= 65 && code <= 90 ||
+        code >= 97 && code <= 122 ||
+        code >= 48 && code <= 57 ||
+        code == 43 ||
+        code == 47 ||
+        code == 45 ||
+        code == 95 ||
+        code == 61)) {
+      return null;
+    }
+    prefixText.writeCharCode(code);
+  }
+  if (prefixText.length < 4) return null;
   try {
-    // Inspect a small prefix before allocating decoded bytes for a large body.
-    final prefix = base64Decode(
-      compact.substring(0, compact.length < 64 ? compact.length : 64),
-    );
+    final prefix = base64Decode(prefixText.toString());
     if (!_hasImageSignature(prefix)) return null;
-    return base64Decode(compact);
+    return base64Decode(text.replaceAll(RegExp(r'\s'), ''));
   } on FormatException {
     return null;
   }

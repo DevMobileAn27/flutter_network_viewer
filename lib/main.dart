@@ -11,6 +11,7 @@ import 'services/viewer_server.dart';
 import 'services/viewer_mcp_server.dart';
 import 'ui/viewer_shell.dart';
 import 'ui/viewer_theme.dart';
+import 'ui/capture_scope.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,6 +98,8 @@ class _ViewerAppState extends State<ViewerApp> {
       theme: viewerTheme(Brightness.light),
       darkTheme: viewerTheme(Brightness.dark),
       themeMode: _settings.themeMode,
+      builder: (context, child) =>
+          CaptureScope(store: widget.store, child: child!),
       home: ViewerShell(
         store: widget.store,
         server: widget.server,

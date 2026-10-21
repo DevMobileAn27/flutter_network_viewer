@@ -153,7 +153,9 @@ void main() {
       expect(viewer.isOnline(store.sessions.keys.single), isTrue);
       await viewer.stop();
       expect(viewer.running, isFalse);
-      expect(viewer.isOnline(store.sessions.keys.first), isFalse);
+      expect(store.sessions, isEmpty);
+      expect(store.network, isEmpty);
+      expect(store.logs, isEmpty);
     },
   );
 
@@ -192,33 +194,31 @@ void main() {
     },
   );
 
-  test(
-    'separate VM endpoints with the same app name remain distinct',
-    () async {
-      final first = FakeVmService();
-      final second = FakeVmService();
-      await first.start();
-      await second.start();
-      first.profiles['request-1'] = profile();
-      second.profiles['request-1'] = profile();
-      final store = CaptureStore();
-      final viewer = ViewerServer(store);
-      addTearDown(() async {
-        await viewer.stop();
-        viewer.dispose();
-        store.dispose();
-        await first.close();
-        await second.close();
-      });
-      await viewer.start(uri: first.uri);
-      final oldSession = store.sessions.keys.single;
-      await viewer.start(uri: second.uri);
-      expect(store.sessions.length, 2);
-      expect(store.network.length, 2);
-      expect(viewer.isOnline(oldSession), isFalse);
-      expect(viewer.isOnline(store.sessions.keys.last), isTrue);
-    },
-  );
+  test('switching VM endpoints removes the disconnected application', () async {
+    final first = FakeVmService();
+    final second = FakeVmService();
+    await first.start();
+    await second.start();
+    first.profiles['request-1'] = profile();
+    second.profiles['request-1'] = profile();
+    final store = CaptureStore();
+    final viewer = ViewerServer(store);
+    addTearDown(() async {
+      await viewer.stop();
+      viewer.dispose();
+      store.dispose();
+      await first.close();
+      await second.close();
+    });
+    await viewer.start(uri: first.uri);
+    final oldSession = store.sessions.keys.single;
+    await viewer.start(uri: second.uri);
+    expect(store.sessions.length, 1);
+    expect(store.network.length, 1);
+    expect(store.sessions.containsKey(oldSession), isFalse);
+    expect(viewer.isOnline(oldSession), isFalse);
+    expect(viewer.isOnline(store.sessions.keys.last), isTrue);
+  });
 
   test('Clear and Pause do not replay unchanged remote history', () async {
     final vm = FakeVmService();

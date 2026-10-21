@@ -19,8 +19,12 @@ import 'application_tabs.dart';
 import 'viewer_dropdown.dart';
 import 'inspector.dart';
 import 'network_request_table.dart';
+import 'process_resource_usage.dart';
+import 'selection_builder.dart';
 import 'resizable_split_view.dart';
 import 'json_beautify_screen.dart';
+import 'json_document.dart';
+import 'capture_scope.dart';
 
 class ViewerShell extends StatefulWidget {
   const ViewerShell({
@@ -45,8 +49,14 @@ class _ViewerShellState extends State<ViewerShell>
   CaptureStore get store => widget.store;
   ViewerServer get server => widget.server;
   String? _session;
-  String? _networkKey;
-  int? _logId;
+  final _networkSelection = ValueNotifier<String?>(null);
+  final _logSelection = ValueNotifier<int?>(null);
+  set _networkKey(String? value) => _networkSelection.value = value;
+  set _logId(int? value) => _logSelection.value = value;
+  List<NetworkRecord>? _cachedRequests;
+  List<ConsoleRecord>? _cachedLogs;
+  (String?, String, String, String)? _requestFilter;
+  (String?, String, String, String)? _logFilter;
   int _activeTab = 0;
   bool get _console => _activeTab == 1;
   bool get _beautify => _activeTab == 2;
@@ -60,17 +70,55 @@ class _ViewerShellState extends State<ViewerShell>
   List<ConsoleRecord> _groupedLogs = [];
   final _search = TextEditingController();
   late final TabController _tabs;
+  late final Widget _beautifyScreen = RepaintBoundary(
+    child: JsonBeautifyScreen(
+      initialInputFraction: widget.settings.jsonInputFraction,
+      onInputFractionChanged: (fraction) =>
+          _rememberLayout(widget.settings.setJsonInputFraction(fraction)),
+    ),
+  );
+  NetworkRecord? _inspectedRequest;
+  Json? _inspectedRequestEvent;
+  Json? _inspectedCompletionEvent;
+  Widget? _requestInspector;
+  ConsoleRecord? _inspectedLog;
+  Widget? _logInspector;
+  late int _captureRevision;
 
   @override
   void initState() {
     super.initState();
+    _captureRevision = store.revision;
     _tabs = TabController(
       length: 3,
       vsync: this,
       animationDuration: const Duration(milliseconds: 400),
     );
-    store.addListener(_refresh);
+    store.addListener(_captureChanged);
     server.addListener(_refresh);
+  }
+
+  void _captureChanged() {
+    _cachedRequests = null;
+    _cachedLogs = null;
+    if (_captureRevision != store.revision) {
+      _captureRevision = store.revision;
+      _networkKey = null;
+      _logId = null;
+      _inspectedRequest = null;
+      _inspectedRequestEvent = null;
+      _inspectedCompletionEvent = null;
+      _requestInspector = null;
+      _inspectedLog = null;
+      _logInspector = null;
+      _firstConsoleId = null;
+      _lastConsoleId = null;
+      _groupedLogs = [];
+      JsonDocumentCache.shared.clear();
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    }
+    _refresh();
   }
 
   void _refresh() {
@@ -87,30 +135,40 @@ class _ViewerShellState extends State<ViewerShell>
 
   @override
   void dispose() {
-    store.removeListener(_refresh);
+    store.removeListener(_captureChanged);
     server.removeListener(_refresh);
+    _networkSelection.dispose();
+    _logSelection.dispose();
     _search.dispose();
     _tabs.dispose();
     super.dispose();
   }
 
-  List<NetworkRecord> get _requests => store.network.values
-      .where((r) {
-        if (_session != null && r.sessionId != _session) return false;
-        if (_method != 'All methods' && r.method != _method) return false;
-        if (_status == 'Errors' && !r.failed) return false;
-        if (_status == 'Pending' && !r.pending) return false;
-        if (_status == 'Success' &&
-            (r.status == null || r.status! < 200 || r.status! >= 400)) {
-          return false;
-        }
-        return '${r.method} ${r.url} ${r.state} ${r.source}'
-            .toLowerCase()
-            .contains(_query);
-      })
-      .toList()
-      .reversed
-      .toList();
+  List<NetworkRecord> get _requests {
+    final filter = (_session, _method, _status, _query);
+    if (_cachedRequests != null && _requestFilter == filter) {
+      return _cachedRequests!;
+    }
+    _requestFilter = filter;
+    return _cachedRequests = store.network.values
+        .where((r) {
+          if (_session != null && r.sessionId != _session) return false;
+          if (_method != 'All methods' && r.method != _method) return false;
+          if (_status == 'Errors' && !r.failed) return false;
+          if (_status == 'Pending' && !r.pending) return false;
+          if (_status == 'Success' &&
+              (r.status == null || r.status! < 200 || r.status! >= 400)) {
+            return false;
+          }
+          if (_query.isEmpty) return true;
+          return '${r.method} ${r.url} ${r.state} ${r.source}'
+              .toLowerCase()
+              .contains(_query);
+        })
+        .toList()
+        .reversed
+        .toList();
+  }
 
   List<ConsoleRecord> get _consoleEntries {
     final first = store.logs.firstOrNull?.id;
@@ -123,17 +181,22 @@ class _ViewerShellState extends State<ViewerShell>
     return _groupedLogs;
   }
 
-  List<ConsoleRecord> get _logs => _consoleEntries
-      .where(
-        (r) =>
-            (_session == null || r.sessionId == _session) &&
-            (_logSource == 'All log sources' || r.source == _logSource) &&
-            (_level == 'All levels' || r.level == _level) &&
-            (_query.isEmpty || r.searchText.toLowerCase().contains(_query)),
-      )
-      .toList()
-      .reversed
-      .toList();
+  List<ConsoleRecord> get _logs {
+    final filter = (_session, _logSource, _level, _query);
+    if (_cachedLogs != null && _logFilter == filter) return _cachedLogs!;
+    _logFilter = filter;
+    return _cachedLogs = _consoleEntries
+        .where(
+          (r) =>
+              (_session == null || r.sessionId == _session) &&
+              (_logSource == 'All log sources' || r.source == _logSource) &&
+              (_level == 'All levels' || r.level == _level) &&
+              (_query.isEmpty || r.searchText.toLowerCase().contains(_query)),
+        )
+        .toList()
+        .reversed
+        .toList();
+  }
 
   Future<void> _export() async {
     // Snapshot before the native save panel opens, while live capture continues.
@@ -172,13 +235,32 @@ class _ViewerShellState extends State<ViewerShell>
     }
   }
 
-  Widget _networkInspector(NetworkRecord record) => NetworkInspector(
-    key: ValueKey(record.key),
-    record: record,
-    initialTab: widget.settings.requestDetailTab,
-    onTabChanged: (index) =>
-        _rememberLayout(widget.settings.setRequestDetailTab(index)),
-  );
+  Widget _networkInspector(NetworkRecord record) {
+    if (identical(record, _inspectedRequest) &&
+        identical(record.requestEvent, _inspectedRequestEvent) &&
+        identical(record.completionEvent, _inspectedCompletionEvent)) {
+      return _requestInspector!;
+    }
+    _inspectedRequest = record;
+    _inspectedRequestEvent = record.requestEvent;
+    _inspectedCompletionEvent = record.completionEvent;
+    return _requestInspector = NetworkInspector(
+      key: const ValueKey('network-inspector'),
+      record: record,
+      initialTab: widget.settings.requestDetailTab,
+      onTabChanged: (index) =>
+          _rememberLayout(widget.settings.setRequestDetailTab(index)),
+    );
+  }
+
+  Widget _consoleInspector(ConsoleRecord record) {
+    if (identical(record, _inspectedLog)) return _logInspector!;
+    _inspectedLog = record;
+    return _logInspector = ConsoleInspector(
+      key: const ValueKey('console-inspector'),
+      record: record,
+    );
+  }
 
   Future<void> _settings() => Navigator.of(context).push<void>(
     MaterialPageRoute(
@@ -299,10 +381,6 @@ class _ViewerShellState extends State<ViewerShell>
   Widget build(BuildContext context) {
     final requests = _requests;
     final logs = _logs;
-    final selectedRequest = requests
-        .where((r) => r.key == _networkKey)
-        .firstOrNull;
-    final selectedLog = logs.where((r) => r.id == _logId).firstOrNull;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -380,18 +458,37 @@ class _ViewerShellState extends State<ViewerShell>
                                               ? _consoleList(logs, true)
                                               : _networkList(requests, true),
                                           inspector: _console
-                                              ? selectedLog == null
-                                                    ? _noSelection()
-                                                    : ConsoleInspector(
-                                                        key: ValueKey(
-                                                          selectedLog.id,
-                                                        ),
-                                                        record: selectedLog,
-                                                      )
-                                              : selectedRequest == null
-                                              ? _noSelection()
-                                              : _networkInspector(
-                                                  selectedRequest,
+                                              ? ValueListenableBuilder<int?>(
+                                                  valueListenable:
+                                                      _logSelection,
+                                                  builder: (context, id, _) {
+                                                    final record = logs
+                                                        .where(
+                                                          (r) => r.id == id,
+                                                        )
+                                                        .firstOrNull;
+                                                    return record == null
+                                                        ? _noSelection()
+                                                        : _consoleInspector(
+                                                            record,
+                                                          );
+                                                  },
+                                                )
+                                              : ValueListenableBuilder<String?>(
+                                                  valueListenable:
+                                                      _networkSelection,
+                                                  builder: (context, key, _) {
+                                                    final record = requests
+                                                        .where(
+                                                          (r) => r.key == key,
+                                                        )
+                                                        .firstOrNull;
+                                                    return record == null
+                                                        ? _noSelection()
+                                                        : _networkInspector(
+                                                            record,
+                                                          );
+                                                  },
                                                 ),
                                         )
                                       : _console
@@ -400,16 +497,7 @@ class _ViewerShellState extends State<ViewerShell>
                                 ),
                               ],
                             ),
-                            JsonBeautifyScreen(
-                              initialInputFraction:
-                                  widget.settings.jsonInputFraction,
-                              onInputFractionChanged: (fraction) =>
-                                  _rememberLayout(
-                                    widget.settings.setJsonInputFraction(
-                                      fraction,
-                                    ),
-                                  ),
-                            ),
+                            _beautifyScreen,
                           ],
                         ),
                       ),
@@ -770,13 +858,14 @@ class _ViewerShellState extends State<ViewerShell>
     if (requests.isEmpty) return _empty(store.network.isEmpty);
     return NetworkRequestTable(
       records: requests,
-      selectedKey: _networkKey,
+      selectedKey: null,
+      selection: _networkSelection,
       applicationName: (record) => store.sessions[record.sessionId]?.name ?? '',
       initialWidths: widget.settings.networkColumnWidths,
       onWidthsChanged: (widths) =>
           _rememberLayout(widget.settings.setNetworkColumnWidths(widths)),
       onSelected: (record) {
-        setState(() => _networkKey = record.key);
+        _networkKey = record.key;
         if (!inspector) _detail(() => _networkInspector(record));
       },
     );
@@ -788,98 +877,67 @@ class _ViewerShellState extends State<ViewerShell>
       itemCount: logs.length,
       itemBuilder: (context, index) {
         final r = logs[index];
-        final selected = _logId == r.id;
         final palette = context.palette;
         final color = palette.logColor(r.level);
-        return Material(
-          key: ValueKey('console-row-${r.id}'),
-          color: selected ? palette.selectedRow : Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              setState(() => _logId = r.id);
-              if (!inspector) _detail(() => ConsoleInspector(record: r));
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: context.palette.line)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 3,
-                    height: 32,
-                    color: selected ? palette.selectedRowMarker : color,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: 10,
-                          runSpacing: 6,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              clockTime(r.time),
-                              maxLines: 1,
-                              softWrap: false,
-                              style: mono.copyWith(
-                                fontSize: 10,
-                                color: selected
-                                    ? palette.onSelectedRowMuted
-                                    : palette.muted,
-                              ),
-                            ),
-                            StatusChip(
-                              r.level.toUpperCase(),
-                              color: color,
-                              prominent: true,
-                              selected: selected,
-                            ),
-                            Text(
-                              [
-                                r.sourceLabel,
-                                if (r.loggerName.isNotEmpty) r.loggerName,
-                                store.sessions[r.sessionId]?.name ?? '',
-                                if (r.lineCount > 1)
-                                  context.l10n.logLines(r.lineCount),
-                              ].where((v) => v.isNotEmpty).join(' · '),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: selected
-                                    ? palette.onSelectedRowMuted
-                                    : palette.muted,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          r.displayMessage,
-                          style: mono.copyWith(
-                            color: selected
-                                ? palette.onSelectedRow
-                                : r.level == 'error'
-                                ? palette.danger
-                                : null,
-                          ),
-                          maxLines: 6,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+        return SelectionBuilder<int>(
+          key: ValueKey(r.id),
+          selection: _logSelection,
+          value: r.id,
+          builder: (context, selected) => Material(
+            key: ValueKey('console-row-${r.id}'),
+            color: selected ? palette.selectedRow : Colors.transparent,
+            animationDuration: Duration.zero,
+            child: InkWell(
+              splashFactory: NoSplash.splashFactory,
+              highlightColor: Colors.transparent,
+              hoverDuration: Duration.zero,
+              onTap: () {
+                _logId = r.id;
+                if (!inspector) _detail(() => ConsoleInspector(record: r));
+              },
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 36),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: palette.line)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    StatusChip(
+                      r.level.toUpperCase(),
+                      color: color,
+                      prominent: true,
+                      selected: selected,
                     ),
-                  ),
-                  Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: selected
-                        ? palette.onSelectedRowMuted
-                        : palette.muted,
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Text(
+                      clockTime(r.time),
+                      maxLines: 1,
+                      softWrap: false,
+                      style: mono.copyWith(
+                        fontSize: 10,
+                        color: selected
+                            ? palette.onSelectedRowMuted
+                            : palette.muted,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        r.displayMessage,
+                        style: mono.copyWith(
+                          color: selected
+                              ? palette.onSelectedRow
+                              : r.level == 'error'
+                              ? palette.danger
+                              : null,
+                        ),
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -920,8 +978,9 @@ class _ViewerShellState extends State<ViewerShell>
   Widget _noSelection() =>
       EmptyState(icon: Icons.manage_search, title: context.l10n.selectionTitle);
 
-  void _detail(Widget Function() buildInspector) => showDialog<void>(
+  void _detail(Widget Function() buildInspector) => showCaptureDialog(
     context: context,
+    store: store,
     builder: (context) => Dialog(
       child: SizedBox(
         width: 700,
@@ -998,6 +1057,8 @@ class _ViewerShellState extends State<ViewerShell>
               style: TextStyle(fontSize: 10, color: context.palette.danger),
             ),
           ),
+        const SizedBox(width: 16),
+        const ProcessResourceUsage(),
       ],
     ),
   );

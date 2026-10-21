@@ -221,6 +221,8 @@ class _JsonBeautifyScreenState extends State<JsonBeautifyScreen> {
                                         : JsonCodeView(
                                             value: _result,
                                             find: _find,
+                                            viewportHeight:
+                                                constraints.maxHeight,
                                           ),
                                   ),
                                 ),

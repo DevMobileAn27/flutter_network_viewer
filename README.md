@@ -29,12 +29,14 @@ Trên Windows, chạy installer. Với bản portable, giải nén rồi mở **
 
 1. Chạy ứng dụng cần theo dõi ở chế độ **debug** hoặc **profile**.
 2. Mở Flutter Network Viewer. App tự tìm và kết nối khi có một ứng dụng Flutter đang chạy trên cùng máy tính.
-3. Nếu có nhiều ứng dụng, chọn tên project trong danh sách xuất hiện phía trên. Có thể bấm **Dừng**, rồi **Start** để tìm lại khi bật tự phát hiện trong Cài đặt → Kết nối.
+3. Nếu có nhiều ứng dụng, chọn tên project trong danh sách xuất hiện phía trên. Sau khi kết nối thành công, Viewer dừng tự tìm và chỉ theo dõi project đã kết nối.
 4. Đợi trạng thái **Connected**, rồi thao tác trên ứng dụng Flutter để phát sinh request và log.
 
 ![Kết nối: bấm Start và đợi Viewer tự kết nối với dự án Flutter](docs/screenshots/connection.gif)
 
-Khi chạy lại project và URL thay đổi, Viewer tự tìm lại project đã chọn. Có thể bật/tắt tại **Settings → Connection → Automatically detect Flutter apps**. Nút **Stop** dừng cả việc tự tìm và kết nối lại.
+Nếu mất kết nối, Viewer tự xóa project cùng request/log của project đó và chỉ thử kết nối lại URL hiện tại, không tự chuyển sang project khác. Khi chạy lại project và URL thay đổi, vào **Settings → Connection**, bật **Automatically detect Flutter apps** rồi bấm **Save & restart** để tìm lại. Nút **Stop** dừng cả việc tự tìm và kết nối lại.
+
+Network bắt đầu lấy dữ liệu mỗi **1,4 giây**. Mỗi lượt không có request mới hoặc thay đổi sẽ tăng khoảng chờ thêm **0,2 giây**, tối đa **5 giây**; có thay đổi thì trở về **1,4 giây**. Console vẫn nhận log liên tục và cập nhật danh sách theo từng đợt với cùng quy tắc, độc lập với Network.
 
 Tự tìm hỗ trợ ứng dụng chạy trên cùng máy, bao gồm Android emulator. Nếu không tìm thấy project hoặc cần kết nối thủ công, bấm **Connect an app** khi danh sách trống, dán **Flutter DevTools URL** hoặc **Dart VM Service URL** từ terminal, rồi bấm **Connect an app**. Cũng có thể nhập URL tại **Settings → Connection → Save & restart**; thao tác này chuyển sang kết nối thủ công.
 
@@ -103,7 +105,7 @@ Kết quả được tô sáng trong nội dung. **2 of 3** nghĩa là đang ở
 ## Tạm dừng, xóa và xuất dữ liệu
 
 - **Pause / Resume**: tạm dừng hoặc tiếp tục nhận dữ liệu. Request và log phát sinh trong lúc tạm dừng sẽ không được bổ sung lại.
-- **Clear**: xóa request và log đang lưu trong Viewer.
+- **Clear**: xóa toàn bộ project, request, log, dữ liệu đang chờ và cache JSON/ảnh của capture. Kết nối vẫn hoạt động để nhận dữ liệu mới.
 - **Export**: lưu toàn bộ dữ liệu đã thu thập thành file JSON, bao gồm cả mục đang bị ẩn bởi bộ lọc.
 
 ![Các nút capture: vị trí Pause/Resume, Export và Clear trên thanh công cụ](docs/screenshots/capture-controls.gif)

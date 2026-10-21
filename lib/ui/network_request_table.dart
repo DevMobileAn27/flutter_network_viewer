@@ -1,17 +1,20 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../l10n/strings.dart';
 import '../models/capture.dart';
 import '../services/app_settings.dart';
 import 'components.dart';
+import 'selection_builder.dart';
 
 class NetworkRequestTable extends StatefulWidget {
   const NetworkRequestTable({
     super.key,
     required this.records,
     required this.selectedKey,
+    this.selection,
     required this.applicationName,
     required this.onSelected,
     required this.initialWidths,
@@ -20,6 +23,7 @@ class NetworkRequestTable extends StatefulWidget {
 
   final List<NetworkRecord> records;
   final String? selectedKey;
+  final ValueListenable<String?>? selection;
   final String Function(NetworkRecord) applicationName;
   final ValueChanged<NetworkRecord> onSelected;
   // Method, Status and Time have saved widths; URL fills the remaining space.
@@ -102,9 +106,8 @@ class _NetworkRequestTableState extends State<NetworkRequestTable> {
     ],
   );
 
-  Widget _record(NetworkRecord record, List<double> widths) {
+  Widget _record(NetworkRecord record, List<double> widths, bool selected) {
     final colors = context.palette;
-    final selected = widget.selectedKey == record.key;
     final secondary = selected ? colors.onSelectedRowMuted : colors.muted;
     final uri = Uri.tryParse(record.url);
     final path = uri == null || uri.host.isEmpty
@@ -114,7 +117,11 @@ class _NetworkRequestTableState extends State<NetworkRequestTable> {
     return Material(
       key: ValueKey('network-row-${record.key}'),
       color: selected ? colors.selectedRow : Colors.transparent,
+      animationDuration: Duration.zero,
       child: InkWell(
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
+        hoverDuration: Duration.zero,
         onTap: () => widget.onSelected(record),
         child: Stack(
           fit: StackFit.expand,
@@ -305,8 +312,23 @@ class _NetworkRequestTableState extends State<NetworkRequestTable> {
                             controller: _vertical,
                             itemCount: widget.records.length,
                             itemExtent: 52,
-                            itemBuilder: (context, index) =>
-                                _record(widget.records[index], widths),
+                            itemBuilder: (context, index) {
+                              final record = widget.records[index];
+                              final selection = widget.selection;
+                              return selection == null
+                                  ? _record(
+                                      record,
+                                      widths,
+                                      widget.selectedKey == record.key,
+                                    )
+                                  : SelectionBuilder<String>(
+                                      key: ValueKey(record.key),
+                                      selection: selection,
+                                      value: record.key,
+                                      builder: (context, selected) =>
+                                          _record(record, widths, selected),
+                                    );
+                            },
                           ),
                         ),
                       ],

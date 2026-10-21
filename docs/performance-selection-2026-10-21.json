@@ -1,0 +1,159 @@
+{
+  "date": "2026-10-21",
+  "platform": "macOS arm64",
+  "mode": "profile",
+  "workload": "12 alternating inspector selections per case, 150ms pause after each rendered frame, synthetic data only; 100% CPU is one core.",
+  "baseline": "Current preparation cache retained; eager JSON renderer enabled by temporarily raising the virtualization threshold. Optimized source restored before production build.",
+  "limitations": [
+    "CPU values are averages across each active workload, not instantaneous peaks.",
+    "No discovery, live ingestion, shell lists or other user apps are included in this isolated inspector benchmark.",
+    "First runs include cold rendering costs; later repeated cases reuse prepared documents."
+  ],
+  "eager": [
+    {
+      "case": "medium",
+      "bodyBytes": 13641,
+      "selections": 12,
+      "elapsedMs": 2416,
+      "cpuPercent": 19.00943594473047,
+      "memoryBytes": 258966656,
+      "selectionMedianMs": 41.169,
+      "selectionMaxMs": 158.863,
+      "buildTotalMs": 363.416,
+      "rasterTotalMs": 263.926,
+      "sampleCount": 317
+    },
+    {
+      "case": "medium",
+      "bodyBytes": 13641,
+      "selections": 12,
+      "elapsedMs": 2101,
+      "cpuPercent": 9.397645813125353,
+      "memoryBytes": 279594136,
+      "selectionMedianMs": 23.318,
+      "selectionMaxMs": 24.903,
+      "buildTotalMs": 167.661,
+      "rasterTotalMs": 8.918,
+      "sampleCount": 175
+    },
+    {
+      "case": "large",
+      "bodyBytes": 138291,
+      "selections": 12,
+      "elapsedMs": 10694,
+      "cpuPercent": 87.43498352245636,
+      "memoryBytes": 517703072,
+      "selectionMedianMs": 1056.204,
+      "selectionMaxMs": 1335.099,
+      "buildTotalMs": 8773.219,
+      "rasterTotalMs": 32.545,
+      "sampleCount": 6635
+    },
+    {
+      "case": "large",
+      "bodyBytes": 138291,
+      "selections": 12,
+      "elapsedMs": 9641,
+      "cpuPercent": 86.58735701330379,
+      "memoryBytes": 522094032,
+      "selectionMedianMs": 1062.139,
+      "selectionMaxMs": 1165.463,
+      "buildTotalMs": 7701.871,
+      "rasterTotalMs": 29.456,
+      "sampleCount": 6003
+    }
+  ],
+  "virtual": [
+    {
+      "case": "medium",
+      "bodyBytes": 13641,
+      "selections": 12,
+      "elapsedMs": 2001,
+      "cpuPercent": 6.058860345499094,
+      "memoryBytes": 164561976,
+      "selectionMedianMs": 16.671,
+      "selectionMaxMs": 19.954,
+      "buildTotalMs": 51.185,
+      "rasterTotalMs": 35.58,
+      "sampleCount": 88
+    },
+    {
+      "case": "medium",
+      "bodyBytes": 13641,
+      "selections": 12,
+      "elapsedMs": 1995,
+      "cpuPercent": 3.4472520276590637,
+      "memoryBytes": 189400168,
+      "selectionMedianMs": 15.052,
+      "selectionMaxMs": 18.439,
+      "buildTotalMs": 37.102,
+      "rasterTotalMs": 8.774,
+      "sampleCount": 63
+    },
+    {
+      "case": "large",
+      "bodyBytes": 138291,
+      "selections": 12,
+      "elapsedMs": 1995,
+      "cpuPercent": 6.665582448469777,
+      "memoryBytes": 189138048,
+      "selectionMedianMs": 14.474,
+      "selectionMaxMs": 18.651,
+      "buildTotalMs": 58.368,
+      "rasterTotalMs": 17.693,
+      "sampleCount": 77
+    },
+    {
+      "case": "large",
+      "bodyBytes": 138291,
+      "selections": 12,
+      "elapsedMs": 2002,
+      "cpuPercent": 5.902728837350279,
+      "memoryBytes": 222381184,
+      "selectionMedianMs": 14.409,
+      "selectionMaxMs": 17.485,
+      "buildTotalMs": 63.329,
+      "rasterTotalMs": 12.825,
+      "sampleCount": 85
+    },
+    {
+      "case": "console",
+      "bodyBytes": 683,
+      "selections": 12,
+      "elapsedMs": 1993,
+      "cpuPercent": 2.837224585541814,
+      "memoryBytes": 249300096,
+      "selectionMedianMs": 14.482,
+      "selectionMaxMs": 17.125,
+      "buildTotalMs": 22.491,
+      "rasterTotalMs": 12.242,
+      "sampleCount": 52
+    },
+    {
+      "case": "small",
+      "bodyBytes": 683,
+      "selections": 12,
+      "elapsedMs": 1996,
+      "cpuPercent": 4.425231375028973,
+      "memoryBytes": 208897176,
+      "selectionMedianMs": 15.065,
+      "selectionMaxMs": 19.004,
+      "buildTotalMs": 39.51,
+      "rasterTotalMs": 22.202,
+      "sampleCount": 83
+    },
+    {
+      "case": "consoleJson",
+      "bodyBytes": 683,
+      "selections": 12,
+      "elapsedMs": 1998,
+      "cpuPercent": 4.762757544166477,
+      "memoryBytes": 205030528,
+      "selectionMedianMs": 14.736,
+      "selectionMaxMs": 17.23,
+      "buildTotalMs": 35.589,
+      "rasterTotalMs": 20.516,
+      "sampleCount": 76
+    }
+  ]
+}

@@ -60,7 +60,7 @@ class _ResizableSplitViewState extends State<ResizableSplitView> {
         children: [
           Expanded(
             key: const ValueKey('capture-list-pane'),
-            child: widget.list,
+            child: RepaintBoundary(child: widget.list),
           ),
           Semantics(
             label: context.l10n.resizeInspector,
@@ -100,7 +100,7 @@ class _ResizableSplitViewState extends State<ResizableSplitView> {
           SizedBox(
             key: const ValueKey('inspector-pane'),
             width: width,
-            child: widget.inspector,
+            child: RepaintBoundary(child: widget.inspector),
           ),
         ],
       );

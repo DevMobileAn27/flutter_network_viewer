@@ -10,6 +10,30 @@ Json fixture() => objectOf(
 );
 
 void main() {
+  test('removing a disconnected session removes only its retained data', () {
+    final store = CaptureStore(maxRecords: 20);
+    addTearDown(store.dispose);
+    store.ingest(fixture());
+    final first = store.sessions.keys.single;
+    final other = fixture();
+    other['session']['id'] = 'other';
+    store.ingest(other);
+    final revision = store.revision;
+    store.removeSession(first);
+    expect(store.revision, revision + 1);
+    expect(store.sessions.keys, ['other']);
+    expect(store.network.length, 3);
+    expect(store.logs.length, 1);
+    expect(store.network.values.every((r) => r.sessionId == 'other'), isTrue);
+    expect(store.logs.every((r) => r.sessionId == 'other'), isTrue);
+    store.removeSession('other');
+    expect(store.sessions, isEmpty);
+    expect(store.network, isEmpty);
+    expect(store.logs, isEmpty);
+    store.ingest(fixture());
+    expect(store.network.length, 3);
+    expect(store.evicted, 0);
+  });
   test(
     'SDK batch merges fetch/XHR phases and preserves full bodies and args',
     () {
@@ -85,7 +109,7 @@ void main() {
       store.clear();
       expect(store.network, isEmpty);
       expect(store.logs, isEmpty);
-      expect(store.sessions, isNotEmpty);
+      expect(store.sessions, isEmpty);
       store.ingest(fixture());
       expect(store.network.length, 3);
     },

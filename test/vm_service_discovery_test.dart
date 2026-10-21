@@ -105,60 +105,82 @@ void main() {
     expect(await discovery.discover(), isEmpty);
   });
 
-  test('reconnects the same project after both port and token change', () async {
-    final first = FakeVmService();
-    final second = FakeVmService()
-      ..vmStartTime = 2000
-      ..authToken = 'new-token=';
-    final unrelated = FakeVmService()
-      ..vmPid = 20
-      ..rootLibrary = 'package:other/main.dart';
-    await first.start();
-    await second.start();
-    await unrelated.start();
-    final redirect = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    var currentUri = first.uri;
-    redirect.listen((request) async {
-      await request.response.redirect(
-        Uri.parse(
-          'http://127.0.0.1:${Uri.parse(currentUri).port}/devtools/?uri=${Uri.encodeComponent(currentUri)}',
+  test(
+    'locks discovery to the first successful connection until explicitly restarted',
+    () async {
+      final first = FakeVmService();
+      final unrelated = FakeVmService()
+        ..vmPid = 20
+        ..rootLibrary = 'package:other/main.dart';
+      await first.start();
+      await unrelated.start();
+      final firstUri = first.uri;
+      var processes = command(firstUri);
+      var scans = 0;
+      final store = CaptureStore();
+      final viewer = ViewerServer(
+        store,
+        discovery: VmServiceDiscovery(
+          readProcesses: () async {
+            scans++;
+            return processes;
+          },
         ),
+        retryInterval: const Duration(milliseconds: 25),
+        pollInterval: const Duration(hours: 1),
       );
-    });
-    var processes = command('http://127.0.0.1:${redirect.port}/first-token=/');
-    final store = CaptureStore();
-    final viewer = ViewerServer(
-      store,
-      discovery: VmServiceDiscovery(readProcesses: () async => processes),
-      retryInterval: const Duration(milliseconds: 25),
-    );
-    addTearDown(() async {
-      await viewer.stop();
-      viewer.dispose();
-      store.dispose();
+      addTearDown(() async {
+        await viewer.stop();
+        viewer.dispose();
+        store.dispose();
+        await first.close();
+        await unrelated.close();
+      });
+      await viewer.start(automatic: true);
+      expect(viewer.endpoint, firstUri);
+      expect(viewer.running, isTrue);
+      expect(viewer.autoDetect, isFalse);
+      expect(viewer.searching, isFalse);
+      expect(viewer.discoveredApps, isEmpty);
+      expect(scans, 1);
+      processes = command(unrelated.uri);
+      final otherConnections = unrelated.sockets.length;
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(scans, 1);
+      expect(unrelated.sockets.length, otherConnections);
+
+      // A transient disconnect retries only the already connected VM URL.
+      final connected = first.sockets.length;
+      await first.sockets.last.close();
+      await until(
+        () =>
+            viewer.running && !viewer.busy && first.sockets.length > connected,
+      );
+      expect(viewer.endpoint, firstUri);
+      expect(viewer.autoDetect, isFalse);
+      expect(scans, 1);
+      expect(unrelated.sockets.length, otherConnections);
+
+      // Even when the original VM is gone, do not attach another project.
       await first.close();
-      await second.close();
-      await unrelated.close();
-      await redirect.close(force: true);
-    });
-    await viewer.start(automatic: true);
-    expect(viewer.endpoint, first.uri);
-    expect(viewer.running, isTrue);
-    // Simulate a run with a new VM URL while another project is also running.
-    currentUri = second.uri;
-    processes += '\n${command(unrelated.uri)}';
-    for (final socket in first.sockets) {
-      await socket.close();
-    }
-    await until(
-      () => viewer.running && !viewer.busy && viewer.endpoint == second.uri,
-    );
-    expect(viewer.error, isNull);
-    await viewer.stop();
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-    expect(viewer.running, isFalse);
-    expect(viewer.searching, isFalse);
-  });
+      await until(
+        () => !viewer.running && !viewer.busy && viewer.error != null,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(scans, 1);
+      expect(viewer.endpoint, firstUri);
+      expect(viewer.searching, isFalse);
+      expect(unrelated.sockets.length, otherConnections);
+
+      // The user can explicitly start a new discovery to change projects.
+      await viewer.start(automatic: true);
+      expect(viewer.running, isTrue);
+      expect(viewer.endpoint, unrelated.uri);
+      expect(scans, 2);
+      expect(viewer.autoDetect, isFalse);
+      expect(viewer.discoveredApps, isEmpty);
+    },
+  );
 
   test('waits for a choice when multiple projects are found', () async {
     final first = FakeVmService();

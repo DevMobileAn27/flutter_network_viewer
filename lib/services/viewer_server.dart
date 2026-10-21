@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -15,26 +16,46 @@ import 'vm_service_discovery.dart';
 class ViewerServer extends ChangeNotifier {
   ViewerServer(
     this.store, {
-    this.pollInterval = const Duration(seconds: 1),
+    this.pollInterval = const Duration(milliseconds: 1400),
+    this.idlePollIncrement = const Duration(milliseconds: 200),
+    this.maxPollInterval = const Duration(seconds: 5),
     this.retryInterval = const Duration(seconds: 3),
     VmServiceDiscovery? discovery,
-  }) : _discovery = discovery ?? VmServiceDiscovery();
+  }) : _discovery = discovery ?? VmServiceDiscovery(),
+       _networkPollInterval = pollInterval,
+       _consolePollInterval = pollInterval {
+    store.addListener(_captureChanged);
+  }
   static const defaultServiceUri = String.fromEnvironment('VM_SERVICE_URI');
   final CaptureStore store;
   final Duration pollInterval;
+  final Duration idlePollIncrement;
+  final Duration maxPollInterval;
+  Duration _networkPollInterval;
+  Duration _consolePollInterval;
+  @visibleForTesting
+  Duration get networkPollInterval => _networkPollInterval;
+  @visibleForTesting
+  Duration get consolePollInterval => _consolePollInterval;
   final Duration retryInterval;
   final VmServiceDiscovery _discovery;
   bool autoDetect = false;
   bool get searching => autoDetect && _wanted && !running;
   List<VmServiceTarget> discoveredApps = const [];
-  String? _preferredProject;
   VmService? _service;
   WebSocket? _socket;
   Timer? _timer;
+  Timer? _consoleTimer;
+  final _pendingConsole = Queue<({Json metadata, Json event, int bytes})>();
+  int _pendingConsoleBytes = 0;
+  int _pendingConsoleRevision = 0;
   Timer? _retry;
   final _isolates = <String, Json>{};
   Json? _application;
   final _cursors = <String, int>{};
+  // Stream positions only; never retain cleared bodies, headers or log events.
+  String? _clearedApplicationId;
+  final _clearedCursors = <String, int>{};
   final _fingerprints = <String, String>{};
   final _stdoutBuffers = <String, List<int>>{};
   int _stdoutRevision = 0;
@@ -93,7 +114,6 @@ class ViewerServer extends ChangeNotifier {
     if (_disposed || _generation != requestedGeneration) return;
     _wanted = true;
     autoDetect = automatic;
-    if (!automatic || uri != null) _preferredProject = null;
     if (automatic) {
       if (uri != null) endpoint = uri;
       await _discoverAndConnect();
@@ -122,14 +142,7 @@ class ViewerServer extends ChangeNotifier {
       if (_generation != generation || _disposed) return;
       discoveredApps = List.unmodifiable(targets);
       selected = targets.where((app) => app.uri == endpoint).firstOrNull;
-      if (selected == null) {
-        final matching = _preferredProject == null
-            ? targets
-            : targets
-                  .where((app) => app.projectKey == _preferredProject)
-                  .toList();
-        if (matching.length == 1) selected = matching.single;
-      }
+      if (selected == null && targets.length == 1) selected = targets.single;
     } catch (_) {
       if (_generation == generation && !_disposed) {
         discoveredApps = const [];
@@ -147,7 +160,6 @@ class ViewerServer extends ChangeNotifier {
       _scheduleRetry();
     } else {
       endpoint = selected.uri;
-      _preferredProject = selected.projectKey;
       await _connect();
     }
   }
@@ -206,27 +218,31 @@ class ViewerServer extends ChangeNotifier {
         }
       }
       await _poll(active, generation);
-      var polling = false;
       if (generation != _generation) return;
-      _timer = Timer.periodic(pollInterval, (_) async {
-        if (polling || _service != active) return;
-        polling = true;
-        try {
-          await _poll(active, generation);
-        } catch (e) {
-          if (_service == active) {
-            error = 'VM Service: $e';
-            _notify();
-          }
-        } finally {
-          polling = false;
-        }
-      });
+      // Discovery is only for finding the initial connection. Once capture is
+      // ready, reconnect this endpoint without scanning or switching projects.
+      autoDetect = false;
+      _retry?.cancel();
+      _retry = null;
+      discoveredApps = const [];
+      _networkPollInterval = pollInterval;
+      _consolePollInterval = pollInterval;
+      _schedulePoll(active, generation);
+      _scheduleConsole(active, generation);
     } catch (e) {
       if (generation == _generation && !_disposed) {
         error = 'Cannot connect to Dart VM Service: $e';
         _service = null;
         _socket = null;
+        final sessionId = _application?['id'] as String?;
+        if (sessionId != null) store.removeSession(sessionId);
+        _isolates.clear();
+        _application = null;
+        _cursors.clear();
+        _fingerprints.clear();
+        _stdoutBuffers.clear();
+        _pendingConsole.clear();
+        _pendingConsoleBytes = 0;
         _timer?.cancel();
         for (final subscription in _subscriptions) {
           unawaited(subscription.cancel());
@@ -244,13 +260,114 @@ class ViewerServer extends ChangeNotifier {
     }
   }
 
+  Duration _nextInterval(Duration current, bool changed) {
+    if (changed) return pollInterval;
+    final next = current + idlePollIncrement;
+    return next > maxPollInterval ? maxPollInterval : next;
+  }
+
+  bool _isActive(VmService service, int generation) =>
+      !_disposed && _wanted && _service == service && _generation == generation;
+
+  void _schedulePoll(VmService service, int generation) {
+    if (!_isActive(service, generation)) return;
+    _timer = Timer(_networkPollInterval, () async {
+      try {
+        final changed = await _poll(service, generation);
+        if (!_isActive(service, generation)) return;
+        _networkPollInterval = _nextInterval(_networkPollInterval, changed);
+      } catch (e) {
+        if (!_isActive(service, generation)) return;
+        error = 'VM Service: $e';
+        _notify();
+      }
+      // Schedule only after completion: slow VM calls must never overlap.
+      _schedulePoll(service, generation);
+    });
+  }
+
+  void _scheduleConsole(VmService service, int generation) {
+    if (!_isActive(service, generation)) return;
+    _consoleTimer = Timer(_consolePollInterval, () {
+      if (!_isActive(service, generation)) return;
+      final changed = _flushConsole();
+      _consolePollInterval = _nextInterval(_consolePollInterval, changed);
+      _scheduleConsole(service, generation);
+    });
+  }
+
+  void _captureChanged() {
+    if (_pendingConsoleRevision != store.revision) {
+      _fingerprints.clear();
+      _stdoutBuffers.clear();
+      // Keep only the live stream position, not old request summaries. The VM
+      // cursor is inclusive, so exclude the boundary already cleared by user.
+      _cursors.updateAll((_, timestamp) => timestamp + 1);
+      if (_application != null) {
+        _clearedApplicationId = _application!['id'] as String;
+        _clearedCursors
+          ..clear()
+          ..addAll(_cursors);
+      }
+    }
+    if (store.paused || _pendingConsoleRevision != store.revision) {
+      _pendingConsole.clear();
+      _pendingConsoleBytes = 0;
+      _pendingConsoleRevision = store.revision;
+    }
+  }
+
+  void _queueConsole(Json metadata, Json event) {
+    _captureChanged();
+    if (store.paused) {
+      store.ignoredWhilePaused++;
+      return;
+    }
+    final bytes = utf8.encode(jsonEncode(event)).length;
+    _pendingConsole.add((metadata: metadata, event: event, bytes: bytes));
+    _pendingConsoleBytes += bytes;
+    // Bound pending live logs just like the retained capture history.
+    while (_pendingConsole.isNotEmpty &&
+        (_pendingConsole.length > store.maxRecords ||
+            _pendingConsoleBytes > store.maxBytes)) {
+      _pendingConsoleBytes -= _pendingConsole.removeFirst().bytes;
+      store.evicted++;
+    }
+  }
+
+  bool _flushConsole() {
+    _captureChanged();
+    if (_pendingConsole.isEmpty) return false;
+    final pending = _pendingConsole.toList();
+    _pendingConsole.clear();
+    _pendingConsoleBytes = 0;
+    // Batch consecutive logs from the same isolate without changing log order.
+    var start = 0;
+    while (start < pending.length) {
+      final metadata = pending[start].metadata;
+      var end = start + 1;
+      while (end < pending.length &&
+          pending[end].metadata['isolateId'] == metadata['isolateId']) {
+        end++;
+      }
+      _ingest(metadata, [for (var i = start; i < end; i++) pending[i].event]);
+      start = end;
+    }
+    return true;
+  }
+
   void _lost(VmService service) {
     if (_service != service || _disposed) return;
+    _consoleTimer?.cancel();
+    _pendingConsole.clear();
+    _pendingConsoleBytes = 0;
     _generation++;
     busy = false;
     _timer?.cancel();
     _service = null;
     _socket = null;
+    final sessionId = _application?['id'] as String?;
+    if (sessionId != null) store.removeSession(sessionId);
     discoveredApps = const [];
     error = null;
     _isolates.clear();
@@ -277,15 +394,16 @@ class ViewerServer extends ChangeNotifier {
     }
   }
 
-  Future<void> _poll(VmService service, int generation) async {
+  Future<bool> _poll(VmService service, int generation) async {
+    var changed = false;
     final captureRevision = store.revision;
     final vm = await service.getVM().timeout(const Duration(seconds: 8));
-    if (generation != _generation) return;
+    if (generation != _generation) return false;
     final ids = (vm.isolates ?? []).map((i) => i.id!).toSet();
     _isolates.removeWhere((key, _) => !ids.contains(key));
     _cursors.removeWhere((key, _) => !ids.contains(key));
     for (final isolate in vm.isolates ?? <IsolateRef>[]) {
-      if (generation != _generation) return;
+      if (generation != _generation) return false;
       final id = isolate.id!;
       try {
         if (!_isolates.containsKey(id)) {
@@ -326,8 +444,12 @@ class ViewerServer extends ChangeNotifier {
                 args: {'enabled': 'true'},
               )
               .timeout(const Duration(seconds: 8));
-          if (generation != _generation) return;
+          if (generation != _generation) return false;
           _isolates[id] = metadata;
+          if (_application!['id'] == _clearedApplicationId &&
+              _clearedCursors.containsKey(id)) {
+            _cursors[id] = _clearedCursors[id]!;
+          }
           _ingest(metadata, []);
         }
         final profile = await service
@@ -340,14 +462,26 @@ class ViewerServer extends ChangeNotifier {
             )
             .timeout(const Duration(seconds: 8));
         final json = profile.json ?? {};
+        if (generation != _generation) return false;
+        final timestamp = json['timestamp'];
+        if (timestamp is int) {
+          final next = timestamp + (captureRevision == store.revision ? 0 : 1);
+          if (next > (_cursors[id] ?? 0)) _cursors[id] = next;
+          if (_application?['id'] == _clearedApplicationId) {
+            _clearedCursors[id] = _cursors[id]!;
+          }
+        }
         for (final ref in (json['requests'] as List? ?? [])) {
-          if (generation != _generation) return;
+          if (generation != _generation || captureRevision != store.revision) {
+            return false;
+          }
           final summary = objectOf(ref);
           // updatedSince is inclusive. A profile updated at the cursor boundary
           // can appear twice; do not re-ingest it after Clear or Resume.
           final key = '$id:${summary['id']}';
           final fingerprint = jsonEncode(summary);
           if (_fingerprints[key] == fingerprint) continue;
+          changed = true;
           _fingerprints[key] = fingerprint;
           while (_fingerprints.length > store.maxRecords * 2) {
             _fingerprints.remove(_fingerprints.keys.first);
@@ -370,23 +504,26 @@ class ViewerServer extends ChangeNotifier {
           } on RPCError {
             // DevTools may clear its remote history between listing and reading.
           }
-          if (generation != _generation) return;
+          if (generation != _generation) return false;
           if (captureRevision == store.revision) {
             _ingest(_isolates[id]!, FlutterCaptureAdapter.network(full));
           }
         }
-        if (generation != _generation) return;
-        if (json['timestamp'] is int) _cursors[id] = json['timestamp'] as int;
+        if (generation != _generation) return false;
       } on RPCError catch (e) {
         // An isolate can exit during polling; other isolates must keep working.
         _isolates.remove(id);
         lastProtocolError = '$e';
       }
     }
-    if (generation != _generation) return;
-    if (_isolates.isNotEmpty) _ingest(_isolates.values.first, []);
+    if (generation != _generation) return false;
+    if (_isolates.isNotEmpty &&
+        store.sessions.containsKey(_application?['id'])) {
+      _ingest(_isolates.values.first, []);
+    }
     error = null;
     _notify();
+    return changed;
   }
 
   void _ingest(Json metadata, List<Json> events) => store.ingest({
@@ -536,35 +673,31 @@ class ViewerServer extends ChangeNotifier {
         }
         for (final line in lines) {
           if (_service != service) return;
-          _ingest(metadata, [
-            {
-              'source': stream == 'Stderr' ? 'dart.stderr' : 'dart.stdout',
-              'level': level,
-              'message': line,
-              'args': [],
-              'timestamp': DateTime.fromMillisecondsSinceEpoch(
-                event.timestamp ?? DateTime.now().millisecondsSinceEpoch,
-                isUtc: true,
-              ).toIso8601String(),
-            },
-          ]);
+          _queueConsole(metadata, {
+            'source': stream == 'Stderr' ? 'dart.stderr' : 'dart.stdout',
+            'level': level,
+            'message': line,
+            'args': [],
+            'timestamp': DateTime.fromMillisecondsSinceEpoch(
+              event.timestamp ?? DateTime.now().millisecondsSinceEpoch,
+              isUtc: true,
+            ).toIso8601String(),
+          });
         }
         return;
       }
       if (_service != service || store.revision != revision) return;
-      _ingest(metadata, [
-        {
-          'source': 'dart.logging',
-          'level': level,
-          'message': message,
-          'args': args,
-          ...details,
-          'timestamp': DateTime.fromMillisecondsSinceEpoch(
-            event.timestamp ?? DateTime.now().millisecondsSinceEpoch,
-            isUtc: true,
-          ).toIso8601String(),
-        },
-      ]);
+      _queueConsole(metadata, {
+        'source': 'dart.logging',
+        'level': level,
+        'message': message,
+        'args': args,
+        ...details,
+        'timestamp': DateTime.fromMillisecondsSinceEpoch(
+          event.timestamp ?? DateTime.now().millisecondsSinceEpoch,
+          isUtc: true,
+        ).toIso8601String(),
+      });
     } catch (e) {
       if (_service != service) return;
       invalidMessages++;
@@ -574,6 +707,9 @@ class ViewerServer extends ChangeNotifier {
   }
 
   Future<void> stop() async {
+    _consoleTimer?.cancel();
+    _pendingConsole.clear();
+    _pendingConsoleBytes = 0;
     _wanted = false;
     _generation++;
     _retry?.cancel();
@@ -582,6 +718,8 @@ class ViewerServer extends ChangeNotifier {
     final socket = _socket;
     _service = null;
     _socket = null;
+    final sessionId = _application?['id'] as String?;
+    if (sessionId != null) store.removeSession(sessionId);
     discoveredApps = const [];
     error = null;
     _isolates.clear();
@@ -606,6 +744,7 @@ class ViewerServer extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    store.removeListener(_captureChanged);
     unawaited(stop());
     super.dispose();
   }
