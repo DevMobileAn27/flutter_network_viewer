@@ -58,7 +58,7 @@ class _NetworkInspectorState extends State<NetworkInspector>
   Widget build(BuildContext context) => Column(
     children: [
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -83,7 +83,7 @@ class _NetworkInspectorState extends State<NetworkInspector>
         ),
       ),
       Padding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+        padding: const EdgeInsets.fromLTRB(18, 0, 18, 4),
         child: Align(
           alignment: Alignment.centerLeft,
           child: SizedBox(

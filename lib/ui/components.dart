@@ -248,7 +248,7 @@ class _DataSectionState extends State<DataSection> {
     final title = widget.title;
     final value = widget.value;
     final section = Padding(
-      padding: EdgeInsets.fromLTRB(18, 12, 18, 8),
+      padding: EdgeInsets.fromLTRB(18, widget.showTitle ? 8 : 4, 18, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -369,9 +369,16 @@ class _DataSectionState extends State<DataSection> {
           SizedBox(height: 6),
           if (widget.fillAvailable)
             Expanded(
-              child: SingleChildScrollView(
-                key: const ValueKey('json-body-scroll'),
-                child: _content(context),
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  key: const ValueKey('json-body-scroll'),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: _content(context),
+                  ),
+                ),
               ),
             )
           else

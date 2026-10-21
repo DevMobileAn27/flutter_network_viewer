@@ -426,7 +426,7 @@ class _ViewerShellState extends State<ViewerShell>
   }
 
   Widget _header() => Container(
-    padding: EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+    padding: EdgeInsets.symmetric(horizontal: 22, vertical: 4),
     decoration: BoxDecoration(
       color: context.palette.surface,
       border: Border(bottom: BorderSide(color: context.palette.line)),
@@ -523,7 +523,7 @@ class _ViewerShellState extends State<ViewerShell>
   );
 
   Widget _toolbar() => Padding(
-    padding: EdgeInsets.fromLTRB(20, 16, 12, 12),
+    padding: EdgeInsets.fromLTRB(20, 8, 12, 4),
     child: Row(
       children: [
         SizedBox(
@@ -652,7 +652,7 @@ class _ViewerShellState extends State<ViewerShell>
   );
 
   Widget _filters() => Container(
-    padding: EdgeInsets.fromLTRB(20, 0, 20, 14),
+    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
     decoration: BoxDecoration(
       border: Border(bottom: BorderSide(color: context.palette.line)),
     ),
@@ -956,7 +956,7 @@ class _ViewerShellState extends State<ViewerShell>
   );
 
   Widget _footer() => Container(
-    height: 31,
+    height: 25,
     padding: EdgeInsets.symmetric(horizontal: 18),
     decoration: BoxDecoration(
       color: context.palette.surface,
