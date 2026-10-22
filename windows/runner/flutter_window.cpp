@@ -26,6 +26,17 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
+  native_lists_ = std::make_unique<NativeCaptureLists>(
+      flutter_controller_->engine()->messenger(),
+      flutter_controller_->view()->GetNativeWindow());
+
+  native_json_ = std::make_unique<NativeJsonViewer>(
+      flutter_controller_->engine()->messenger(),
+      flutter_controller_->view()->GetNativeWindow());
+
+  native_image_ = std::make_unique<NativeImageViewer>(
+      flutter_controller_->engine()->messenger(),
+      flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
@@ -40,6 +51,9 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  native_image_.reset();
+  native_json_.reset();
+  native_lists_.reset();
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

@@ -27,6 +27,19 @@ class _NetworkInspectorState extends State<NetworkInspector>
   late final TabController _tabs;
   late int _lastTab;
   NetworkRecord get record => widget.record;
+  Json? _rawValue, _rawRequestEvent, _rawCompletionEvent;
+  String? _rawRecordKey;
+  Json get _raw {
+    if (_rawRecordKey != record.key ||
+        !identical(_rawRequestEvent, record.requestEvent) ||
+        !identical(_rawCompletionEvent, record.completionEvent)) {
+      _rawRecordKey = record.key;
+      _rawRequestEvent = record.requestEvent;
+      _rawCompletionEvent = record.completionEvent;
+      _rawValue = record.toJson();
+    }
+    return _rawValue!;
+  }
 
   @override
   void initState() {
@@ -208,9 +221,13 @@ class _NetworkInspectorState extends State<NetworkInspector>
       case 4:
         return _responsePane(body: true);
       default:
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(18),
-          child: SelectableText(pretty(record.toJson()), style: mono),
+        return DataSection(
+          context.l10n.raw,
+          _raw,
+          body: true,
+          searchable: true,
+          fillAvailable: true,
+          showTitle: false,
         );
     }
   }
@@ -400,12 +417,12 @@ class ConsoleInspector extends StatelessWidget {
       ExpansionTile(
         title: Text(context.l10n.rawEvent, style: TextStyle(fontSize: 12)),
         children: [
-          Padding(
-            padding: EdgeInsets.all(18),
-            child: Builder(
-              builder: (context) =>
-                  SelectableText(pretty(record.event), style: mono),
-            ),
+          DataSection(
+            context.l10n.rawEvent,
+            record.event,
+            body: true,
+            searchable: true,
+            showTitle: false,
           ),
         ],
       ),

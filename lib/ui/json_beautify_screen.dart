@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 
 import '../l10n/strings.dart';
 import 'components.dart';
+import 'native_json_view.dart';
+import 'json_document.dart';
 import 'json_code_view.dart';
 import 'json_tree_view.dart';
 import 'json_find_bar.dart';
@@ -31,6 +33,7 @@ class _JsonBeautifyScreenState extends State<JsonBeautifyScreen> {
   final _find = JsonFindController();
   final _findFocus = FocusNode();
   dynamic _result;
+  JsonDocument? _document;
   bool _hasResult = false;
   bool _tree = false;
   int _revision = 0;
@@ -50,7 +53,8 @@ class _JsonBeautifyScreenState extends State<JsonBeautifyScreen> {
   void _format() {
     try {
       final result = jsonDecode(_input.text);
-      _find.setValue(result);
+      _document = JsonDocument.fromValue(result);
+      _find.setValue(result, prepared: _document);
       setState(() {
         _result = result;
         _hasResult = true;
@@ -204,29 +208,51 @@ class _JsonBeautifyScreenState extends State<JsonBeautifyScreen> {
                               ),
                             )
                           : LayoutBuilder(
-                              builder: (context, constraints) => Scrollbar(
-                                controller: _outputScroll,
-                                child: SingleChildScrollView(
-                                  controller: _outputScroll,
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      minHeight: constraints.maxHeight,
-                                    ),
-                                    child: _tree
-                                        ? JsonTreeView(
-                                            key: ValueKey(_revision),
-                                            value: _result,
-                                            find: _find,
-                                          )
-                                        : JsonCodeView(
-                                            value: _result,
-                                            find: _find,
-                                            viewportHeight:
-                                                constraints.maxHeight,
+                              builder: (context, constraints) =>
+                                  NativeJson.available
+                                  ? NativeJsonView(
+                                      document: _document!,
+                                      tree: _tree,
+                                      find: _find,
+                                      onFind: _focusFind,
+                                      fallback: (_) => SingleChildScrollView(
+                                        child: _tree
+                                            ? JsonTreeView(
+                                                value: _result,
+                                                find: _find,
+                                              )
+                                            : JsonCodeView(
+                                                value: _result,
+                                                prepared: _document,
+                                                find: _find,
+                                                viewportHeight:
+                                                    constraints.maxHeight,
+                                              ),
+                                      ),
+                                    )
+                                  : Scrollbar(
+                                      controller: _outputScroll,
+                                      child: SingleChildScrollView(
+                                        controller: _outputScroll,
+                                        child: ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            minHeight: constraints.maxHeight,
                                           ),
-                                  ),
-                                ),
-                              ),
+                                          child: _tree
+                                              ? JsonTreeView(
+                                                  key: ValueKey(_revision),
+                                                  value: _result,
+                                                  find: _find,
+                                                )
+                                              : JsonCodeView(
+                                                  value: _result,
+                                                  find: _find,
+                                                  viewportHeight:
+                                                      constraints.maxHeight,
+                                                ),
+                                        ),
+                                      ),
+                                    ),
                             ),
                     ),
                   ],

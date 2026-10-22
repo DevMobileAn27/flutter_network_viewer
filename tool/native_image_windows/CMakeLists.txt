@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.14)
+project(native_image_tests LANGUAGES CXX)
+add_executable(native_image_tests ../test_native_image_windows.cpp)
+target_compile_features(native_image_tests PRIVATE cxx_std_17)
+target_compile_definitions(native_image_tests PRIVATE NOMINMAX UNICODE _UNICODE)
+target_compile_options(native_image_tests PRIVATE /W4 /WX /EHsc)
+target_link_libraries(native_image_tests PRIVATE windowscodecs ole32 gdi32)

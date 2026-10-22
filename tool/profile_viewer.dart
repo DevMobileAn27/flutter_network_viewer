@@ -106,7 +106,6 @@ class _ProbeState extends State<_Probe> {
     // Both renderers are measured with the same resumed scheduler.
     (WidgetsBinding.instance as _ProfileBinding).resumeForMeasurement();
     final latencies = <int>[];
-    await resources.invokeMethod<Object?>('sample');
     final total = Stopwatch()..start();
     try {
       for (var i = 0; i < 12; i++) {
@@ -119,7 +118,7 @@ class _ProbeState extends State<_Probe> {
         );
         SchedulerBinding.instance.scheduleForcedFrame();
         // Occluded macOS windows can stop receiving frames. Reject that run
-        // instead of reporting a misleading low CPU average over idle time.
+        // instead of including unrendered selections in the measurements.
         await SchedulerBinding.instance.endOfFrame.timeout(
           const Duration(seconds: 2),
         );
@@ -135,7 +134,6 @@ class _ProbeState extends State<_Probe> {
         'bodyBytes': bodies[0].length,
         'selections': latencies.length,
         'elapsedMs': total.elapsedMilliseconds,
-        'cpuPercent': sample?['cpuPercent'],
         'memoryBytes': sample?['memoryBytes'],
         'selectionMedianMs': latencies[latencies.length ~/ 2] / 1000,
         'selectionMaxMs': latencies.last / 1000,

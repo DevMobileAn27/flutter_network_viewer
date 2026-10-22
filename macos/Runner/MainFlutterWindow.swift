@@ -3,6 +3,9 @@ import Darwin
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
+  private var nativeImage: NativeImageViewer?
+  private var nativeJson: NativeJsonViewer?
+  private var nativeLists: NativeCaptureLists?
   private var resourceChannel: FlutterMethodChannel?
   private let resourceSampler = ProcessResourceSampler()
 
@@ -15,6 +18,17 @@ class MainFlutterWindow: NSWindow {
     self.title = "Flutter Network Viewer"
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    nativeLists = NativeCaptureLists(messenger: flutterViewController.engine.binaryMessenger)
+    flutterViewController.registrar(forPlugin: "NativeCaptureLists").register(
+      NativeCaptureListFactory(service: nativeLists!), withId: "dev.quocan.flutterNetworkViewer/capture_list")
+
+    nativeJson = NativeJsonViewer(messenger: flutterViewController.engine.binaryMessenger)
+    flutterViewController.registrar(forPlugin: "NativeJsonViewer").register(
+      NativeJsonFactory(service: nativeJson!), withId: "dev.quocan.flutterNetworkViewer/json_view")
+
+    nativeImage = NativeImageViewer(messenger: flutterViewController.engine.binaryMessenger)
+    flutterViewController.registrar(forPlugin: "NativeImageViewer").register(
+      NativeImageFactory(service: nativeImage!), withId: "dev.quocan.flutterNetworkViewer/image_view")
 
     resourceChannel = FlutterMethodChannel(
       name: "dev.quocan.flutterNetworkViewer/process_resources",
@@ -32,26 +46,8 @@ class MainFlutterWindow: NSWindow {
 }
 
 private class ProcessResourceSampler {
-  private var previousCPUTime: Double?
-  private var previousSampleTime: Double?
-
   func sample() -> [String: Any] {
     var values: [String: Any] = [:]
-    var usage = rusage()
-    if getrusage(RUSAGE_SELF, &usage) == 0 {
-      let cpuTime = Double(usage.ru_utime.tv_sec + usage.ru_stime.tv_sec)
-        + Double(usage.ru_utime.tv_usec + usage.ru_stime.tv_usec) / 1_000_000
-      let now = ProcessInfo.processInfo.systemUptime
-      if let previousCPUTime = previousCPUTime,
-        let previousSampleTime = previousSampleTime, now > previousSampleTime
-      {
-        // Like Activity Monitor, 100% means one fully occupied CPU core.
-        values["cpuPercent"] = max(0, (cpuTime - previousCPUTime) / (now - previousSampleTime) * 100)
-      }
-      previousCPUTime = cpuTime
-      previousSampleTime = now
-    }
-
     var info = task_vm_info_data_t()
     var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
     let status = withUnsafeMutablePointer(to: &info) { pointer in

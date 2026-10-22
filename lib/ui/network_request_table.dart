@@ -8,6 +8,7 @@ import '../models/capture.dart';
 import '../services/app_settings.dart';
 import 'components.dart';
 import 'selection_builder.dart';
+import 'native_capture_list.dart';
 
 class NetworkRequestTable extends StatefulWidget {
   const NetworkRequestTable({
@@ -19,6 +20,7 @@ class NetworkRequestTable extends StatefulWidget {
     required this.onSelected,
     required this.initialWidths,
     required this.onWidthsChanged,
+    this.visible = true,
   });
 
   final List<NetworkRecord> records;
@@ -29,6 +31,7 @@ class NetworkRequestTable extends StatefulWidget {
   // Method, Status and Time have saved widths; URL fills the remaining space.
   final List<double> initialWidths;
   final ValueChanged<List<double>> onWidthsChanged;
+  final bool visible;
 
   @override
   State<NetworkRequestTable> createState() => _NetworkRequestTableState();
@@ -38,15 +41,40 @@ class _NetworkRequestTableState extends State<NetworkRequestTable> {
   static const _dividerWidth = 6.0;
   static const _minUrlWidth = 140.0;
   late List<double> _widths = List.of(widget.initialWidths);
-  final _horizontal = ScrollController();
-  final _vertical = ScrollController();
+  var _horizontal = ScrollController();
+  var _vertical = ScrollController();
+  Offset _nativeScroll = Offset.zero;
   int? _hovered;
   int? _dragging;
+  final _localSelection = ValueNotifier<String?>(null);
+
+  void _rememberNativeScroll(Offset offset) {
+    if (_nativeScroll == offset) return;
+    _nativeScroll = offset;
+    ScrollController restore(ScrollController controller, double value) {
+      if (controller.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && controller.hasClients) {
+            controller.jumpTo(
+              value.clamp(0, controller.position.maxScrollExtent),
+            );
+          }
+        });
+        return controller;
+      }
+      controller.dispose();
+      return ScrollController(initialScrollOffset: value);
+    }
+
+    _horizontal = restore(_horizontal, offset.dx);
+    _vertical = restore(_vertical, offset.dy);
+  }
 
   @override
   void dispose() {
     _horizontal.dispose();
     _vertical.dispose();
+    _localSelection.dispose();
     super.dispose();
   }
 
@@ -254,7 +282,60 @@ class _NetworkRequestTableState extends State<NetworkRequestTable> {
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
+  Widget build(BuildContext context) {
+    if (!NativeLists.available) return _flutterTable(context);
+    final colors = context.palette;
+    final locale = Localizations.localeOf(context);
+    return NativeCaptureList<NetworkRecord>(
+      kind: 'network',
+      records: widget.records,
+      visible: widget.visible,
+      keyOf: (r) => r.key,
+      versionOf: (r) => (
+        r.requestEvent,
+        r.completionEvent,
+        widget.applicationName(r),
+        colors.dark,
+        locale,
+      ),
+      rowOf: (r) {
+        final uri = Uri.tryParse(r.url);
+        final path = uri == null || uri.host.isEmpty
+            ? (r.request.isEmpty ? context.l10n.missingRequest : r.url)
+            : '${uri.path.isEmpty ? '/' : uri.path}${uri.hasQuery ? '?${uri.query}' : ''}';
+        return {
+          'method': r.method,
+          'path': path,
+          'meta':
+              '${uri?.host ?? ''} · ${widget.applicationName(r)} · ${clockTime(r.time)}',
+          'status': filterLabel(context, r.state),
+          'duration': r.duration == null ? '—' : '${r.duration} ms',
+          'methodColor': colors.methodColor(r.method).toARGB32(),
+          'statusColor': colors
+              .statusColor(r.status, transportError: r.error.isNotEmpty)
+              .toARGB32(),
+        };
+      },
+      selection: widget.selection ?? _localSelection,
+      selectedKey: () => widget.selection?.value ?? widget.selectedKey,
+      onSelected: widget.onSelected,
+      titles: [
+        context.l10n.methodColumn,
+        context.l10n.urlColumn,
+        context.l10n.statusColumn,
+        context.l10n.timeColumn,
+      ],
+      widths: widget.initialWidths,
+      onWidthsChanged: (widths) {
+        _widths = List.of(widths);
+        widget.onWidthsChanged(widths);
+      },
+      onScroll: _rememberNativeScroll,
+      fallback: _flutterTable,
+    );
+  }
+
+  Widget _flutterTable(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final minimum =
           _widths.reduce((a, b) => a + b) + _minUrlWidth + 3 * _dividerWidth;

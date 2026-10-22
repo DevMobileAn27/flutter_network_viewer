@@ -25,6 +25,7 @@ import 'resizable_split_view.dart';
 import 'json_beautify_screen.dart';
 import 'json_document.dart';
 import 'capture_scope.dart';
+import 'native_capture_list.dart';
 
 class ViewerShell extends StatefulWidget {
   const ViewerShell({
@@ -51,6 +52,8 @@ class _ViewerShellState extends State<ViewerShell>
   String? _session;
   final _networkSelection = ValueNotifier<String?>(null);
   final _logSelection = ValueNotifier<int?>(null);
+  var _consoleFallbackScroll = ScrollController();
+  double _consoleNativeOffset = 0;
   set _networkKey(String? value) => _networkSelection.value = value;
   set _logId(int? value) => _logSelection.value = value;
   List<NetworkRecord>? _cachedRequests;
@@ -139,6 +142,7 @@ class _ViewerShellState extends State<ViewerShell>
     server.removeListener(_refresh);
     _networkSelection.dispose();
     _logSelection.dispose();
+    _consoleFallbackScroll.dispose();
     _search.dispose();
     _tabs.dispose();
     super.dispose();
@@ -857,6 +861,7 @@ class _ViewerShellState extends State<ViewerShell>
   Widget _networkList(List<NetworkRecord> requests, bool inspector) {
     if (requests.isEmpty) return _empty(store.network.isEmpty);
     return NetworkRequestTable(
+      visible: !_beautify,
       records: requests,
       selectedKey: null,
       selection: _networkSelection,
@@ -873,7 +878,59 @@ class _ViewerShellState extends State<ViewerShell>
 
   Widget _consoleList(List<ConsoleRecord> logs, bool inspector) {
     if (logs.isEmpty) return _empty(store.logs.isEmpty);
+    if (!NativeLists.available) return _flutterConsoleList(logs, inspector);
+    final palette = context.palette;
+    return NativeCaptureList<ConsoleRecord>(
+      kind: 'console',
+      visible: !_beautify,
+      records: logs,
+      keyOf: (r) => '${r.id}',
+      versionOf: (r) => (r.event, palette.dark),
+      rowOf: (r) => {
+        'level': r.level.toUpperCase(),
+        'time': clockTime(r.time),
+        'message': r.displayMessage,
+        'levelColor': palette.logColor(r.level).toARGB32(),
+        'messageColor':
+            (r.level == 'error'
+                    ? palette.danger
+                    : Theme.of(context).colorScheme.onSurface)
+                .toARGB32(),
+      },
+      selection: _logSelection,
+      selectedKey: () => _logSelection.value?.toString(),
+      onSelected: (record) {
+        _logId = record.id;
+        if (!inspector) _detail(() => ConsoleInspector(record: record));
+      },
+      fallback: (context) => _flutterConsoleList(logs, inspector),
+      onScroll: (offset) {
+        if (_consoleNativeOffset == offset.dy) return;
+        _consoleNativeOffset = offset.dy;
+        if (_consoleFallbackScroll.hasClients) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _consoleFallbackScroll.hasClients) {
+              _consoleFallbackScroll.jumpTo(
+                offset.dy.clamp(
+                  0,
+                  _consoleFallbackScroll.position.maxScrollExtent,
+                ),
+              );
+            }
+          });
+        } else {
+          _consoleFallbackScroll.dispose();
+          _consoleFallbackScroll = ScrollController(
+            initialScrollOffset: offset.dy,
+          );
+        }
+      },
+    );
+  }
+
+  Widget _flutterConsoleList(List<ConsoleRecord> logs, bool inspector) {
     return ListView.builder(
+      controller: _consoleFallbackScroll,
       itemCount: logs.length,
       itemBuilder: (context, index) {
         final r = logs[index];

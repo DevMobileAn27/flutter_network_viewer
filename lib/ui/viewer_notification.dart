@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/strings.dart';
 import 'viewer_theme.dart';
+import 'native_capture_list.dart';
 
 enum ViewerNotificationType { info, success, danger, warning }
 
@@ -64,6 +65,7 @@ class _NotificationSession {
   final bool autoHide;
   final int hideAfterMilisecond;
   final result = Completer<bool>();
+  final _releaseNativeLists = NativeListOverlays.acquire();
   late final OverlayEntry entry;
   Timer? _timer;
 
@@ -79,11 +81,13 @@ class _NotificationSession {
     _timer?.cancel();
     if (result.isCompleted) return;
     result.complete(confirmed);
+    _releaseNativeLists();
     entry.remove();
     entry.dispose();
   }
 
   void disposed() {
+    _releaseNativeLists();
     _timer?.cancel();
     if (!result.isCompleted) result.complete(false);
   }

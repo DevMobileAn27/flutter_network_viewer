@@ -19,7 +19,6 @@ class _ProcessResourceUsageState extends State<ProcessResourceUsage> {
   );
   Timer? _timer;
   bool _sampling = false;
-  double? _cpuPercent;
   double? _memoryMB;
 
   @override
@@ -32,11 +31,9 @@ class _ProcessResourceUsageState extends State<ProcessResourceUsage> {
   Future<void> _sample() async {
     if (_sampling) return;
     _sampling = true;
-    double? cpu;
     double? memory;
     try {
       final values = await _channel.invokeMapMethod<String, num>('sample');
-      cpu = _validNumber(values?['cpuPercent']);
       final bytes = _validNumber(values?['memoryBytes']);
       memory = bytes == null ? null : bytes / 1000000;
     } on MissingPluginException {
@@ -48,7 +45,6 @@ class _ProcessResourceUsageState extends State<ProcessResourceUsage> {
     }
     if (!mounted) return;
     setState(() {
-      _cpuPercent = cpu;
       _memoryMB = memory;
     });
   }
@@ -65,8 +61,7 @@ class _ProcessResourceUsageState extends State<ProcessResourceUsage> {
   @override
   Widget build(BuildContext context) => RepaintBoundary(
     child: Text(
-      'CPU ${_cpuPercent == null ? '—' : '${_cpuPercent!.toStringAsFixed(1)}%'}'
-      ' · RAM ${_memoryMB == null ? '—' : '${_memoryMB!.toStringAsFixed(0)} MB'}',
+      'RAM ${_memoryMB == null ? '—' : '${_memoryMB!.toStringAsFixed(0)} MB'}',
       key: const ValueKey('process-resource-usage'),
       maxLines: 1,
       style: mono.copyWith(fontSize: 10, color: context.palette.muted),

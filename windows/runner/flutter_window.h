@@ -7,6 +7,9 @@
 #include <memory>
 
 #include "win32_window.h"
+#include "native_capture_lists.h"
+#include "native_json_viewer.h"
+#include "native_image_viewer.h"
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {
@@ -28,6 +31,9 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+  std::unique_ptr<NativeCaptureLists> native_lists_;
+  std::unique_ptr<NativeJsonViewer> native_json_;
+  std::unique_ptr<NativeImageViewer> native_image_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

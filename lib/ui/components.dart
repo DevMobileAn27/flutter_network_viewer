@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'native_json_view.dart';
 import 'json_document.dart';
 
 import 'package:flutter/material.dart';
@@ -217,6 +218,38 @@ class _DataSectionState extends State<DataSection> {
       );
     }
     if (widget.preview != null) return widget.preview!;
+    if (_isJson && NativeJson.available) {
+      final count = _decoded is Map
+          ? (_decoded as Map).length
+          : _decoded is List
+          ? (_decoded as List).length
+          : 0;
+      final height =
+          viewportHeight ??
+          (widget.body
+              ? (MediaQuery.sizeOf(context).height * .45).clamp(160.0, 400.0)
+              : ((count + 1) * 22.0 + 24).clamp(80.0, 400.0));
+      return SizedBox(
+        height: height,
+        child: NativeJsonView(
+          document: _prepared!,
+          tree: !widget.body || _tree,
+          initiallyExpanded: widget.initiallyExpanded,
+          find: _canFind ? _find : null,
+          onFind: _canFind ? _findFocus.requestFocus : null,
+          fallback: (_) => SingleChildScrollView(
+            child: !widget.body || _tree
+                ? JsonTreeView(value: _decoded, find: _canFind ? _find : null)
+                : JsonCodeView(
+                    value: _decoded,
+                    prepared: _prepared,
+                    viewportHeight: height,
+                    find: _canFind ? _find : null,
+                  ),
+          ),
+        ),
+      );
+    }
     if (widget.body && _isJson) {
       return _tree
           ? JsonTreeView(

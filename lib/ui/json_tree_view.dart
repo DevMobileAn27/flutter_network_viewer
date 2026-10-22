@@ -26,13 +26,13 @@ class JsonTreeView extends StatefulWidget {
 
 class _JsonTreeViewState extends State<JsonTreeView> {
   final _scroll = ScrollController();
-  final _expanded = <String>{};
+  // Store only user overrides, so expanding by default needs no recursive walk.
+  final _toggled = <String>{};
   final _matchAnchor = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    if (widget.initiallyExpanded) _expanded.add('[]');
     widget.find?.addListener(_searchChanged);
     _revealMatch();
   }
@@ -40,9 +40,9 @@ class _JsonTreeViewState extends State<JsonTreeView> {
   @override
   void didUpdateWidget(JsonTreeView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.value != widget.value) {
-      _expanded.clear();
-      if (widget.initiallyExpanded) _expanded.add('[]');
+    if (oldWidget.value != widget.value ||
+        oldWidget.initiallyExpanded != widget.initiallyExpanded) {
+      _toggled.clear();
       _revealMatch();
     }
     if (oldWidget.find != widget.find) {
@@ -58,7 +58,12 @@ class _JsonTreeViewState extends State<JsonTreeView> {
     final match = widget.find?.active;
     if (match == null) return;
     for (var i = 0; i < match.path.length; i++) {
-      _expanded.add(jsonEncode(match.path.sublist(0, i)));
+      final id = jsonEncode(match.path.sublist(0, i));
+      if (widget.initiallyExpanded) {
+        _toggled.remove(id);
+      } else {
+        _toggled.add(id);
+      }
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -96,7 +101,7 @@ class _JsonTreeViewState extends State<JsonTreeView> {
     final node = widget.find?.nodes[id];
     final active = widget.find?.active;
     final selected = active != null && jsonEncode(active.path) == id;
-    final open = _expanded.contains(id);
+    final open = widget.initiallyExpanded != _toggled.contains(id);
     final prefix = name == null
         ? ''
         : '${ancestors.map((continues) => continues ? '│   ' : '    ').join()}${last ? '└── ' : '├── '}';
@@ -197,11 +202,7 @@ class _JsonTreeViewState extends State<JsonTreeView> {
             key: ValueKey('tree-node:$id'),
             borderRadius: BorderRadius.circular(4),
             onTap: () => setState(() {
-              if (open) {
-                _expanded.remove(id);
-              } else {
-                _expanded.add(id);
-              }
+              if (!_toggled.add(id)) _toggled.remove(id);
             }),
             child: row,
           ),

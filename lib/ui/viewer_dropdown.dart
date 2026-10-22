@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'viewer_theme.dart';
+import 'native_capture_list.dart';
 
 class DropdownOption<T> {
   const DropdownOption(this.value, this.label, {this.color});
@@ -33,10 +34,12 @@ class ViewerDropdown<T> extends StatefulWidget {
 class _ViewerDropdownState<T> extends State<ViewerDropdown<T>> {
   final _controller = MenuController();
   final _focus = FocusNode();
+  VoidCallback? _releaseNativeLists;
 
   @override
   void dispose() {
     _focus.dispose();
+    _releaseNativeLists?.call();
     super.dispose();
   }
 
@@ -58,8 +61,15 @@ class _ViewerDropdownState<T> extends State<ViewerDropdown<T>> {
           childFocusNode: _focus,
           crossAxisUnconstrained: false,
           alignmentOffset: const Offset(0, 6),
-          onOpen: () => setState(() {}),
-          onClose: () => setState(() {}),
+          onOpen: () {
+            _releaseNativeLists ??= NativeListOverlays.acquire();
+            setState(() {});
+          },
+          onClose: () {
+            _releaseNativeLists?.call();
+            _releaseNativeLists = null;
+            setState(() {});
+          },
           consumeOutsideTap: true,
           style: MenuStyle(
             alignment: Alignment.bottomLeft,

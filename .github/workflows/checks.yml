@@ -41,3 +41,48 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test tool
       - run: flutter analyze
       - run: flutter test
+      - name: Test native list geometry
+        run: c++ -std=c++17 tool/test_capture_list_layout.cpp -o /tmp/test-capture-layout && /tmp/test-capture-layout
+
+      - name: Test native JSON folding and navigation
+        run: c++ -std=c++17 -Wall -Wextra -Werror tool/test_json_view_layout.cpp -o /tmp/test-json-layout && /tmp/test-json-layout
+
+  native_builds:
+    name: Compile native viewers (${{ matrix.os }})
+    if: github.event_name == 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Compile AppKit renderer
+        if: runner.os == 'macOS'
+        run: bash tool/build_macos.sh arm64
+      - name: Test AppKit list rendering and interaction
+        if: runner.os == 'macOS'
+        run: bash tool/test_native_capture_lists_macos.sh
+      - name: Test AppKit JSON rendering and interaction
+        if: runner.os == 'macOS'
+        run: bash tool/test_native_json_macos.sh
+      - name: Test AppKit image decoding and interaction
+        if: runner.os == 'macOS'
+        run: bash tool/test_native_image_macos.sh
+      - name: Compile Win32 renderer
+        if: runner.os == 'Windows'
+        run: flutter build windows --release
+      - name: Configure WIC decoder tests
+        if: runner.os == 'Windows'
+        run: cmake -S tool/native_image_windows -B build/native-image-tests
+      - name: Compile WIC decoder tests
+        if: runner.os == 'Windows'
+        run: cmake --build build/native-image-tests --config Release
+      - name: Test WIC image decoding
+        if: runner.os == 'Windows'
+        run: .\build\native-image-tests\Release\native_image_tests.exe

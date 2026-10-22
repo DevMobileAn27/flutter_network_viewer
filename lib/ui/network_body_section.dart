@@ -1,12 +1,14 @@
-import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../l10n/strings.dart';
 import '../models/capture.dart';
 import 'components.dart';
 import 'capture_scope.dart';
+import 'image_body_data.dart';
+import 'native_image_view.dart';
 
 /// Renders captured bytes only; opening an image never replays the HTTP request.
 class NetworkBodySection extends StatefulWidget {
@@ -28,6 +30,11 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
   Uint8List? _bytes;
   bool _image = false;
   bool _raw = false;
+  bool _decoding = false;
+  int _revision = 0;
+  bool _preparing = false;
+  Map<String, Object?>? _wanted;
+  NativeImageData? _native;
 
   dynamic get _body => widget.data['body'] ?? widget.data['bodyPreview'];
 
@@ -43,63 +50,88 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     if (oldWidget.data['body'] != widget.data['body'] ||
         oldWidget.data['bodyPreview'] != widget.data['bodyPreview'] ||
         oldWidget.data['bodyEncoding'] != widget.data['bodyEncoding'] ||
-        oldWidget.data['headers'] != widget.data['headers']) {
+        _imageMime(oldWidget.data) != _imageMime(widget.data)) {
       _decode();
     }
   }
 
+  bool _imageMime(Json data) => objectOf(data['headers']).entries.any(
+    (e) =>
+        e.key.toLowerCase() == 'content-type' &&
+        '${e.value}'.toLowerCase().contains('image/'),
+  );
+
   void _decode() {
+    ++_revision;
+    _native?.release();
+    _native = null;
     _bytes = null;
     _raw = false;
-    final headers = objectOf(widget.data['headers']);
-    final contentType = headers.entries
-        .where((entry) => entry.key.toLowerCase() == 'content-type')
-        .map((entry) => '${entry.value}'.toLowerCase())
-        .join();
-    _image = contentType.contains('image/');
-    if (_body is! String) return;
-    try {
-      var text = (_body as String).trim();
-      if (widget.data['bodyEncoding'] == 'base64') {
-        final captured = base64Decode(text.replaceAll(RegExp(r'\s'), ''));
-        if (_hasImageSignature(captured)) {
-          _bytes = captured;
-        } else {
-          if (_image) _bytes = captured;
-          // The captured bytes can themselves contain a base64 response string.
-          text = utf8.decode(captured);
-        }
-      }
-      if (_bytes == null || !_hasImageSignature(_bytes!)) {
-        if (text.startsWith('"')) {
-          final decoded = jsonDecode(text);
-          if (decoded is String) text = decoded.trim();
-        }
-        if (text.toLowerCase().startsWith('data:image/')) {
-          _image = true;
-          _bytes = UriData.parse(text).contentAsBytes();
-        } else {
-          final image = _decodeBase64Image(text);
-          if (image != null) {
-            _bytes = image;
-          } else if (_image && _bytes == null) {
-            _bytes = Uint8List.fromList(utf8.encode(text));
-          }
-        }
-      }
-    } on FormatException {
-      // Malformed or truncated bodies remain available in the raw view.
+    _image = _imageMime(widget.data);
+    final args = <String, Object?>{
+      'body': _body,
+      'image': _image,
+      'base64': widget.data['bodyEncoding'] == 'base64',
+    };
+    _decoding = NativeImages.available && mayContainImageBody(args);
+    if (_decoding) {
+      _wanted = args;
+      if (!_preparing) unawaited(_prepareLatest());
+    } else {
+      _wanted = null;
+      _applyImage(decodeImageBody(args));
     }
-    final bytes = _bytes;
-    if (bytes == null) return;
-    _image = _image || _hasImageSignature(bytes);
-    if (!_image) _bytes = null;
   }
 
-  void _open() => showCaptureDialog(
-    context: context,
-    builder: (context) => _ImageDialog(bytes: _bytes!),
-  );
+  Future<void> _prepareLatest() async {
+    _preparing = true;
+    while (mounted && _wanted != null) {
+      final args = _wanted!;
+      final revision = _revision;
+      _wanted = null;
+      try {
+        final result = await compute(decodeImageBody, args);
+        if (mounted && revision == _revision) {
+          setState(() => _applyImage(result));
+        }
+      } catch (_) {
+        if (mounted && revision == _revision) {
+          setState(() => _decoding = false);
+        }
+      }
+    }
+    _preparing = false;
+  }
+
+  void _applyImage(ImageBodyData data) {
+    _decoding = false;
+    _image = data.image;
+    _bytes = data.bytes;
+    if (NativeImages.available && _bytes != null && _bytes!.isNotEmpty) {
+      _native = NativeImageData(_bytes!);
+    }
+  }
+
+  @override
+  void dispose() {
+    _revision++;
+    _wanted = null;
+    _native?.release();
+    super.dispose();
+  }
+
+  void _open() {
+    final bytes = _bytes;
+    if (bytes == null) return;
+    final native = _native;
+    native?.retain();
+    unawaited(
+      showCaptureDialog(
+        context: context,
+        builder: (context) => _ImageDialog(bytes: bytes, native: native),
+      ).whenComplete(() => native?.release()),
+    );
+  }
 
   String _rawLabel(BuildContext context) {
     final size = _bytes?.length;
@@ -122,7 +154,7 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     showTitle: widget.showTitle,
     searchable: !_image && widget.data['bodyEncoding'] != 'base64',
     fillAvailable: widget.fillAvailable,
-    preview: !_image
+    preview: !_image && !_decoding
         ? null
         : LayoutBuilder(
             builder: (context, constraints) => SizedBox(
@@ -169,22 +201,17 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: context.palette.line),
                         ),
-                        child: _bytes == null || _bytes!.isEmpty
+                        child: _decoding
+                            ? const Center(child: CircularProgressIndicator())
+                            : _bytes == null || _bytes!.isEmpty
                             ? const _ImageUnavailable()
-                            : InkWell(
-                                onTap: _open,
-                                child: Image(
-                                  image: ResizeImage(
-                                    MemoryImage(_bytes!),
-                                    width: 1600,
-                                    policy: ResizeImagePolicy.fit,
-                                  ),
-                                  fit: BoxFit.contain,
-                                  semanticLabel: context.l10n.imagePreview,
-                                  errorBuilder: (_, _, _) =>
-                                      const _ImageUnavailable(),
-                                ),
-                              ),
+                            : _native != null
+                            ? NativeImageView(
+                                image: _native!,
+                                onOpen: _open,
+                                fallback: (_) => _fallbackImage(),
+                              )
+                            : _fallbackImage(),
                       ),
                     ),
                 ],
@@ -192,50 +219,20 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
             ),
           ),
   );
-}
 
-bool _hasImageSignature(Uint8List bytes) {
-  bool starts(List<int> signature, [int offset = 0]) =>
-      bytes.length >= offset + signature.length &&
-      List.generate(
-        signature.length,
-        (i) => bytes[offset + i] == signature[i],
-      ).every((match) => match);
-  return starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ||
-      starts([0xff, 0xd8, 0xff]) ||
-      starts(ascii.encode('GIF87a')) ||
-      starts(ascii.encode('GIF89a')) ||
-      starts(ascii.encode('BM')) ||
-      (starts(ascii.encode('RIFF')) && starts(ascii.encode('WEBP'), 8));
-}
-
-Uint8List? _decodeBase64Image(String text) {
-  // Ordinary JSON/text should not allocate a whitespace-stripped copy merely
-  // to discover that it is not an image. Only inspect a bounded prefix first.
-  final prefixText = StringBuffer();
-  for (var i = 0; i < text.length && prefixText.length < 64; i++) {
-    final code = text.codeUnitAt(i);
-    if (code == 32 || code == 9 || code == 10 || code == 13) continue;
-    if (!(code >= 65 && code <= 90 ||
-        code >= 97 && code <= 122 ||
-        code >= 48 && code <= 57 ||
-        code == 43 ||
-        code == 47 ||
-        code == 45 ||
-        code == 95 ||
-        code == 61)) {
-      return null;
-    }
-    prefixText.writeCharCode(code);
-  }
-  if (prefixText.length < 4) return null;
-  try {
-    final prefix = base64Decode(prefixText.toString());
-    if (!_hasImageSignature(prefix)) return null;
-    return base64Decode(text.replaceAll(RegExp(r'\s'), ''));
-  } on FormatException {
-    return null;
-  }
+  Widget _fallbackImage() => InkWell(
+    onTap: _open,
+    child: Image(
+      image: ResizeImage(
+        MemoryImage(_bytes!),
+        width: 1600,
+        policy: ResizeImagePolicy.fit,
+      ),
+      fit: BoxFit.contain,
+      semanticLabel: context.l10n.imagePreview,
+      errorBuilder: (_, _, _) => const _ImageUnavailable(),
+    ),
+  );
 }
 
 class _ImageUnavailable extends StatelessWidget {
@@ -255,7 +252,8 @@ class _ImageUnavailable extends StatelessWidget {
 }
 
 class _ImageDialog extends StatefulWidget {
-  const _ImageDialog({required this.bytes});
+  const _ImageDialog({required this.bytes, this.native});
+  final NativeImageData? native;
   final Uint8List bytes;
 
   @override
@@ -264,8 +262,10 @@ class _ImageDialog extends StatefulWidget {
 
 class _ImageDialogState extends State<_ImageDialog> {
   final _transform = TransformationController();
+  final _nativeController = NativeImageController();
 
   void _zoom(double factor) {
+    _nativeController.zoom(factor);
     final current = _transform.value.getMaxScaleOnAxis();
     final next = (current * factor).clamp(.1, 10.0);
     // Scale around the center of the visible image area.
@@ -282,6 +282,7 @@ class _ImageDialogState extends State<_ImageDialog> {
 
   @override
   void dispose() {
+    _nativeController.dispose();
     _transform.dispose();
     super.dispose();
   }
@@ -289,16 +290,39 @@ class _ImageDialogState extends State<_ImageDialog> {
   @override
   Widget build(BuildContext context) => Dialog(
     insetPadding: const EdgeInsets.all(24),
+    clipBehavior: Clip.antiAlias,
     child: SizedBox(
       width: MediaQuery.sizeOf(context).width * .9,
       height: MediaQuery.sizeOf(context).height * .9,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      child: widget.native != null
+          ? NativeImageView(
+              image: widget.native!,
+              controller: _nativeController,
+              interactive: true,
+              modal: true,
+              onClose: () => Navigator.pop(context),
+              fallback: (_) => _fallbackContent(),
+            )
+          : _fallbackContent(),
+    ),
+  );
+
+  Widget _fallbackContent() => Stack(
+    fit: StackFit.expand,
+    children: [
+      ClipRect(child: _fallbackViewer()),
+      Positioned(
+        right: 16,
+        bottom: 16,
+        child: Material(
+          color: context.palette.surface,
+          elevation: 6,
+          borderRadius: BorderRadius.circular(10),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(child: Text(context.l10n.imagePreview)),
                 IconButton(
                   tooltip: context.l10n.zoomOut,
                   onPressed: () => _zoom(1 / 1.25),
@@ -311,7 +335,10 @@ class _ImageDialogState extends State<_ImageDialog> {
                 ),
                 IconButton(
                   tooltip: context.l10n.fitImage,
-                  onPressed: () => _transform.value = Matrix4.identity(),
+                  onPressed: () {
+                    _nativeController.fit();
+                    _transform.value = Matrix4.identity();
+                  },
                   icon: const Icon(Icons.fit_screen),
                 ),
                 IconButton(
@@ -322,26 +349,23 @@ class _ImageDialogState extends State<_ImageDialog> {
               ],
             ),
           ),
-          Expanded(
-            child: ClipRect(
-              child: InteractiveViewer(
-                key: _viewport,
-                transformationController: _transform,
-                minScale: .1,
-                maxScale: 10,
-                boundaryMargin: const EdgeInsets.all(1000),
-                child: SizedBox.expand(
-                  child: Image.memory(
-                    widget.bytes,
-                    fit: BoxFit.contain,
-                    semanticLabel: context.l10n.imagePreview,
-                    errorBuilder: (_, _, _) => const _ImageUnavailable(),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _fallbackViewer() => InteractiveViewer(
+    key: _viewport,
+    transformationController: _transform,
+    minScale: .1,
+    maxScale: 10,
+    boundaryMargin: const EdgeInsets.all(1000),
+    child: SizedBox.expand(
+      child: Image.memory(
+        widget.bytes,
+        fit: BoxFit.contain,
+        semanticLabel: context.l10n.imagePreview,
+        errorBuilder: (_, _, _) => const _ImageUnavailable(),
       ),
     ),
   );

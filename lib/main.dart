@@ -12,9 +12,15 @@ import 'services/viewer_mcp_server.dart';
 import 'ui/viewer_shell.dart';
 import 'ui/viewer_theme.dart';
 import 'ui/capture_scope.dart';
+import 'ui/native_capture_list.dart';
+import 'ui/native_json_view.dart';
+import 'ui/native_image_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NativeLists.initialize();
+  await NativeJson.initialize();
+  await NativeImages.initialize();
   final preferences = await SharedPreferences.getInstance();
   final store = CaptureStore();
   final server = ViewerServer(store);
@@ -62,6 +68,7 @@ class ViewerApp extends StatefulWidget {
 }
 
 class _ViewerAppState extends State<ViewerApp> {
+  final _nativeListRoutes = NativeListRouteObserver();
   late final AppSettings _settings = AppSettings(widget.preferences);
   late final ViewerMcpServer _mcp =
       widget.mcpServer ?? ViewerMcpServer(widget.store, widget.server);
@@ -79,6 +86,7 @@ class _ViewerAppState extends State<ViewerApp> {
 
   @override
   void dispose() {
+    _nativeListRoutes.dispose();
     _settings.removeListener(_syncMcp);
     _settings.dispose();
     if (widget.mcpServer == null) _mcp.dispose();
@@ -95,6 +103,7 @@ class _ViewerAppState extends State<ViewerApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [_nativeListRoutes],
       theme: viewerTheme(Brightness.light),
       darkTheme: viewerTheme(Brightness.dark),
       themeMode: _settings.themeMode,

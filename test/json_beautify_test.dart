@@ -88,6 +88,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.drag(divider, const Offset(120, 0));
     await tester.pumpAndSettle();
+    expect(find.textContaining('name: "An"'), findsNothing);
+    await tester.tap(find.textContaining('meta: {}'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('name: "An"'), findsOneWidget);
     expect(tester.widget<TextField>(input).controller!.text, source);
     expect(tester.takeException(), isNull);
@@ -146,7 +149,7 @@ void main() {
               .path,
           ['items', 1, 'name'],
         );
-        expect(find.textContaining('name: "needle"'), findsOneWidget);
+        expect(find.textContaining('name: "needle"'), findsNWidgets(3));
         expect(tester.widget<Text>(counter).data, '2 of 3');
         await tester.drag(
           find.byKey(const ValueKey('json-beautify-divider')),
@@ -220,8 +223,6 @@ void main() {
         await tester.tap(find.text('Tree'));
         await tester.pumpAndSettle();
         expect(find.byType(JsonTreeView), findsOneWidget);
-        await tester.tap(find.textContaining('meta: {}'));
-        await tester.pumpAndSettle();
         expect(find.textContaining('name: "An"'), findsOneWidget);
 
         const invalid = '{\n "value":\n}';
