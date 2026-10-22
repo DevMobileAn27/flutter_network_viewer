@@ -24,7 +24,7 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       title: ${{ steps.version.outputs.title }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Require main branch
@@ -78,7 +78,7 @@ jobs:
     env:
       ARCHIVE_NAME: flutter-network-viewer-${{ needs.version.outputs.version }}-${{ matrix.target }}-${{ matrix.arch }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -145,7 +145,7 @@ jobs:
       RELEASE_TITLE: ${{ needs.version.outputs.title }}
       RELEASE_VERSION: ${{ needs.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Prepare description and recheck tag
