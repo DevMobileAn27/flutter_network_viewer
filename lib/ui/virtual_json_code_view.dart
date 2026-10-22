@@ -290,6 +290,9 @@ class _VirtualJsonCodeViewState extends State<VirtualJsonCodeView> {
                           controller: _vertical,
                           primary: false,
                           itemExtent: _lineHeight,
+                          // Flutter 3.41 has no scrollCacheExtent yet. Retain the
+                          // small cache while supporting both old and new SDKs.
+                          // ignore: deprecated_member_use
                           cacheExtent: 80,
                           itemCount: _visible.length,
                           addAutomaticKeepAlives: false,
