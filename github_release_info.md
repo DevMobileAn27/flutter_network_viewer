@@ -1,10 +1,11 @@
 ---
-tag: v0.1.6
-title: Flutter Network Viewer v0.1.6
+tag: v0.1.7
+title: Flutter Network Viewer v0.1.7
 ---
 
 ## Có gì mới
 
+- Sửa lỗi kiểm tra mã trên GitHub Actions khi dùng Flutter SDK mới, giữ tương thích với SDK cũ.
 - Chuyển danh sách request, console log, JSON, Tree và khung xem ảnh sang renderer native trên macOS và Windows.
 - Khôi phục đường nối cha–con trong Tree và mở rộng toàn bộ nhánh theo mặc định; vẫn có thể đóng/mở từng nhánh.
 - Khung ảnh phóng to có thanh công cụ nổi ở góc dưới bên phải. GIF/WebP động hiển thị khung hình đầu để giảm xử lý liên tục.
@@ -14,10 +15,10 @@ title: Flutter Network Viewer v0.1.6
 
 ## Downloads
 
-- **macOS Apple Silicon (M-series):** `flutter-network-viewer-0.1.6-macos-arm64.zip`
-- **macOS Intel:** `flutter-network-viewer-0.1.6-macos-x86_64.zip`
-- **Windows x64 installer:** `flutter-network-viewer-0.1.6-windows-x64-setup.exe`
-- **Windows x64 portable:** `flutter-network-viewer-0.1.6-windows-x64.zip`
+- **macOS Apple Silicon (M-series):** `flutter-network-viewer-0.1.7-macos-arm64.zip`
+- **macOS Intel:** `flutter-network-viewer-0.1.7-macos-x86_64.zip`
+- **Windows x64 installer:** `flutter-network-viewer-0.1.7-windows-x64-setup.exe`
+- **Windows x64 portable:** `flutter-network-viewer-0.1.7-windows-x64.zip`
 
 On macOS, unzip and drag **Flutter Network Viewer.app** into **Applications**.
 On Windows, run the installer. For the portable ZIP, unzip and run **flutter_network_viewer.exe**. Keep the DLL files and `data` folder alongside the executable.
