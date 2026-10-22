@@ -151,7 +151,7 @@ jobs:
       - name: Prepare description and recheck tag
         run: python3 tool/prepare_github_release.py
       - name: Download all three app builds
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: flutter-network-viewer-${{ needs.version.outputs.version }}-*
           path: dist
