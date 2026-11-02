@@ -1,14 +1,149 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_network_viewer/services/capture_store.dart';
 import 'package:flutter_network_viewer/services/flutter_capture_adapter.dart';
 import 'package:flutter_network_viewer/services/viewer_server.dart';
+import 'package:flutter_network_viewer/services/viewer_diagnostics.dart';
 
 import 'support/fake_vm_service.dart';
 
 void main() {
+  test('body guards use metadata and tolerate invalid captured bytes', () {
+    const limit = FlutterCaptureAdapter.maxProfileBodyBytes;
+    expect(
+      FlutterCaptureAdapter.declaredBodyLength({
+        'contentLength': -1,
+        'headers': {
+          'Content-Length': ['59774016'],
+        },
+      }),
+      59774016,
+    );
+    expect(
+      FlutterCaptureAdapter.declaredBodyLength({
+        'headers': {'content-length': 'invalid'},
+      }),
+      isNull,
+    );
+    expect(
+      FlutterCaptureAdapter.exceedsBodyLimit({
+        'request': {'contentLength': limit - 1},
+        'response': {'contentLength': 2},
+      }),
+      true,
+    );
+    expect(
+      FlutterCaptureAdapter.exceedsBodyLimit({
+        'request': {'contentLength': limit},
+      }),
+      false,
+    );
+    for (final bytes in [
+      <dynamic>[0, 'bad'],
+      [256],
+      [-1],
+      [1.5],
+    ]) {
+      expect(
+        FlutterCaptureAdapter.body(bytes)['bodyOmitted'],
+        'invalid-body-bytes',
+      );
+    }
+    final omitted = FlutterCaptureAdapter.omitBodies(
+      profile(),
+      'profile-read-error',
+    );
+    expect(omitted.containsKey('requestBody'), false);
+    expect(omitted.containsKey('responseBody'), false);
+    expect(
+      FlutterCaptureAdapter.network(omitted).last['response']['statusCode'],
+      201,
+    );
+  });
+
+  for (final oversized in [true, false]) {
+    test(
+      '${oversized ? 'large multipart upload' : 'unreadable body'} preserves connection and later captures',
+      () async {
+        final vm = FakeVmService();
+        await vm.start();
+        const uploadId = 'upload-1';
+        vm.profiles[uploadId] = profile(id: uploadId)
+          ..['request'] = {
+            'contentLength': oversized ? 59774016 : 200,
+            'headers': {
+              'content-type': ['multipart/form-data; boundary=sample'],
+            },
+          }
+          ..['response'] = {
+            'endTime': 1124000,
+            'statusCode': 413,
+            'reasonPhrase': 'Request Entity Too Large',
+            'contentLength': 192,
+            'headers': {
+              'content-type': ['text/html'],
+            },
+          };
+        if (!oversized) {
+          vm.detailErrors[uploadId] = 'Body is no longer available';
+        }
+        final store = CaptureStore();
+        final viewer = ViewerServer(
+          store,
+          pollInterval: const Duration(milliseconds: 30),
+        );
+        addTearDown(() async {
+          await viewer.stop();
+          viewer.dispose();
+          store.dispose();
+          await vm.close();
+        });
+        await viewer.start(uri: vm.uri);
+        expect(viewer.running, true);
+        expect(viewer.error, isNull);
+        final upload = store.network.values.single;
+        expect(upload.method, 'POST');
+        expect(upload.status, 413);
+        expect(
+          upload.request['headers']['content-type'],
+          contains('multipart/form-data'),
+        );
+        expect(upload.request['body'], isNull);
+        expect(
+          upload.request['bodyOmitted'],
+          oversized ? 'profile-size-limit' : 'profile-read-error',
+        );
+        expect(upload.response['bodyOmitted'], upload.request['bodyOmitted']);
+        expect(
+          vm.calls.where(
+            (c) =>
+                c['method'] == 'ext.dart.io.getHttpProfileRequest' &&
+                c['params']['id'] == uploadId,
+          ),
+          hasLength(oversized ? 0 : 1),
+        );
+        vm.clock++;
+        vm.profiles['next'] = profile(id: 'next')..['_updated'] = vm.clock;
+        vm.event('Stdout', {
+          'bytes': base64Encode(utf8.encode('after upload\n')),
+        });
+        await until(() => store.network.length == 2 && store.logs.isNotEmpty);
+        final next = store.network.values.firstWhere(
+          (r) => r.requestEvent['vmRequestId'] == 'next',
+        );
+        expect(next.status, 201);
+        expect(next.response['body'], contains('Cà phê'));
+        expect(store.logs.single.message, 'after upload');
+        expect(viewer.running, true);
+        expect(viewer.isOnline(store.sessions.keys.single), true);
+        expect(viewer.error, isNull);
+      },
+    );
+  }
+
   test(
     'normalizes DevTools, encoded service, HTTP roots and WebSocket URLs',
     () {
@@ -156,6 +291,238 @@ void main() {
       expect(store.sessions, isEmpty);
       expect(store.network, isEmpty);
       expect(store.logs, isEmpty);
+    },
+  );
+
+  test(
+    'isolate Exit cancels a hung profile and captures the restarted app immediately',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'viewer-restart-test-',
+      );
+      final diagnostics = ViewerDiagnostics(directory);
+      final vm = FakeVmService();
+      await vm.start();
+      vm.profiles['before'] = profile(id: 'before');
+      final store = CaptureStore();
+      final viewer = ViewerServer(
+        store,
+        diagnostics: diagnostics,
+        rpcTimeout: const Duration(seconds: 5),
+        pollInterval: const Duration(milliseconds: 30),
+        idlePollIncrement: Duration.zero,
+      );
+      final gate = Completer<void>();
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        await viewer.stop();
+        viewer.dispose();
+        store.dispose();
+        await vm.close();
+        await diagnostics.flush();
+        await directory.delete(recursive: true);
+      });
+      await viewer.start(uri: vm.uri);
+      final session = store.sessions.keys.single;
+      final previousCalls = vm.calls
+          .where((c) => c['method'] == 'ext.dart.io.getHttpProfile')
+          .length;
+      vm.rpcGates['ext.dart.io.getHttpProfile:isolates/1'] = gate;
+      await until(
+        () =>
+            vm.calls
+                .where((c) => c['method'] == 'ext.dart.io.getHttpProfile')
+                .length >
+            previousCalls,
+      );
+      vm.event('Isolate', {'kind': 'IsolateExit'});
+      vm.isolateIds
+        ..clear()
+        ..add('isolates/restarted');
+      vm.profiles
+        ..clear()
+        ..['after'] = profile(id: 'after');
+      vm.event('Isolate', {'kind': 'IsolateStart'});
+      // Completes well before the five-second RPC timeout, without replacing WS.
+      await until(
+        () => store.network.values.any(
+          (record) => record.requestEvent['vmRequestId'] == 'after',
+        ),
+      );
+      expect(gate.isCompleted, false);
+      expect(vm.sockets, hasLength(1));
+      expect(store.network, hasLength(2));
+      expect(store.sessions.keys.single, session);
+      expect(viewer.error, isNull);
+      expect(viewer.isOnline(session), true);
+      vm.event('Stdout', {
+        'bytes': base64Encode(utf8.encode('after restart\n')),
+      });
+      await until(() => store.logs.isNotEmpty);
+      expect(store.logs.last.message, 'after restart');
+      gate.complete(); // A late result from the retired isolate must be ignored.
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(store.network, hasLength(2));
+      await diagnostics.flush();
+      final log = await File(diagnostics.path).readAsString();
+      expect(log, contains('rpc_cancelled'));
+      expect(log, contains('isolate_capture_ready'));
+      expect(log, isNot(contains('token=')));
+      expect(log, isNot(contains('example.com')));
+      expect(log, isNot(contains('after restart')));
+    },
+  );
+
+  test(
+    'a transient profile timeout retries attachment without dropping existing captures',
+    () async {
+      final vm = FakeVmService();
+      await vm.start();
+      vm.profiles['before'] = profile(id: 'before');
+      final store = CaptureStore();
+      final viewer = ViewerServer(
+        store,
+        rpcTimeout: const Duration(milliseconds: 100),
+        pollInterval: const Duration(milliseconds: 30),
+        idlePollIncrement: Duration.zero,
+      );
+      final gate = Completer<void>();
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        await viewer.stop();
+        viewer.dispose();
+        store.dispose();
+        await vm.close();
+      });
+      await viewer.start(uri: vm.uri);
+      final previousCalls = vm.calls
+          .where((c) => c['method'] == 'ext.dart.io.getHttpProfile')
+          .length;
+      vm.rpcGates['ext.dart.io.getHttpProfile'] = gate;
+      await until(
+        () =>
+            vm.calls
+                .where((c) => c['method'] == 'ext.dart.io.getHttpProfile')
+                .length >
+            previousCalls,
+      );
+      await until(
+        () => viewer.lastProtocolError?.contains('timed out') == true,
+      );
+      vm.rpcGates.clear();
+      vm.clock++;
+      vm.profiles['after'] = profile(id: 'after')..['_updated'] = vm.clock;
+      await until(() => store.network.length == 2);
+      expect(vm.sockets, hasLength(1));
+      expect(viewer.running, true);
+      expect(viewer.error, isNull);
+      expect(
+        vm.calls
+            .where(
+              (c) => c['method'] == 'ext.dart.io.httpEnableTimelineLogging',
+            )
+            .length,
+        greaterThanOrEqualTo(2),
+      );
+    },
+  );
+
+  test(
+    'Clear stays cleared when a temporary timeout reattaches the same isolate',
+    () async {
+      final vm = FakeVmService();
+      await vm.start();
+      vm.profiles['cleared'] = profile(id: 'cleared')..['_updated'] = vm.clock;
+      final store = CaptureStore();
+      final viewer = ViewerServer(
+        store,
+        rpcTimeout: const Duration(milliseconds: 100),
+        pollInterval: const Duration(milliseconds: 30),
+        idlePollIncrement: Duration.zero,
+      );
+      final gate = Completer<void>();
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        await viewer.stop();
+        viewer.dispose();
+        store.dispose();
+        await vm.close();
+      });
+      await viewer.start(uri: vm.uri);
+      store.clear();
+      vm.rpcGates['ext.dart.io.getHttpProfile'] = gate;
+      await until(
+        () => viewer.lastProtocolError?.contains('timed out') == true,
+      );
+      vm.rpcGates.clear();
+      vm.clock += 2;
+      vm.profiles['fresh'] = profile(id: 'fresh')..['_updated'] = vm.clock;
+      await until(() => store.network.isNotEmpty);
+      expect(store.network, hasLength(1));
+      expect(store.network.values.single.requestEvent['vmRequestId'], 'fresh');
+      expect(vm.sockets, hasLength(1));
+    },
+  );
+
+  test(
+    'initial profile timeout keeps VM transport and resumes capture',
+    () async {
+      final vm = FakeVmService();
+      await vm.start();
+      final gate = Completer<void>();
+      vm.rpcGates['ext.dart.io.getHttpProfile'] = gate;
+      final store = CaptureStore();
+      final viewer = ViewerServer(
+        store,
+        rpcTimeout: const Duration(milliseconds: 100),
+        pollInterval: const Duration(milliseconds: 30),
+      );
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        await viewer.stop();
+        viewer.dispose();
+        store.dispose();
+        await vm.close();
+      });
+      await viewer.start(uri: vm.uri);
+      expect(viewer.running, true);
+      expect(viewer.error, isNull);
+      vm.rpcGates.clear();
+      vm.profiles['new'] = profile(id: 'new');
+      await until(() => store.network.length == 1);
+      expect(vm.sockets, hasLength(1));
+    },
+  );
+
+  test(
+    'unresponsive VM with an open socket reconnects to the same endpoint',
+    () async {
+      final vm = FakeVmService();
+      await vm.start();
+      final store = CaptureStore();
+      final viewer = ViewerServer(
+        store,
+        rpcTimeout: const Duration(milliseconds: 80),
+        pollInterval: const Duration(milliseconds: 20),
+        idlePollIncrement: Duration.zero,
+        retryInterval: const Duration(milliseconds: 150),
+      );
+      addTearDown(() async {
+        await viewer.stop();
+        viewer.dispose();
+        store.dispose();
+        await vm.close();
+      });
+      await viewer.start(uri: vm.uri);
+      vm.ignoredMethods.add('getVM');
+      await until(() => !viewer.running);
+      vm.ignoredMethods.clear();
+      vm.clock++;
+      vm.profiles['new'] = profile(id: 'new')..['_updated'] = vm.clock;
+      await until(() => vm.sockets.length == 2 && store.network.length == 1);
+      expect(viewer.endpoint, vm.uri);
+      expect(viewer.autoDetect, false);
+      expect(viewer.error, isNull);
     },
   );
 

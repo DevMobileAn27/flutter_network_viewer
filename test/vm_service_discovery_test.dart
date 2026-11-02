@@ -182,6 +182,103 @@ void main() {
     },
   );
 
+  test(
+    'each explicit scan adds one new project and keeps earlier projects live',
+    () async {
+      final first = FakeVmService();
+      final second = FakeVmService()
+        ..vmPid = 20
+        ..rootLibrary = 'package:other/main.dart';
+      await first.start();
+      await second.start();
+      first.profiles['first'] = profile(id: 'first');
+      second.profiles['second'] = profile(id: 'second');
+      var processes = command(first.uri);
+      var scans = 0;
+      final store = CaptureStore();
+      final viewer = ViewerServer(
+        store,
+        discovery: VmServiceDiscovery(
+          readProcesses: () async {
+            scans++;
+            return processes;
+          },
+        ),
+        retryInterval: const Duration(milliseconds: 25),
+        pollInterval: const Duration(milliseconds: 30),
+        idlePollIncrement: Duration.zero,
+      );
+      addTearDown(() async {
+        await viewer.stop();
+        viewer.dispose();
+        store.dispose();
+        await first.close();
+        await second.close();
+      });
+      await viewer.start(automatic: true);
+      expect(viewer.connections, 1);
+      expect(viewer.autoDetect, false);
+      final initialSession = store.sessions.keys.single;
+      processes = '${command(first.uri)}\n${command(second.uri)}';
+      final initialSockets = first.sockets.length;
+      await viewer.start(automatic: true);
+      expect(viewer.connections, 2);
+      expect(viewer.autoDetect, false);
+      expect(viewer.searching, false);
+      expect(viewer.discoveredApps, isEmpty);
+      expect(store.sessions, hasLength(2));
+      expect(store.network, hasLength(2));
+      expect(store.sessions.containsKey(initialSession), true);
+      // Discovery probes close their socket; the capture socket stays open.
+      expect(
+        first.sockets.where((socket) => socket.readyState == 1),
+        hasLength(1),
+      );
+      expect(first.sockets.length, greaterThanOrEqualTo(initialSockets));
+      expect(store.sessions.keys.every(viewer.isOnline), true);
+      final completedScans = scans;
+      first.clock++;
+      second.clock++;
+      first.profiles['new-first'] = profile(id: 'new-first')
+        ..['_updated'] = first.clock;
+      second.profiles['new-second'] = profile(id: 'new-second')
+        ..['_updated'] = second.clock;
+      first.event('Stdout', {'bytes': 'Zmlyc3QgbG9nCg=='});
+      second.event('Stdout', {'bytes': 'c2Vjb25kIGxvZwo='});
+      await until(() => store.network.length == 4 && store.logs.length == 2);
+      expect(scans, completedScans);
+      expect(
+        store.logs.map((log) => log.message),
+        containsAll(['first log', 'second log']),
+      );
+      // Turning discovery back on with no new target keeps scanning; cancelling
+      // that scan must preserve both established capture connections and history.
+      await viewer.start(automatic: true);
+      expect(viewer.searching, true);
+      expect(viewer.autoDetect, true);
+      expect(viewer.connections, 2);
+      await viewer.stopDiscovery();
+      expect(viewer.searching, false);
+      expect(viewer.autoDetect, false);
+      expect(viewer.connections, 2);
+      expect(store.network, hasLength(4));
+      expect(store.sessions.keys.every(viewer.isOnline), true);
+      // Reconnect the second project without scanning or disrupting the first.
+      final count = second.sockets.length;
+      await second.sockets
+          .firstWhere((socket) => socket.readyState == 1)
+          .close();
+      await until(
+        () => second.sockets.length > count && viewer.connections == 2,
+      );
+      await until(() => store.sessions.keys.every(viewer.isOnline));
+      expect(viewer.connections, 2);
+      await viewer.stop();
+      expect(viewer.connections, 0);
+      expect(store.sessions, isEmpty);
+    },
+  );
+
   test('waits for a choice when multiple projects are found', () async {
     final first = FakeVmService();
     final second = FakeVmService()

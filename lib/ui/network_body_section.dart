@@ -9,6 +9,8 @@ import 'components.dart';
 import 'capture_scope.dart';
 import 'image_body_data.dart';
 import 'native_image_view.dart';
+import '../services/form_body.dart';
+import 'form_body_view.dart';
 
 /// Renders captured bytes only; opening an image never replays the HTTP request.
 class NetworkBodySection extends StatefulWidget {
@@ -35,6 +37,7 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
   bool _preparing = false;
   Map<String, Object?>? _wanted;
   NativeImageData? _native;
+  FormBody? _form;
 
   dynamic get _body => widget.data['body'] ?? widget.data['bodyPreview'];
 
@@ -50,7 +53,8 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     if (oldWidget.data['body'] != widget.data['body'] ||
         oldWidget.data['bodyPreview'] != widget.data['bodyPreview'] ||
         oldWidget.data['bodyEncoding'] != widget.data['bodyEncoding'] ||
-        _imageMime(oldWidget.data) != _imageMime(widget.data)) {
+        bodyContentType(oldWidget.data['headers']) !=
+            bodyContentType(widget.data['headers'])) {
       _decode();
     }
   }
@@ -66,6 +70,7 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     _native?.release();
     _native = null;
     _bytes = null;
+    _form = null;
     _raw = false;
     _image = _imageMime(widget.data);
     final args = <String, Object?>{
@@ -73,6 +78,25 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
       'image': _image,
       'base64': widget.data['bodyEncoding'] == 'base64',
     };
+    if (isFormBody(bodyContentType(widget.data['headers'])) &&
+        _body is String) {
+      final formArgs = <String, Object?>{
+        'form': true,
+        'body': _body,
+        'contentType': bodyContentType(widget.data['headers']),
+        'encoding': widget.data['bodyEncoding'],
+      };
+      _image = false;
+      _decoding = NativeImages.available;
+      if (_decoding) {
+        _wanted = formArgs;
+        if (!_preparing) unawaited(_prepareLatest());
+      } else {
+        _wanted = null;
+        _form = parseFormBody(formArgs);
+      }
+      return;
+    }
     _decoding = NativeImages.available && mayContainImageBody(args);
     if (_decoding) {
       _wanted = args;
@@ -90,9 +114,19 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
       final revision = _revision;
       _wanted = null;
       try {
-        final result = await compute(decodeImageBody, args);
-        if (mounted && revision == _revision) {
-          setState(() => _applyImage(result));
+        if (args['form'] == true) {
+          final result = await compute(parseFormBody, args);
+          if (mounted && revision == _revision) {
+            setState(() {
+              _form = result;
+              _decoding = false;
+            });
+          }
+        } else {
+          final result = await compute(decodeImageBody, args);
+          if (mounted && revision == _revision) {
+            setState(() => _applyImage(result));
+          }
         }
       } catch (_) {
         if (mounted && revision == _revision) {
@@ -154,7 +188,16 @@ class _NetworkBodySectionState extends State<NetworkBodySection> {
     showTitle: widget.showTitle,
     searchable: !_image && widget.data['bodyEncoding'] != 'base64',
     fillAvailable: widget.fillAvailable,
-    preview: !_image && !_decoding
+    preview: widget.data['bodyOmitted'] != null
+        ? BodyCaptureNotice(data: widget.data)
+        : _form != null
+        ? FormBodyView(form: _form!, raw: '$_body')
+        : _decoding && !_image
+        ? const SizedBox(
+            height: 160,
+            child: Center(child: CircularProgressIndicator()),
+          )
+        : !_image && !_decoding
         ? null
         : LayoutBuilder(
             builder: (context, constraints) => SizedBox(

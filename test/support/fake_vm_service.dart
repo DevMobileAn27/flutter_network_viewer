@@ -8,6 +8,9 @@ class FakeVmService {
   final sockets = <WebSocket>[];
   final calls = <Map<String, dynamic>>[];
   final profiles = <String, Map<String, dynamic>>{};
+  final detailErrors = <String, String>{};
+  final rpcGates = <String, Completer<void>>{};
+  final ignoredMethods = <String>{};
   final isolateIds = ['isolates/1'];
   int clock = 2000000;
   bool profilerAvailable = true;
@@ -34,6 +37,10 @@ class FakeVmService {
         calls.add(call);
         final args = call['params'] as Map? ?? {};
         final method = call['method'];
+        if (ignoredMethods.contains(method)) return;
+        await (rpcGates['$method:${args['isolateId']}'] ?? rpcGates[method])
+            ?.future;
+        if (socket.readyState != WebSocket.open) return;
         dynamic result;
         switch (method) {
           case 'invoke':
@@ -92,6 +99,18 @@ class FakeVmService {
             };
           case 'ext.dart.io.getHttpProfileRequest':
             await detailGate?.future;
+            if (detailErrors[args['id']] case final String message) {
+              if (socket.readyState == WebSocket.open) {
+                socket.add(
+                  jsonEncode({
+                    'jsonrpc': '2.0',
+                    'id': call['id'],
+                    'error': {'code': -32000, 'message': message},
+                  }),
+                );
+              }
+              return;
+            }
             result = Map<String, dynamic>.from(profiles[args['id']]!)
               ..remove('_updated');
           default:

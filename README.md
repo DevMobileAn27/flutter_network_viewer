@@ -29,12 +29,14 @@ Trên Windows, chạy installer. Với bản portable, giải nén rồi mở **
 
 1. Chạy ứng dụng cần theo dõi ở chế độ **debug** hoặc **profile**.
 2. Mở Flutter Network Viewer. App tự tìm và kết nối khi có một ứng dụng Flutter đang chạy trên cùng máy tính.
-3. Nếu có nhiều ứng dụng, chọn tên project trong danh sách xuất hiện phía trên. Sau khi kết nối thành công, Viewer dừng tự tìm và chỉ theo dõi project đã kết nối.
+3. Nếu có nhiều ứng dụng, chọn tên project trong danh sách xuất hiện phía trên. Sau khi kết nối thành công, Viewer tự tắt Auto detect và dừng tìm kiếm.
 4. Đợi trạng thái **Connected**, rồi thao tác trên ứng dụng Flutter để phát sinh request và log.
 
 ![Kết nối: bấm Start và đợi Viewer tự kết nối với dự án Flutter](docs/screenshots/connection.gif)
 
-Nếu mất kết nối, Viewer tự xóa project cùng request/log của project đó và chỉ thử kết nối lại URL hiện tại, không tự chuyển sang project khác. Khi chạy lại project và URL thay đổi, vào **Settings → Connection**, bật **Automatically detect Flutter apps** rồi bấm **Save & restart** để tìm lại. Nút **Stop** dừng cả việc tự tìm và kết nối lại.
+Muốn theo dõi thêm một project, vào **Settings → Connection** và bật lại **Automatically detect Flutter apps**. Viewer bỏ qua các project đã kết nối, kết nối thêm một project rồi tự tắt Auto detect. Các project trước vẫn tiếp tục nhận request và log. Tắt Auto detect khi đang tìm chỉ hủy lượt tìm kiếm đó.
+
+Nếu mất kết nối, Viewer tự xóa project cùng request/log của project đó và chỉ thử kết nối lại URL của project đó, không tự chuyển sang project khác. Khi chạy lại project và URL thay đổi, bật lại **Automatically detect Flutter apps** để tìm lại. Nút **Stop** dừng toàn bộ kết nối và việc tìm kiếm.
 
 Network bắt đầu lấy dữ liệu mỗi **1,4 giây**. Mỗi lượt không có request mới hoặc thay đổi sẽ tăng khoảng chờ thêm **0,2 giây**, tối đa **5 giây**; có thay đổi thì trở về **1,4 giây**. Console vẫn nhận log liên tục và cập nhật danh sách theo từng đợt với cùng quy tắc, độc lập với Network.
 
@@ -140,6 +142,13 @@ Bản **0.1.0** cần tải và cài thủ công bản có updater một lần. 
 - Chạy ứng dụng Flutter ở **debug/profile**. Không hỗ trợ theo dõi app release hoặc Flutter Web.
 - Hỗ trợ HTTP thông thường của Flutter, bao gồm cấu hình mặc định của Dio và package:http. Request từ WebView, thư viện HTTP native và dữ liệu WebSocket không xuất hiện trong danh sách này.
 - Xóa nội dung tìm kiếm, đưa bộ lọc về **All** và kiểm tra tab ứng dụng đang chọn.
+
+Nếu gặp lỗi kết nối hoặc hot restart, gửi kèm các file `viewer.log`, `viewer.log.1`, `viewer.log.2` (nếu có) để kiểm tra:
+
+- **macOS:** mở Finder → **Go → Go to Folder…**, nhập `~/Library/Logs/Flutter Network Viewer/`.
+- **Windows:** mở File Explorer, nhập `%LOCALAPPDATA%\Flutter Network Viewer\`.
+
+Log được tạo tự động khi mở app và chỉ ghi thông tin chẩn đoán kết nối, không chứa body, headers hay nội dung console của dự án.
 
 ## Chạy từ mã nguồn
 

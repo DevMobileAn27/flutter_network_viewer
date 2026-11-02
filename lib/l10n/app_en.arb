@@ -304,5 +304,20 @@
   "notificationConfirm": "Confirm",
   "notificationCancel": "Cancel",
   "updateNewVersion": "Update new version",
-  "manualEnterDevtoolsUrl": "Manual enter URL devtools"
+  "manualEnterDevtoolsUrl": "Manual enter URL devtools",
+  "formData": "Form-data",
+  "formField": "Field",
+  "formValue": "Value",
+  "formFile": "File",
+  "formIncomplete": "The captured form-data is incomplete or malformed. Use Raw to inspect the captured body.",
+  "bodyNotCaptured": "Body not captured",
+  "bodyTooLarge": "Body was not fetched because the combined request and response size exceeds the {limit} auto-capture limit. Headers, timing and status remain available.",
+  "bodyReadFailed": "This body could not be read from VM Service. Other requests and console logs continue to be captured.",
+  "@bodyTooLarge": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  }
 }

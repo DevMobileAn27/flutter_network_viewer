@@ -208,6 +208,7 @@ class _DataSectionState extends State<DataSection> {
 
   Widget _content(BuildContext context, {double? viewportHeight}) {
     final value = widget.value;
+    if (widget.preview != null) return widget.preview!;
     if (value == null || !widget.body && value is Map && value.isEmpty) {
       return Text(
         context.l10n.notCaptured,
@@ -217,7 +218,6 @@ class _DataSectionState extends State<DataSection> {
         ),
       );
     }
-    if (widget.preview != null) return widget.preview!;
     if (_isJson && NativeJson.available) {
       final count = _decoded is Map
           ? (_decoded as Map).length

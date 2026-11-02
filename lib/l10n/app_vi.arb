@@ -304,5 +304,20 @@
   "notificationConfirm": "Xác nhận",
   "notificationCancel": "Hủy",
   "updateNewVersion": "Cập nhật phiên bản mới",
-  "manualEnterDevtoolsUrl": "Nhập URL DevTools thủ công"
+  "manualEnterDevtoolsUrl": "Nhập URL DevTools thủ công",
+  "formData": "Form-data",
+  "formField": "Trường",
+  "formValue": "Giá trị",
+  "formFile": "Tệp",
+  "formIncomplete": "Form-data thu thập được chưa đầy đủ hoặc sai định dạng. Chọn Raw để xem body gốc.",
+  "bodyNotCaptured": "Chưa thu thập body",
+  "bodyTooLarge": "Không tải body vì tổng dung lượng request và response vượt giới hạn tự thu thập {limit}. Headers, thời gian và status vẫn được ghi nhận.",
+  "bodyReadFailed": "Không đọc được body này từ VM Service. Các request khác và console log vẫn tiếp tục được thu thập.",
+  "@bodyTooLarge": {
+    "placeholders": {
+      "limit": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -10,6 +10,9 @@ import '../models/capture.dart';
 import 'capture_store.dart';
 import 'flutter_capture_adapter.dart';
 import 'vm_service_discovery.dart';
+import 'viewer_diagnostics.dart';
+
+class _IsolateChanged implements Exception {}
 
 /// A DevTools-compatible VM Service client. The historical name is retained so
 /// the copied UI and MCP tools share the same capture/presence interface.
@@ -20,6 +23,8 @@ class ViewerServer extends ChangeNotifier {
     this.idlePollIncrement = const Duration(milliseconds: 200),
     this.maxPollInterval = const Duration(seconds: 5),
     this.retryInterval = const Duration(seconds: 3),
+    this.rpcTimeout = const Duration(seconds: 8),
+    this.diagnostics,
     VmServiceDiscovery? discovery,
   }) : _discovery = discovery ?? VmServiceDiscovery(),
        _networkPollInterval = pollInterval,
@@ -38,10 +43,22 @@ class ViewerServer extends ChangeNotifier {
   @visibleForTesting
   Duration get consolePollInterval => _consolePollInterval;
   final Duration retryInterval;
+  final Duration rpcTimeout;
+  final ViewerDiagnostics? diagnostics;
   final VmServiceDiscovery _discovery;
-  bool autoDetect = false;
-  bool get searching => autoDetect && _wanted && !running;
-  List<VmServiceTarget> discoveredApps = const [];
+  bool _autoDetect = false;
+  bool get autoDetect => _adding?.autoDetect ?? _autoDetect;
+  set autoDetect(bool value) => _autoDetect = value;
+  bool get searching =>
+      _adding?.searching ?? (_autoDetect && _wanted && _service == null);
+  List<VmServiceTarget> _discoveredApps = const [];
+  List<VmServiceTarget> get discoveredApps =>
+      _adding?.discoveredApps ?? _discoveredApps;
+  set discoveredApps(List<VmServiceTarget> value) => _discoveredApps = value;
+  final _additional = <ViewerServer>[];
+  ViewerServer? _adding;
+  Set<String> Function()? _excludedVmKeys;
+  String? _vmKey;
   VmService? _service;
   WebSocket? _socket;
   Timer? _timer;
@@ -51,6 +68,11 @@ class ViewerServer extends ChangeNotifier {
   int _pendingConsoleRevision = 0;
   Timer? _retry;
   final _isolates = <String, Json>{};
+  final _isolateChanges = <String, Set<Completer<void>>>{};
+  final _exitedIsolates = <String>{};
+  int? _pollingGeneration;
+  bool _pollRequested = false;
+  int _pollFailures = 0;
   Json? _application;
   final _cursors = <String, int>{};
   // Stream positions only; never retain cleared bodies, headers or log events.
@@ -63,17 +85,26 @@ class ViewerServer extends ChangeNotifier {
   bool _disposed = false;
   bool _wanted = false;
   int _generation = 0;
-  bool busy = false;
+  bool _busy = false;
+  bool get busy => _busy || (_adding?.busy ?? false);
+  set busy(bool value) => _busy = value;
   String endpoint = defaultServiceUri;
-  String? error;
+  String? _error;
+  String? get error => _adding?.error ?? _error;
+  set error(String? value) => _error = value;
   String? lastProtocolError;
   int invalidMessages = 0;
-  bool get running => _service != null;
-  int get connections => running ? 1 : 0;
+  bool get running =>
+      _service != null || _additional.any((client) => client.running);
+  int get connections =>
+      (_service != null ? 1 : 0) +
+      _additional.fold<int>(0, (count, client) => count + client.connections);
   int get port => Uri.tryParse(endpoint)?.port ?? 0;
   String get localUrl => endpoint;
   bool isOnline(String sessionId) =>
-      running && _isolates.values.any((session) => session['id'] == sessionId);
+      (_service != null &&
+          _isolates.values.any((session) => session['id'] == sessionId)) ||
+      _additional.any((client) => client.isOnline(sessionId));
 
   /// Accept DevTools links (including encoded uri=), HTTP service roots or ws URLs.
   static Uri normalizeUri(String input) {
@@ -109,10 +140,15 @@ class ViewerServer extends ChangeNotifier {
 
   Future<void> start({String? uri, bool automatic = false}) async {
     if (_disposed) return;
+    if (automatic && (_service != null || _additional.isNotEmpty)) {
+      await _addProject(uri);
+      return;
+    }
     final requestedGeneration = _generation + 1;
     await stop();
     if (_disposed || _generation != requestedGeneration) return;
     _wanted = true;
+    diagnostics?.record('capture_started', {'automatic': automatic});
     autoDetect = automatic;
     if (automatic) {
       if (uri != null) endpoint = uri;
@@ -130,20 +166,91 @@ class ViewerServer extends ChangeNotifier {
     await _connect();
   }
 
+  // Each VM owns its own socket, polling timers, cursors and restart lifecycle.
+  // Adding another project must never stop or clear already attached projects.
+  Future<void> _addProject(String? uri) async {
+    var client = _adding;
+    if (client == null) {
+      client = ViewerServer(
+        store,
+        pollInterval: pollInterval,
+        idlePollIncrement: idlePollIncrement,
+        maxPollInterval: maxPollInterval,
+        retryInterval: retryInterval,
+        rpcTimeout: rpcTimeout,
+        diagnostics: diagnostics,
+        discovery: _discovery,
+      );
+      final candidate = client;
+      client._excludedVmKeys = () => {
+        ?_vmKey,
+        for (final existing in _additional)
+          if (existing != candidate && existing._vmKey != null)
+            existing._vmKey!,
+      };
+      _additional.add(client);
+      _adding = client;
+      client.addListener(_additionalChanged);
+    }
+    diagnostics?.record('additional_discovery_started', {
+      'connections': connections,
+    });
+    _notify();
+    await client.start(automatic: true, uri: uri);
+    _additionalChanged();
+  }
+
+  void _additionalChanged() {
+    final candidate = _adding;
+    if (candidate != null &&
+        candidate._service != null &&
+        !candidate.busy &&
+        !candidate.autoDetect) {
+      _adding = null;
+      _autoDetect = false;
+      diagnostics?.record('additional_project_connected', {
+        'connections': connections,
+      });
+    }
+    _notify();
+  }
+
+  /// Cancel only discovery. Existing projects continue capturing live data.
+  Future<void> stopDiscovery() async {
+    final candidate = _adding;
+    _adding = null;
+    _autoDetect = false;
+    if (candidate != null) {
+      candidate.removeListener(_additionalChanged);
+      _additional.remove(candidate);
+      await candidate.stop();
+      candidate.dispose();
+    } else if (_service == null && _additional.isEmpty) {
+      await stop();
+    }
+    _notify();
+  }
+
   Future<void> _discoverAndConnect() async {
-    if (_disposed || !_wanted || busy || running) return;
+    if (_disposed || !_wanted || _busy || _service != null) return;
     final generation = _generation;
     busy = true;
     error = null;
     _notify();
     VmServiceTarget? selected;
     try {
-      final targets = await _discovery.discover();
+      final found = await _discovery.discover();
+      final excluded = _excludedVmKeys?.call() ?? <String>{};
+      final targets = found
+          .where((target) => !excluded.contains(target.vmKey))
+          .toList();
+      diagnostics?.record('discovery_completed', {'targets': targets.length});
       if (_generation != generation || _disposed) return;
       discoveredApps = List.unmodifiable(targets);
       selected = targets.where((app) => app.uri == endpoint).firstOrNull;
       if (selected == null && targets.length == 1) selected = targets.single;
     } catch (_) {
+      diagnostics?.record('discovery_failed');
       if (_generation == generation && !_disposed) {
         discoveredApps = const [];
         error =
@@ -165,17 +272,20 @@ class ViewerServer extends ChangeNotifier {
   }
 
   Future<void> _connect() async {
-    if (_disposed || !_wanted || busy || running) return;
+    if (_disposed || !_wanted || _busy || _service != null) return;
     final generation = _generation;
     busy = true;
     error = null;
     _notify();
     WebSocket? socket;
     VmService? service;
+    diagnostics?.record('connection_attempt', {
+      'host': Uri.tryParse(endpoint)?.host,
+      'port': Uri.tryParse(endpoint)?.port,
+      'generation': generation,
+    });
     try {
-      socket = await WebSocket.connect(
-        endpoint,
-      ).timeout(const Duration(seconds: 8));
+      socket = await WebSocket.connect(endpoint).timeout(rpcTimeout);
       if (generation != _generation || _disposed) {
         await socket.close();
         return;
@@ -187,11 +297,26 @@ class ViewerServer extends ChangeNotifier {
       );
       _socket = socket;
       _service = service;
-      // Do not treat opening a socket as success until a VM answers.
-      await service.getVM().timeout(const Duration(seconds: 8));
-      if (generation != _generation) return;
       final active = service;
       unawaited(service.onDone.then((_) => _lost(active)));
+      // Do not treat opening a socket as success until a VM answers.
+      final vm = await _rpc('getVM', () => active.getVM());
+      if (generation != _generation) return;
+      _vmKey = '${vm.pid}:${vm.startTime}:${vm.operatingSystem}';
+      diagnostics?.record('vm_ready', {'vmPid': vm.pid, 'version': vm.version});
+      _subscriptions.add(
+        active.onIsolateEvent.listen((event) {
+          if (_isActive(active, generation)) _isolateEvent(event);
+        }),
+      );
+      try {
+        await _rpc(
+          'streamListen:Isolate',
+          () => active.streamListen('Isolate'),
+        );
+      } on RPCError catch (e) {
+        if (e.code != 103) rethrow;
+      }
       var consoleQueue = Future<void>.value();
       for (final stream in ['Stdout', 'Stderr', 'Logging']) {
         final events = switch (stream) {
@@ -209,19 +334,27 @@ class ViewerServer extends ChangeNotifier {
           }),
         );
         try {
-          await service
-              .streamListen(stream)
-              .timeout(const Duration(seconds: 8));
+          await _rpc('streamListen:$stream', () => active.streamListen(stream));
         } on RPCError catch (e) {
           // Stream subscription may already be active on a shared service.
           if (e.code != 103) rethrow;
         }
       }
-      await _poll(active, generation);
+      // Isolate extensions may be unavailable during a hot restart. They are
+      // retried by polling without throwing away an established VM transport.
+      try {
+        await _poll(active, generation);
+        _pollFailures = 0;
+      } on TimeoutException {
+        _pollFailures = 1;
+      } on RPCError {
+        _pollFailures = 1;
+      }
       if (generation != _generation) return;
       // Discovery is only for finding the initial connection. Once capture is
       // ready, reconnect this endpoint without scanning or switching projects.
       autoDetect = false;
+      diagnostics?.record('discovery_locked');
       _retry?.cancel();
       _retry = null;
       discoveredApps = const [];
@@ -229,14 +362,19 @@ class ViewerServer extends ChangeNotifier {
       _consolePollInterval = pollInterval;
       _schedulePoll(active, generation);
       _scheduleConsole(active, generation);
+      diagnostics?.record('connection_ready', {'isolates': _isolates.length});
     } catch (e) {
       if (generation == _generation && !_disposed) {
+        diagnostics?.record('connection_failed', {
+          'errorType': '${e.runtimeType}',
+        });
         error = 'Cannot connect to Dart VM Service: $e';
         _service = null;
         _socket = null;
         final sessionId = _application?['id'] as String?;
         if (sessionId != null) store.removeSession(sessionId);
         _isolates.clear();
+        _invalidateIsolateCalls();
         _application = null;
         _cursors.clear();
         _fingerprints.clear();
@@ -244,6 +382,7 @@ class ViewerServer extends ChangeNotifier {
         _pendingConsole.clear();
         _pendingConsoleBytes = 0;
         _timer?.cancel();
+        _consoleTimer?.cancel();
         for (final subscription in _subscriptions) {
           unawaited(subscription.cancel());
         }
@@ -269,20 +408,144 @@ class ViewerServer extends ChangeNotifier {
   bool _isActive(VmService service, int generation) =>
       !_disposed && _wanted && _service == service && _generation == generation;
 
-  void _schedulePoll(VmService service, int generation) {
+  Future<T> _rpc<T>(
+    String method,
+    Future<T> Function() call, {
+    String? isolate,
+  }) async {
+    final clock = Stopwatch()..start();
+    try {
+      final result = await call().timeout(rpcTimeout);
+      if (clock.elapsedMilliseconds >= 1000) {
+        diagnostics?.record('rpc_slow', {
+          'method': method,
+          'isolate': isolate,
+          'elapsedMs': clock.elapsedMilliseconds,
+        });
+      }
+      return result;
+    } catch (e) {
+      diagnostics
+          ?.record(e is _IsolateChanged ? 'rpc_cancelled' : 'rpc_failed', {
+            'method': method,
+            'isolate': isolate,
+            'elapsedMs': clock.elapsedMilliseconds,
+            'errorType': '${e.runtimeType}',
+            if (e is RPCError) 'code': e.code,
+          });
+      rethrow;
+    }
+  }
+
+  Future<T> _isolateRpc<T>(
+    String id,
+    String method,
+    Future<T> Function() call,
+  ) async {
+    if (_exitedIsolates.contains(id)) throw _IsolateChanged();
+    final pending = _isolateChanges.putIfAbsent(id, () => {});
+    final changed = Completer<void>();
+    pending.add(changed);
+    try {
+      return await _rpc(
+        method,
+        () => Future.any<T>([
+          call(),
+          changed.future.then<T>((_) => throw _IsolateChanged()),
+        ]),
+        isolate: id,
+      );
+    } finally {
+      pending.remove(changed);
+      if (pending.isEmpty && identical(_isolateChanges[id], pending)) {
+        _isolateChanges.remove(id);
+      }
+    }
+  }
+
+  void _discardIsolate(String id, {bool resetCursor = true}) {
+    for (final changed in _isolateChanges.remove(id) ?? <Completer<void>>{}) {
+      changed.complete();
+    }
+    _isolates.remove(id);
+    if (resetCursor) {
+      _cursors.remove(id);
+      _clearedCursors.remove(id);
+      _fingerprints.removeWhere((key, _) => key.startsWith('$id:'));
+    }
+    _stdoutBuffers.removeWhere((key, _) => key.startsWith('$id:'));
+  }
+
+  void _invalidateIsolateCalls() {
+    for (final pending in _isolateChanges.values) {
+      for (final changed in pending) {
+        changed.complete();
+      }
+    }
+    _isolateChanges.clear();
+    _exitedIsolates.clear();
+  }
+
+  void _isolateEvent(Event event) {
+    final id = event.isolate?.id;
+    if (id == null) return;
+    final kind = event.kind;
+    if (kind == EventKind.kIsolateExit) {
+      _discardIsolate(id);
+      _exitedIsolates.add(id);
+    } else if (kind == EventKind.kIsolateStart) {
+      _discardIsolate(id);
+      _exitedIsolates.remove(id);
+    } else if (kind != EventKind.kIsolateRunnable &&
+        !(kind == EventKind.kServiceExtensionAdded &&
+            event.extensionRPC == 'ext.dart.io.getHttpProfile')) {
+      return;
+    }
+    diagnostics?.record('isolate_event', {'kind': kind, 'isolate': id});
+    _pollRequested = true;
+    if (!busy && _pollingGeneration != _generation && _service != null) {
+      _schedulePoll(_service!, _generation, immediately: true);
+    }
+  }
+
+  void _schedulePoll(
+    VmService service,
+    int generation, {
+    bool immediately = false,
+  }) {
     if (!_isActive(service, generation)) return;
-    _timer = Timer(_networkPollInterval, () async {
+    _timer?.cancel();
+    _timer = Timer(immediately ? Duration.zero : _networkPollInterval, () async {
+      if (!_isActive(service, generation) || _pollingGeneration == generation) {
+        return;
+      }
+      _pollingGeneration = generation;
+      _pollRequested = false;
       try {
         final changed = await _poll(service, generation);
         if (!_isActive(service, generation)) return;
+        if (_pollFailures > 0) diagnostics?.record('capture_recovered');
+        _pollFailures = 0;
         _networkPollInterval = _nextInterval(_networkPollInterval, changed);
       } catch (e) {
         if (!_isActive(service, generation)) return;
-        error = 'VM Service: $e';
-        _notify();
+        _pollFailures++;
+        diagnostics?.record('poll_failed', {
+          'consecutive': _pollFailures,
+          'errorType': '${e.runtimeType}',
+        });
+        if (_pollFailures >= 2) {
+          // A socket can stay open after DDS/VM stops responding. Replace that
+          // transport, using the same project endpoint rather than rediscovery.
+          diagnostics?.record('connection_unresponsive');
+          _lost(service);
+          return;
+        }
+      } finally {
+        if (_pollingGeneration == generation) _pollingGeneration = null;
       }
       // Schedule only after completion: slow VM calls must never overlap.
-      _schedulePoll(service, generation);
+      _schedulePoll(service, generation, immediately: _pollRequested);
     });
   }
 
@@ -358,6 +621,12 @@ class ViewerServer extends ChangeNotifier {
 
   void _lost(VmService service) {
     if (_service != service || _disposed) return;
+    final socket = _socket;
+    diagnostics?.record('connection_lost', {
+      'closeCode': socket?.closeCode,
+      'pollFailures': _pollFailures,
+      'isolates': _isolates.length,
+    });
     _consoleTimer?.cancel();
     _pendingConsole.clear();
     _pendingConsoleBytes = 0;
@@ -371,6 +640,7 @@ class ViewerServer extends ChangeNotifier {
     discoveredApps = const [];
     error = null;
     _isolates.clear();
+    _invalidateIsolateCalls();
     _application = null;
     _cursors.clear();
     _fingerprints.clear();
@@ -379,7 +649,9 @@ class ViewerServer extends ChangeNotifier {
       unawaited(subscription.cancel());
     }
     _subscriptions.clear();
-    error = autoDetect ? null : 'VM Service disconnected. Reconnecting…';
+    unawaited(service.dispose());
+    unawaited(socket?.close());
+    error = _autoDetect ? null : 'VM Service disconnected. Reconnecting…';
     _notify();
     _scheduleRetry();
   }
@@ -387,29 +659,42 @@ class ViewerServer extends ChangeNotifier {
   void _scheduleRetry() {
     _retry?.cancel();
     if (_wanted && !_disposed) {
+      diagnostics?.record('retry_scheduled', {
+        'delayMs': retryInterval.inMilliseconds,
+      });
       _retry = Timer(
         retryInterval,
-        () => unawaited(autoDetect ? _discoverAndConnect() : _connect()),
+        () => unawaited(_autoDetect ? _discoverAndConnect() : _connect()),
       );
     }
   }
 
   Future<bool> _poll(VmService service, int generation) async {
     var changed = false;
+    var profilingFailed = false;
+    var profiled = false;
     final captureRevision = store.revision;
-    final vm = await service.getVM().timeout(const Duration(seconds: 8));
+    final vm = await _rpc('getVM', () => service.getVM());
     if (generation != _generation) return false;
     final ids = (vm.isolates ?? []).map((i) => i.id!).toSet();
-    _isolates.removeWhere((key, _) => !ids.contains(key));
-    _cursors.removeWhere((key, _) => !ids.contains(key));
+    for (final id in {
+      ..._isolates.keys,
+      ..._cursors.keys,
+    }.where((id) => !ids.contains(id))) {
+      _discardIsolate(id);
+    }
+    _exitedIsolates.removeWhere((id) => !ids.contains(id));
     for (final isolate in vm.isolates ?? <IsolateRef>[]) {
       if (generation != _generation) return false;
       final id = isolate.id!;
+      if (_exitedIsolates.contains(id)) continue;
       try {
         if (!_isolates.containsKey(id)) {
-          final detail = await service
-              .getIsolate(id)
-              .timeout(const Duration(seconds: 8));
+          final detail = await _isolateRpc(
+            id,
+            'getIsolate',
+            () => service.getIsolate(id),
+          );
           if (!(detail.extensionRPCs ?? []).contains(
             'ext.dart.io.getHttpProfile',
           )) {
@@ -437,13 +722,15 @@ class ViewerServer extends ChangeNotifier {
             'isolateId': id,
             'isolateName': isolate.name,
           };
-          await service
-              .callServiceExtension(
-                'ext.dart.io.httpEnableTimelineLogging',
-                isolateId: id,
-                args: {'enabled': 'true'},
-              )
-              .timeout(const Duration(seconds: 8));
+          await _isolateRpc(
+            id,
+            'ext.dart.io.httpEnableTimelineLogging',
+            () => service.callServiceExtension(
+              'ext.dart.io.httpEnableTimelineLogging',
+              isolateId: id,
+              args: {'enabled': 'true'},
+            ),
+          );
           if (generation != _generation) return false;
           _isolates[id] = metadata;
           if (_application!['id'] == _clearedApplicationId &&
@@ -451,18 +738,21 @@ class ViewerServer extends ChangeNotifier {
             _cursors[id] = _clearedCursors[id]!;
           }
           _ingest(metadata, []);
+          diagnostics?.record('isolate_capture_ready', {'isolate': id});
         }
-        final profile = await service
-            .callServiceExtension(
-              'ext.dart.io.getHttpProfile',
-              isolateId: id,
-              args: {
-                if (_cursors[id] != null) 'updatedSince': '${_cursors[id]}',
-              },
-            )
-            .timeout(const Duration(seconds: 8));
+        final metadata = _isolates[id]!;
+        final profile = await _isolateRpc(
+          id,
+          'ext.dart.io.getHttpProfile',
+          () => service.callServiceExtension(
+            'ext.dart.io.getHttpProfile',
+            isolateId: id,
+            args: {if (_cursors[id] != null) 'updatedSince': '${_cursors[id]}'},
+          ),
+        );
         final json = profile.json ?? {};
         if (generation != _generation) return false;
+        profiled = true;
         final timestamp = json['timestamp'];
         if (timestamp is int) {
           final next = timestamp + (captureRevision == store.revision ? 0 : 1);
@@ -492,31 +782,92 @@ class ViewerServer extends ChangeNotifier {
             continue;
           }
           Json full = summary;
-          try {
-            final result = await service
-                .callServiceExtension(
+          if (FlutterCaptureAdapter.exceedsBodyLimit(summary)) {
+            diagnostics?.record('body_omitted', {
+              'isolate': id,
+              'reason': 'profile-size-limit',
+              'requestBytes': FlutterCaptureAdapter.declaredBodyLength(
+                summary['request'],
+              ),
+              'responseBytes': FlutterCaptureAdapter.declaredBodyLength(
+                summary['response'],
+              ),
+            });
+            full = FlutterCaptureAdapter.omitBodies(
+              summary,
+              'profile-size-limit',
+            );
+          } else {
+            try {
+              final result = await _isolateRpc(
+                id,
+                'ext.dart.io.getHttpProfileRequest',
+                () => service.callServiceExtension(
                   'ext.dart.io.getHttpProfileRequest',
                   isolateId: id,
                   args: {'id': '${summary['id']}'},
-                )
-                .timeout(const Duration(seconds: 8));
-            full = result.json ?? summary;
-          } on RPCError {
-            // DevTools may clear its remote history between listing and reading.
+                ),
+              );
+              full = result.json ?? summary;
+            } on RPCError catch (e) {
+              // A bad/cleared body belongs to this request, not the connection.
+              full = FlutterCaptureAdapter.omitBodies(
+                summary,
+                'profile-read-error',
+              );
+              lastProtocolError = 'HTTP profile ${summary['id']}: $e';
+            } on TimeoutException catch (e) {
+              // Keep following other requests and console streams on this VM.
+              full = FlutterCaptureAdapter.omitBodies(
+                summary,
+                'profile-read-error',
+              );
+              lastProtocolError = 'HTTP profile ${summary['id']}: $e';
+            }
           }
           if (generation != _generation) return false;
+          final bodySize = ['requestBody', 'responseBody'].fold<int>(0, (
+            total,
+            key,
+          ) {
+            final body = full[key];
+            if (body is List) return total + body.length;
+            if (body is String) return total + body.length;
+            return total;
+          });
+          final events = bodySize > 65536
+              ? await compute(FlutterCaptureAdapter.network, full)
+              : FlutterCaptureAdapter.network(full);
+          if (generation != _generation) return false;
+          if (!identical(_isolates[id], metadata)) break;
           if (captureRevision == store.revision) {
-            _ingest(_isolates[id]!, FlutterCaptureAdapter.network(full));
+            _ingest(metadata, events);
           }
         }
         if (generation != _generation) return false;
+      } on _IsolateChanged {
+        // Exit/Start invalidates old calls immediately, even if the VM never
+        // replies to that old isolate. The next iteration can attach the new one.
+        continue;
+      } on TimeoutException catch (e) {
+        _discardIsolate(id, resetCursor: false);
+        profilingFailed = true;
+        lastProtocolError =
+            'HTTP profiling timed out for $id: ${e.runtimeType}';
       } on RPCError catch (e) {
         // An isolate can exit during polling; other isolates must keep working.
-        _isolates.remove(id);
+        _discardIsolate(id, resetCursor: false);
+        profilingFailed = true;
         lastProtocolError = '$e';
       }
     }
     if (generation != _generation) return false;
+    if (profilingFailed && !profiled) {
+      throw TimeoutException(
+        'HTTP profiling is temporarily unavailable',
+        rpcTimeout,
+      );
+    }
     if (_isolates.isNotEmpty &&
         store.sessions.containsKey(_application?['id'])) {
       _ingest(_isolates.values.first, []);
@@ -707,6 +1058,15 @@ class ViewerServer extends ChangeNotifier {
   }
 
   Future<void> stop() async {
+    final clients = _additional.toList();
+    _additional.clear();
+    _adding = null;
+    for (final client in clients) {
+      client.removeListener(_additionalChanged);
+      await client.stop();
+      client.dispose();
+    }
+    diagnostics?.record('capture_stopped');
     _consoleTimer?.cancel();
     _pendingConsole.clear();
     _pendingConsoleBytes = 0;
@@ -723,6 +1083,9 @@ class ViewerServer extends ChangeNotifier {
     discoveredApps = const [];
     error = null;
     _isolates.clear();
+    _invalidateIsolateCalls();
+    _pollFailures = 0;
+    _pollRequested = false;
     _application = null;
     _cursors.clear();
     _fingerprints.clear();

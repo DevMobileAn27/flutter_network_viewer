@@ -131,10 +131,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           !await preferences.setBool('autoDetectVmService', enabled)) {
         throw StateError('Could not persist discovery preference');
       }
-      await widget.server.start(
-        automatic: enabled,
-        uri: _port.text.trim().isEmpty ? null : _port.text,
-      );
+      if (enabled) {
+        await widget.server.start(automatic: true);
+      } else {
+        await widget.server.stopDiscovery();
+      }
     } catch (_) {
       if (mounted) _notice(context.l10n.settingsSaveFailed);
     } finally {

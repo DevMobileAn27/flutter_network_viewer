@@ -8,6 +8,7 @@ import 'services/app_settings.dart';
 import 'services/app_updater.dart';
 import 'l10n/app_localizations.dart';
 import 'services/viewer_server.dart';
+import 'services/viewer_diagnostics.dart';
 import 'services/viewer_mcp_server.dart';
 import 'ui/viewer_shell.dart';
 import 'ui/viewer_theme.dart';
@@ -23,7 +24,9 @@ Future<void> main() async {
   await NativeImages.initialize();
   final preferences = await SharedPreferences.getInstance();
   final store = CaptureStore();
-  final server = ViewerServer(store);
+  final diagnostics = ViewerDiagnostics.desktop();
+  diagnostics.record('app_started');
+  final server = ViewerServer(store, diagnostics: diagnostics);
   final updater = AppUpdater.desktop();
   runApp(
     ViewerApp(
