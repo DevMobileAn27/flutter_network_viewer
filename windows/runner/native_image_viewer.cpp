@@ -118,10 +118,14 @@ class ImageHost {
   RECT toolbar_{};
   void LayoutTools() {
     RECT r; GetClientRect(hwnd_,&r);
+    // RECT uses LONG, a distinct C++ type from int even on 64-bit Windows.
+    // Normalize dimensions before passing them to std::min/std::max.
+    const int client_width = static_cast<int>(r.right);
+    const int client_height = static_cast<int>(r.bottom);
     const int margin = static_cast<int>(16*scale_);
-    const int width = std::min(static_cast<int>(184*scale_),std::max(0,r.right-margin*2));
+    const int width = std::min(static_cast<int>(184*scale_),std::max(0,client_width-margin*2));
     const int height = static_cast<int>(40*scale_);
-    toolbar_ = {std::max(0,r.right-margin-width),std::max(0,r.bottom-margin-height),r.right-margin,r.bottom-margin};
+    toolbar_ = {std::max(0,client_width-margin-width),std::max(0,client_height-margin-height),client_width-margin,client_height-margin};
     for (int i = 0; i < 4; ++i) {
       const int x = toolbar_.left+width*i/4, next = toolbar_.left+width*(i+1)/4;
       SetWindowPos(buttons_[i],HWND_TOP,x,toolbar_.top,next-x,height,SWP_NOACTIVATE);
