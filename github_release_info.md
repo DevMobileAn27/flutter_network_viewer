@@ -1,24 +1,22 @@
 ---
-tag: v0.1.7
-title: Flutter Network Viewer v0.1.7
+tag: v0.1.8
+title: Flutter Network Viewer v0.1.8
 ---
 
 ## Có gì mới
 
-- Sửa lỗi kiểm tra mã trên GitHub Actions khi dùng Flutter SDK mới, giữ tương thích với SDK cũ.
-- Chuyển danh sách request, console log, JSON, Tree và khung xem ảnh sang renderer native trên macOS và Windows.
-- Khôi phục đường nối cha–con trong Tree và mở rộng toàn bộ nhánh theo mặc định; vẫn có thể đóng/mở từng nhánh.
-- Khung ảnh phóng to có thanh công cụ nổi ở góc dưới bên phải. GIF/WebP động hiển thị khung hình đầu để giảm xử lý liên tục.
-- Khung xem nhỏ và phóng to dùng chung ảnh đã giải mã; giải phóng tài nguyên khi xoá dữ liệu.
-- Tối ưu cập nhật danh sách và xử lý nội dung chi tiết; thanh trạng thái chỉ hiển thị dung lượng RAM.
-- Thu gọn bố cục, tận dụng chiều cao vùng xem JSON và ảnh.
+- Hiển thị body form-data với các trường dữ liệu, tên file, MIME type, dung lượng và chế độ Raw; hỗ trợ cả form URL-encoded.
+- Bỏ qua việc tự tải body khi tổng dung lượng request và response vượt 4 MB, giữ headers, thời gian và status để tránh tải upload lớn qua VM Service.
+- Sửa phục hồi capture sau hot restart, hủy lần đọc từ isolate cũ và tự kết nối lại khi VM ngừng phản hồi.
+- Mỗi lần bật Auto detect chỉ kết nối thêm một project rồi tự tắt; các project đã kết nối vẫn tiếp tục nhận request và console log.
+- Bổ sung log chẩn đoán kết nối tự xoay vòng trên macOS và Windows để hỗ trợ kiểm tra lỗi.
 
 ## Downloads
 
-- **macOS Apple Silicon (M-series):** `flutter-network-viewer-0.1.7-macos-arm64.zip`
-- **macOS Intel:** `flutter-network-viewer-0.1.7-macos-x86_64.zip`
-- **Windows x64 installer:** `flutter-network-viewer-0.1.7-windows-x64-setup.exe`
-- **Windows x64 portable:** `flutter-network-viewer-0.1.7-windows-x64.zip`
+- **macOS Apple Silicon (M-series):** `flutter-network-viewer-0.1.8-macos-arm64.zip`
+- **macOS Intel:** `flutter-network-viewer-0.1.8-macos-x86_64.zip`
+- **Windows x64 installer:** `flutter-network-viewer-0.1.8-windows-x64-setup.exe`
+- **Windows x64 portable:** `flutter-network-viewer-0.1.8-windows-x64.zip`
 
 On macOS, unzip and drag **Flutter Network Viewer.app** into **Applications**.
 On Windows, run the installer. For the portable ZIP, unzip and run **flutter_network_viewer.exe**. Keep the DLL files and `data` folder alongside the executable.
