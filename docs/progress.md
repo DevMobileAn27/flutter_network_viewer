@@ -3908,3 +3908,40 @@ and no-fail-fast. Windows in the same hosted run failed at cargo test, before
 packaging; its detailed failure log is unavailable in this session. The supplied
 log covers macOS only. Windows remains undiagnosed; no hosted rerun, commit,
 push or release was performed for this fix.
+
+## F21 — GitHub draft release after all builds (2026-11-17)
+
+Added a release job depending on the complete desktop matrix. Only main pushes
+and manual runs on main can create/update a draft; pull requests keep read-only
+build permissions. Downloaded artifacts remain separated by platform so their
+checksum manifests cannot overwrite each other. All three ZIPs and the Windows
+installer must pass checksum verification before contacting GitHub. The draft
+includes those packages, platform status files, combined SHA256SUMS and notes.
+
+The tag/title/notes use Cargo and packaging metadata (currently rust-v0.1.9).
+A rerun updates the existing draft and its assets; published versions are refused.
+The job has scoped contents-write permission and serialized release operations.
+Nothing publishes a release automatically.
+
+Test-first import failure reproduced before implementation. Eight executable
+orchestration tests pass using inert packages and mocked GitHub CLI, covering
+new/existing drafts, pagination, API failure, published-version refusal and
+missing/tampered/incompletely checksummed packages. All 13 packaging tests,
+384 Rust tests, fmt, all-target Clippy and workflow YAML parsing pass locally.
+Evidence: `docs/artifacts/ci-draft-release-2026-11-17`.
+No GitHub mutation or hosted run was performed; hosted acceptance is pending.
+
+## F21 — User-facing draft release notes (2026-11-17)
+
+Compared the Flutter github_release_info.md template. Draft notes now contain
+Có gì mới, Bản tải and Nếu macOS chặn ứng dụng, with all four Rust package
+names generated from the current version. Installation steps use the Rust
+Windows executable name; macOS guidance includes quarantine removal and opening
+the app, scoped to trusted official downloads. Changelog/title remain maintained
+in packaging/release.json; changes are not inferred automatically from commits.
+Updated the current changelog for the Rust migration and Sparkle fix.
+
+Test-first missing sections/dynamic notes failures reproduced. Nine draft tests
+and all 13 packaging regressions pass, including a different version/changelog
+and UTF-8 notes. Preview and logs: docs/artifacts/ci-release-notes-2026-11-17.
+No hosted release was created or published.

@@ -1,4 +1,4 @@
-name: Rust checks and local packages
+name: Rust checks, packages and draft release
 on:
   push:
     branches: [main]
@@ -40,6 +40,7 @@ jobs:
         env:
           RUST_BACKTRACE: '1'
       - run: python -B tools/test_f21_release.py
+      - run: python -B tools/test_draft_release.py
       - run: python -B tools/verify_updater_vendor.py
       - if: runner.os == 'macOS'
         run: |
@@ -99,3 +100,27 @@ jobs:
             docs/artifacts/f21/ci-*/*.txt
             docs/artifacts/f21/ci-*/diagnostics/*.log
           if-no-files-found: ignore
+  draft-release:
+    name: Create or update draft release
+    needs: desktop
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: rust-draft-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rust-preview-*
+          path: release-artifacts
+      - name: Verify packages and create draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -B tools/draft_release.py release-artifacts

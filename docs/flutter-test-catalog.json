@@ -2642,5 +2642,26 @@
     "verification": "Native UI assertion failed on old bridge; fixed current/available/manual flows and two further consecutive runs passed. 384 Rust tests, fmt, all-target Clippy, 13 release tests, 2 integrity tests and YAML parse passed.",
     "evidence": "docs/artifacts/ci-sparkle-modal-2026-11-17",
     "platform_limit": "macOS ARM64 validated locally. Windows failed at cargo test in the hosted run; detailed log unavailable and failure remains undiagnosed. No hosted rerun."
+  },
+  "ci_draft_release_2026_11_17": {
+    "feature": "F21",
+    "reference": "After all platform builds succeed, main creates or refreshes a GitHub draft release with verified packages.",
+    "tests": [
+      "tools/test_draft_release.py (8 executable tests)",
+      "tools/test_f21_release.py (13 packaging regressions)"
+    ],
+    "verification": "8 orchestration tests and 13 packaging tests pass. 384 Rust tests, fmt, all-target Clippy and workflow YAML parsing pass. GitHub CLI mocked; no remote release created.",
+    "evidence": "docs/artifacts/ci-draft-release-2026-11-17",
+    "platform_limit": "Actual hosted draft creation awaits pushing/running the updated workflow."
+  },
+  "ci_release_notes_2026_11_17": {
+    "feature": "F21",
+    "reference": "Draft release notes follow the previous user-facing sections with current Rust filenames and installation guidance.",
+    "tests": [
+      "tools/test_draft_release.py::DraftReleaseTests::test_creates_draft_with_all_platform_assets_and_combined_checksums",
+      "tools/test_draft_release.py::DraftReleaseTests::test_release_notes_follow_version_and_changelog_metadata"
+    ],
+    "verification": "Missing sections reproduced first; 9 draft tests and 13 packaging tests pass. No hosted mutation.",
+    "evidence": "docs/artifacts/ci-release-notes-2026-11-17"
   }
 }
