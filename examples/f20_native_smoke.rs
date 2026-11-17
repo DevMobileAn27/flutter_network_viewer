@@ -10,6 +10,27 @@ use std::{
     path::PathBuf,
     time::{Duration, Instant},
 };
+// Observe our own AppKit process; never dismiss a modal to make a test pass.
+#[cfg(target_os = "macos")]
+fn native_modal_is_open() -> bool {
+    use std::ffi::{c_char, c_void};
+    #[link(name = "objc")]
+    unsafe extern "C" {
+        fn objc_getClass(name: *const c_char) -> *mut c_void;
+        fn sel_registerName(name: *const c_char) -> *mut c_void;
+        fn objc_msgSend(receiver: *mut c_void, selector: *mut c_void) -> *mut c_void;
+    }
+    // Both selectors have zero arguments and return Objective-C object pointers.
+    // The smoke renderer executes this on AppKit's main thread.
+    unsafe {
+        let app = objc_msgSend(
+            objc_getClass(c"NSApplication".as_ptr()),
+            sel_registerName(c"sharedApplication".as_ptr()),
+        );
+        !objc_msgSend(app, sel_registerName(c"modalWindow".as_ptr())).is_null()
+    }
+}
+
 struct Smoke {
     app: DesktopApp,
     output: PathBuf,
@@ -62,6 +83,11 @@ impl eframe::App for Smoke {
             self.app.updater.status
         );
         self.app.update(ctx, frame);
+        #[cfg(target_os = "macos")]
+        assert!(
+            !native_modal_is_open(),
+            "manual update check opened a blocking AppKit modal instead of the app notification"
+        );
         ctx.request_repaint_after(Duration::from_millis(16));
         for e in ctx.input(|i| i.events.clone()) {
             if let Event::Screenshot {
@@ -93,8 +119,18 @@ impl eframe::App for Smoke {
             }
             if self.step == 0 {
                 self.shot(ctx, "native-available.png");
+                self.click("settings");
                 self.stage = Instant::now();
                 self.step = 1;
+                return;
+            }
+            if self.step == 1 {
+                assert!(self.app.ui.support.settings_open);
+                // A confirmed update must still open Sparkle's native update UI
+                // from the Settings action. Never press its Install button.
+                self.click("check-app-updates");
+                self.stage = Instant::now();
+                self.step = 2;
                 return;
             }
             if self.stage.elapsed() < Duration::from_millis(700) {
@@ -102,7 +138,6 @@ impl eframe::App for Smoke {
             }
             assert!(self.output.join("native-available.png").exists());
             self.app.updater = Updater::new(NativeBackend::default(), None, false);
-            std::fs::write(self.output.join("available-result.json"),r#"{"result":"pass","real_sparkle_available":true,"installer_requested":false,"listener_drop":true}"#).unwrap();
             self.done.store(true, std::sync::atomic::Ordering::Release);
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
@@ -200,11 +235,8 @@ impl eframe::App for Smoke {
                 // Dropping the real native owner removes its weak delegate; late work cannot
                 // reference the Rust host. Replacing it also exercises stop before app close.
                 self.app.updater = Updater::new(NativeBackend::default(), None, false);
-                std::fs::write(self.output.join("native-result.json"),r#"{"result":"pass","real_sparkle":true,"native_error_retry_current":true,"production_host":true,"settings_input":true,"version":true,"vi_dark_narrow":true,"listener_drop":true,"installer_requested":false}"#).unwrap();
                 self.done.store(true, std::sync::atomic::Ordering::Release);
-                println!(
-                    "PASS F20 real Sparkle error/retry/current, production Settings input, VI narrow, listener drop; no installer"
-                );
+                println!("F20 assertions complete; waiting for the native event loop to return");
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             }
             _ => {
@@ -224,6 +256,7 @@ fn main() -> eframe::Result {
     settings.set_auto_detect_vm_service(false).unwrap();
     let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let result = done.clone();
+    let completed_output = output.clone();
     eframe::run_native(
         "F20 Updater Native Acceptance",
         eframe::NativeOptions {
@@ -252,5 +285,22 @@ fn main() -> eframe::Result {
         result.load(std::sync::atomic::Ordering::Acquire),
         "native closed before success"
     );
+    let (filename, evidence) = if available_only {
+        (
+            "available-result.json",
+            serde_json::json!({"result":"pass","real_sparkle_available":true,"manual_available_action":true,"installer_requested":false,"listener_drop":true,"event_loop_returned":true}),
+        )
+    } else {
+        (
+            "native-result.json",
+            serde_json::json!({"result":"pass","real_sparkle":true,"native_error_retry_current":true,"production_host":true,"settings_input":true,"version":true,"vi_dark_narrow":true,"listener_drop":true,"installer_requested":false,"event_loop_returned":true}),
+        )
+    };
+    std::fs::write(
+        completed_output.join(filename),
+        serde_json::to_vec_pretty(&evidence).unwrap(),
+    )
+    .unwrap();
+    println!("PASS F20: assertions, updater disposal and native event-loop return ({filename})");
     Ok(())
 }

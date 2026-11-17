@@ -5,6 +5,7 @@ No installer is downloaded, launched or accepted.
 """
 import functools
 import http.server
+import json
 import os
 import pathlib
 import plistlib
@@ -15,6 +16,9 @@ import threading
 root = pathlib.Path(__file__).resolve().parents[1]
 output = pathlib.Path(sys.argv[1]).resolve() if len(sys.argv)>1 else root / 'docs/artifacts/f20/native'
 output.mkdir(parents=True, exist_ok=True)
+# Only successful process exit may publish a fresh acceptance result.
+for result_name in ('native-result.json', 'available-result.json'):
+    (output/result_name).unlink(missing_ok=True)
 (output/'feed.xml').write_text('malformed feed', encoding='utf-8')
 requests=[]
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -50,10 +54,17 @@ try:
     subprocess.run([str(bundle/'MacOS/f20_native_smoke'),str(output),f'http://127.0.0.1:{server.server_port}/feed.xml'],cwd=root,env=env,check=True,timeout=70)
     high=(root/'tests/fixtures/f20_current.xml').read_text(encoding='utf-8').replace('<sparkle:version>1</sparkle:version>','<sparkle:version>999999</sparkle:version>').replace('<sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>','<sparkle:shortVersionString>99.0.0</sparkle:shortVersionString>')
     (output/'feed.xml').write_text(high,encoding='utf-8')
+    requests_before_available=len(requests)
     subprocess.run([str(bundle/'MacOS/f20_native_smoke'),str(output),f'http://127.0.0.1:{server.server_port}/feed.xml','available'],cwd=root,env=env,check=True,timeout=70)
+    assert len(requests)-requests_before_available>=2, 'Expected both discovery and explicit available-update action'
+
+    for result_name in ('native-result.json', 'available-result.json'):
+        result=json.loads((output/result_name).read_text(encoding='utf-8'))
+        assert result['result']=='pass' and result['event_loop_returned'] is True, result
     assert len(requests)>=3,requests
     assert all(p=='/feed.xml' for p in requests), requests
-    (output/'http-requests.json').write_text(__import__('json').dumps(requests))
+    (output/'http-requests.json').write_text(json.dumps(requests),encoding='utf-8')
+    print('PASS F20 native processes exited normally; current/available/manual update paths verified',flush=True)
 finally:
     server.shutdown()
     server.server_close()

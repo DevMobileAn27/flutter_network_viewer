@@ -2631,5 +2631,16 @@
     ],
     "verification": "13 release-tool tests, 384 Rust tests, fmt/clippy, workflow YAML and macOS ARM64 release zip/output/checksum pass. Windows native build awaits hosted validation.",
     "evidence": "docs/artifacts/ci-msvc-linker-2026-11-17"
+  },
+  "ci_sparkle_modal_2026_11_17": {
+    "feature": "F20",
+    "reference": "Run 44042285948: no-update manual check must not open a blocking native modal or publish PASS before exit.",
+    "tests": [
+      "examples/f20_native_smoke.rs (AppKit modal assertion, Settings current/available actions, normal event-loop return)",
+      "tools/f20_native_smoke.py (fresh evidence, child exit, explicit available check and no archive request)"
+    ],
+    "verification": "Native UI assertion failed on old bridge; fixed current/available/manual flows and two further consecutive runs passed. 384 Rust tests, fmt, all-target Clippy, 13 release tests, 2 integrity tests and YAML parse passed.",
+    "evidence": "docs/artifacts/ci-sparkle-modal-2026-11-17",
+    "platform_limit": "macOS ARM64 validated locally. Windows failed at cargo test in the hosted run; detailed log unavailable and failure remains undiagnosed. No hosted rerun."
   }
 }

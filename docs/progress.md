@@ -3885,3 +3885,26 @@ Evidence: `docs/artifacts/ci-msvc-linker-2026-11-17`.
 
 Windows native linking/installer and the hosted workflow require another run;
 this macOS host cannot establish a Windows build pass. No commit or push yet.
+
+## CI Sparkle blocking modal regression — 2026-11-17
+
+Run 44042285948 failed on macOS ARM64 after F20 printed PASS: a manual
+no-update check opened Sparkle's blocking NSAlert and the child exceeded its
+70 s timeout. A process sample confirmed NSAlert runModal. A native UI assertion
+reproduced the modal before the fix. Availability checks now use Sparkle's
+information API and the app notification; a known update still opens the native
+install UI. Teardown dismisses that UI.
+
+Native acceptance now rejects blocking modals, clicks the available-update
+action, requires normal process exit, and writes fresh PASS JSON only after the
+event loop returns. Current/available flows and two further consecutive runs
+passed without requesting an installer archive. 384 Rust tests, fmt, all-target
+Clippy, 13 release tests, 2 updater integrity tests and workflow YAML parse pass.
+Evidence: `docs/artifacts/ci-sparkle-modal-2026-11-17`.
+
+Workflow native stages are individually named, continue collecting diagnostics
+after earlier failures, and upload failure evidence. Rust tests enable backtraces
+and no-fail-fast. Windows in the same hosted run failed at cargo test, before
+packaging; its detailed failure log is unavailable in this session. The supplied
+log covers macOS only. Windows remains undiagnosed; no hosted rerun, commit,
+push or release was performed for this fix.

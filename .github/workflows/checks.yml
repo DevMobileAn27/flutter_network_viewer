@@ -36,23 +36,32 @@ jobs:
       - run: cargo fetch --locked
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked --offline -- -D warnings
-      - run: cargo test --locked --offline
+      - run: cargo test --locked --offline --no-fail-fast
+        env:
+          RUST_BACKTRACE: '1'
       - run: python -B tools/test_f21_release.py
       - run: python -B tools/verify_updater_vendor.py
       - if: runner.os == 'macOS'
         run: |
           python3 -B tools/test_f20_integrity.py
           python3 -B tools/test_f21_signer.py
-      - name: Fake VM full flow, combined discovery and native regressions
-        if: runner.os == 'macOS'
+      - name: Native F21 capture, clipboard, MCP and export
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
         env:
           FNV_DIAGNOSTICS_DIR: ${{ github.workspace }}/docs/artifacts/f21/ci-diagnostics
-        run: |
-          python3 -B tools/f21_native_smoke.py docs/artifacts/f21/ci-native
-          python3 -B tools/f21_multiapp.py docs/artifacts/f21/ci-multiapp
-          python3 -B tools/f17_native_smoke.py docs/artifacts/f21/ci-f17
-          python3 -B tools/f19_native_smoke.py docs/artifacts/f21/ci-f19
-          python3 -B tools/f20_native_smoke.py docs/artifacts/f21/ci-f20
+        run: python3 -B tools/f21_native_smoke.py docs/artifacts/f21/ci-native
+      - name: F21 combined discovery and multiple apps
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
+        run: python3 -B tools/f21_multiapp.py docs/artifacts/f21/ci-multiapp
+      - name: Native F17 help and settings
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
+        run: python3 -B tools/f17_native_smoke.py docs/artifacts/f21/ci-f17
+      - name: Native F19 diagnostics and memory
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
+        run: python3 -B tools/f19_native_smoke.py docs/artifacts/f21/ci-f19
+      - name: Native F20 Sparkle callbacks and process exit
+        if: ${{ !cancelled() && runner.os == 'macOS' }}
+        run: python3 -B tools/f20_native_smoke.py docs/artifacts/f21/ci-f20
       - name: Package Rust preview
         id: package
         # Keep the runner's native shell: Git Bash puts its link.exe before MSVC.
@@ -79,3 +88,14 @@ jobs:
             dist/*-status.json
             dist/release-notes.md
           if-no-files-found: error
+      - name: Upload native failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-failure-${{ matrix.platform }}-${{ github.run_attempt }}
+          path: |
+            docs/artifacts/f21/ci-*/*.json
+            docs/artifacts/f21/ci-*/*.png
+            docs/artifacts/f21/ci-*/*.txt
+            docs/artifacts/f21/ci-*/diagnostics/*.log
+          if-no-files-found: ignore

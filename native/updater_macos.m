@@ -7,13 +7,14 @@
 @property(nonatomic,strong) NSMutableArray<NSNumber *> *events;
 @property(nonatomic,copy) NSString *feed;
 @property(nonatomic) BOOL detached;
+@property(nonatomic) BOOL updateAvailable;
 @end
 @implementation FNVUpdateOwner
 - (NSString *)feedURLStringForUpdater:(SPUUpdater *)updater {return self.feed;}
 - (void)push:(int)value {if (!self.detached && self.events.count<32) [self.events addObject:@(value)];}
-- (void)updater:(SPUUpdater *)u didFindValidUpdate:(SUAppcastItem *)item {[self push:1];}
-- (void)updaterDidNotFindUpdate:(SPUUpdater *)u {[self push:2];}
-- (void)updaterDidNotFindUpdate:(SPUUpdater *)u error:(NSError *)error {[self push:2];}
+- (void)updater:(SPUUpdater *)u didFindValidUpdate:(SUAppcastItem *)item {self.updateAvailable=YES;[self push:1];}
+- (void)updaterDidNotFindUpdate:(SPUUpdater *)u {self.updateAvailable=NO;[self push:2];}
+- (void)updaterDidNotFindUpdate:(SPUUpdater *)u error:(NSError *)error {self.updateAvailable=NO;[self push:2];}
 - (void)updater:(SPUUpdater *)u didAbortWithError:(NSError *)error {[self push:3];}
 - (void)updater:(SPUUpdater *)u willDownloadUpdate:(SUAppcastItem *)item withRequest:(NSMutableURLRequest *)r {[self push:4];}
 - (void)updater:(SPUUpdater *)u didDownloadUpdate:(SUAppcastItem *)item {[self push:5];}
@@ -47,8 +48,10 @@ void *fnv_updater_create(const char *feed) {
 bool fnv_updater_check(void *handle, bool background) {
     FNVUpdateOwner *owner=(__bridge FNVUpdateOwner *)handle;
     if (![NSThread isMainThread] || owner.detached || !owner.controller.updater.canCheckForUpdates) return false;
-    // Startup only probes availability; the Settings action opens the update UI.
-    if (background) [owner.controller.updater checkForUpdateInformation];
+    // Startup and manual availability checks use the app's own notifications.
+    // checkForUpdates: would run a blocking NSAlert even when already current.
+    // Open Sparkle's install UI only after an update has actually been found.
+    if (background || !owner.updateAvailable) [owner.controller.updater checkForUpdateInformation];
     else [owner.controller checkForUpdates:nil];
     return true;
 }
@@ -60,5 +63,7 @@ int fnv_updater_poll(void *handle) {
 void fnv_updater_destroy(void *handle) {
     FNVUpdateOwner *owner=(__bridge_transfer FNVUpdateOwner *)handle;
     owner.detached=YES; // Sparkle weakly references the delegate; releasing owner detaches it.
-    [owner.events removeAllObjects];owner.controller=nil;
+    [owner.events removeAllObjects];
+    [owner.controller.userDriver dismissUpdateInstallation];
+    owner.controller=nil;
 }
