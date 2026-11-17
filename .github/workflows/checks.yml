@@ -39,6 +39,8 @@ jobs:
       - run: cargo test --locked --offline --no-fail-fast
         env:
           RUST_BACKTRACE: '1'
+      - name: F19 input under slow render frames
+        run: cargo test --locked --offline --example f19_native_smoke
       - run: python -B tools/test_f21_release.py
       - run: python -B tools/test_draft_release.py
       - run: python -B tools/verify_updater_vendor.py

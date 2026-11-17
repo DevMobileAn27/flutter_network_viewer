@@ -11,7 +11,8 @@ try:
     uri = fixture.stdout.readline().strip()
     if not uri.startswith("ws://127.0.0.1:"):
         raise RuntimeError(f"fixture did not advertise a loopback VM: {uri!r}")
-    subprocess.run(cargo + ["f19_native_smoke", "--", str(output), uri], cwd=root, check=True, timeout=90)
+    extra = ["--slow-input"] if "--slow-input" in sys.argv[2:] else []
+    subprocess.run(cargo + ["f19_native_smoke", "--", str(output), uri] + extra, cwd=root, check=True, timeout=90)
 finally:
     fixture.terminate()
     try:

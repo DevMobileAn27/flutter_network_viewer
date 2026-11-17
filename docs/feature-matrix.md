@@ -1182,3 +1182,26 @@ Test-first missing sections/dynamic notes failures reproduced. Nine draft tests
 and all 13 packaging regressions pass, including a different version/changelog
 and UTF-8 notes. Preview and logs: docs/artifacts/ci-release-notes-2026-11-17.
 No hosted release was created or published.
+
+## F19 — Pause input on slow CI frames (2026-11-17)
+
+The hosted native smoke failed at the paused assertion. Its synthetic mouse
+press/release were in separate frames; egui rejects a click held beyond 0.8 s.
+A test against the production DesktopUi with 1.2 s frame intervals reproduced
+the missing Pause action. A native control run with the old input and 1.2 s
+injected stalls reproduced the exact app.capture.store().paused assertion.
+
+F19 now batches press/release in one frame after a hover frame. It still uses
+real production UI input and retains all pause, resume, capture, diagnostics,
+memory and shutdown assertions. No click deadline was relaxed and no action
+was dispatched directly to bypass the UI. A --slow-input stress mode is
+available through tools/f19_native_smoke.py. CI runs the new portable UI
+regression explicitly on every desktop platform.
+
+Validation: new slow-frame UI test pass; native slow-input acceptance pass
+before and after the old-input control; two additional normal native runs pass.
+384 existing Rust tests, fmt, all-target Clippy, 9 draft-release and 13 packaging
+tests pass. Workflow YAML and the new CI step validated.
+Evidence: docs/artifacts/ci-f19-slow-click-2026-11-17.
+Local native verification is macOS ARM64; hosted acceptance remains pending.
+No commit, push or hosted workflow rerun was performed for this fix.

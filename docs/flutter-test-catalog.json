@@ -2663,5 +2663,16 @@
     ],
     "verification": "Missing sections reproduced first; 9 draft tests and 13 packaging tests pass. No hosted mutation.",
     "evidence": "docs/artifacts/ci-release-notes-2026-11-17"
+  },
+  "ci_f19_slow_click_2026_11_17": {
+    "feature": "F19",
+    "reference": "Synthetic Pause/Resume clicks must survive slow native rendering and screenshot frames without becoming long holds.",
+    "tests": [
+      "examples/f19_native_smoke.rs::tests::pause_and_resume_input_work_with_slow_native_frames",
+      "tools/f19_native_smoke.py --slow-input"
+    ],
+    "verification": "Old input fails both deterministic UI and native 1.2 s/frame control with the paused assertion. Fixed UI/native stress and two normal native runs pass; 384 existing Rust tests, fmt/clippy, 9 draft and 13 packaging tests pass.",
+    "evidence": "docs/artifacts/ci-f19-slow-click-2026-11-17",
+    "platform_limit": "Native validation on macOS ARM64 only; hosted run pending."
   }
 }

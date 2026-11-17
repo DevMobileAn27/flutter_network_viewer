@@ -16,21 +16,37 @@ struct Smoke {
     start: Instant,
     stage: Instant,
     step: u8,
+    slow_input: bool,
     success: std::sync::Arc<std::sync::atomic::AtomicBool>,
+}
+fn click_events(pos: egui::Pos2) -> VecDeque<Vec<Event>> {
+    // Real clicks may arrive between two frames. Deliver both transitions in
+    // one input batch so slow rendering/PNG encoding cannot turn this synthetic
+    // click into a long hold rejected by egui's 0.8 s deadline.
+    VecDeque::from([
+        vec![Event::PointerMoved(pos)],
+        vec![
+            Event::PointerMoved(pos),
+            Event::PointerButton {
+                pos,
+                button: PointerButton::Primary,
+                pressed: true,
+                modifiers: Modifiers::NONE,
+            },
+            Event::PointerButton {
+                pos,
+                button: PointerButton::Primary,
+                pressed: false,
+                modifiers: Modifiers::NONE,
+            },
+        ],
+        vec![],
+    ])
 }
 impl Smoke {
     fn click(&mut self, key: &str) {
         let p = self.app.as_ref().unwrap().ui.probe.widgets[key].center();
-        self.events.push_back(vec![Event::PointerMoved(p)]);
-        for pressed in [true, false] {
-            self.events.push_back(vec![Event::PointerButton {
-                pos: p,
-                button: PointerButton::Primary,
-                pressed,
-                modifiers: Modifiers::NONE,
-            }]);
-        }
-        self.events.push_back(vec![]);
+        self.events.extend(click_events(p));
     }
     fn screenshot(&self, ctx: &egui::Context, name: &str) {
         ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(egui::UserData::new(
@@ -41,6 +57,11 @@ impl Smoke {
 impl eframe::App for Smoke {
     fn raw_input_hook(&mut self, _: &egui::Context, input: &mut egui::RawInput) {
         if let Some(events) = self.events.pop_front() {
+            if self.slow_input && !events.is_empty() {
+                // Acceptance stress mode: exceed egui's click deadline
+                // between input batches without changing production settings.
+                std::thread::sleep(Duration::from_millis(1200));
+            }
             let shots: Vec<_> = input
                 .events
                 .iter()
@@ -207,6 +228,7 @@ fn main() -> eframe::Result {
     let output = PathBuf::from(std::env::args().nth(1).expect("output directory"));
     std::fs::create_dir_all(&output).unwrap();
     let uri = std::env::args().nth(2).expect("VM URI");
+    let slow_input = std::env::args().nth(3).as_deref() == Some("--slow-input");
     let blocker = output.join("blocker");
     assert!(!blocker.exists(), "use a fresh output directory");
     std::fs::write(&blocker, "not a directory").unwrap();
@@ -234,6 +256,7 @@ fn main() -> eframe::Result {
                 start: Instant::now(),
                 stage: Instant::now(),
                 step: 0,
+                slow_input,
                 success,
             }))
         }),
@@ -243,4 +266,59 @@ fn main() -> eframe::Result {
         "native closed before completion"
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use flutter_network_viewer::{
+        capture::CaptureStore,
+        desktop::{Action, DesktopUi, ShellStatus},
+    };
+
+    #[test]
+    fn pause_and_resume_input_work_with_slow_native_frames() {
+        let ctx = egui::Context::default();
+        let mut ui = DesktopUi::default();
+        let mut store = CaptureStore::default();
+        let mut time = 0.;
+        let mut frame = |ui: &mut DesktopUi, store: &CaptureStore, events| {
+            // CI screenshot/render stalls can exceed egui's default 0.8 s
+            // click deadline. Keep that deadline unchanged in this regression.
+            time += 1.2;
+            let mut actions = vec![];
+            let _ = ctx.run(
+                egui::RawInput {
+                    screen_rect: Some(egui::Rect::from_min_size(
+                        egui::Pos2::ZERO,
+                        egui::vec2(1200., 800.),
+                    )),
+                    time: Some(time),
+                    events,
+                    ..Default::default()
+                },
+                |ctx| actions.extend(ui.show(ctx, store, &ShellStatus::default())),
+            );
+            actions
+        };
+        for _ in 0..4 {
+            frame(&mut ui, &store, vec![]);
+        }
+        for paused in [true, false] {
+            let events = click_events(ui.probe.widgets["pause"].center());
+            let mut actions = vec![];
+            for events in events {
+                actions.extend(frame(&mut ui, &store, events));
+            }
+            assert_eq!(
+                actions,
+                vec![Action::SetPaused(paused)],
+                "slow frames must deliver exactly one pause/resume action"
+            );
+            store.paused = paused;
+            for _ in 0..4 {
+                frame(&mut ui, &store, vec![]);
+            }
+        }
+    }
 }
