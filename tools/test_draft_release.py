@@ -49,6 +49,7 @@ class DraftReleaseTests(unittest.TestCase):
         self.assertIn('--draft', create)
         self.assertEqual(create[create.index('--target') + 1], 'a' * 40)
         self.assertEqual(create[2], self.meta['tag'])
+        self.assertEqual(create[create.index('--title') + 1], f'Flutter Network Viewer v{self.meta["version"]}')
         upload = next(c for c in calls if c[:2] == ('release', 'upload'))
         self.assertTrue(set(self.expected).issubset({Path(s).name for s in upload}))
         release.verify_checksums(self.output / 'SHA256SUMS.txt')
@@ -56,6 +57,7 @@ class DraftReleaseTests(unittest.TestCase):
         notes = (self.output / 'release-notes.md').read_text(encoding='utf-8')
         self.assertIn('## Có gì mới', notes)
         self.assertIn(self.meta['notes'].strip(), notes)
+        self.assertNotIn('bản thử nghiệm', notes.casefold())
         self.assertIn('## Bản tải', notes)
         self.assertIn('### Nếu macOS chặn ứng dụng', notes)
         for name in self.expected:
@@ -82,6 +84,7 @@ class DraftReleaseTests(unittest.TestCase):
         edit = next(c for c in calls if c[:2] == ('release', 'edit'))
         self.assertIn('--draft=true', edit)
         self.assertIn('--target', edit)
+        self.assertEqual(edit[edit.index('--title') + 1], f'Flutter Network Viewer v{self.meta["version"]}')
         self.assertIn('--clobber', calls[-1])
 
     def test_published_version_is_never_modified(self):

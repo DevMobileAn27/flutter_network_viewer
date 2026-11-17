@@ -70,6 +70,8 @@ class ReleaseTests(unittest.TestCase):
     def test_metadata_and_monotonic_version_build(self):
         meta = release.metadata(ROOT)
         self.assertTrue(release.increased(meta['version'], meta['build'], '0.1.8', 9))
+        self.assertGreaterEqual(meta['build'], 11)
+        self.assertGreaterEqual(tuple(map(int, meta['version'].split('.'))), (1, 0, 1))
         self.assertEqual(meta['tag'], f"rust-v{meta['version']}")
         self.assertEqual(meta['identifier'], 'dev.quocan.flutterNetworkViewer.rust')
         self.assertTrue(release.increased('0.1.10', 11, '0.1.9', 10))

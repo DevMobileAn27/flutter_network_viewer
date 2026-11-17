@@ -1205,3 +1205,22 @@ tests pass. Workflow YAML and the new CI step validated.
 Evidence: docs/artifacts/ci-f19-slow-click-2026-11-17.
 Local native verification is macOS ARM64; hosted acceptance remains pending.
 No commit, push or hosted workflow rerun was performed for this fix.
+
+## F21 — GitHub release title
+
+Release titles now follow `Flutter Network Viewer v<version>` from Cargo for
+both new and refreshed drafts. Removed the preview label and outdated Windows
+CI caveat from the release description. Version and tag are unchanged.
+The old title failed both new assertions; 9 draft and 13 packaging tests pass.
+The remote draft has not been changed.
+
+## F21 — Flutter Network Viewer v1.0.1
+
+Raised Cargo and Windows product version to 1.0.1 and the macOS/Windows build
+number to 11. The Draft Release title is Flutter Network Viewer v1.0.1, its tag
+is rust-v1.0.1, and the changelog leads with the migration from the Flutter
+desktop implementation to Rust. No release was created or published locally.
+
+Version/build regression failed on the old metadata, then passed. All 22
+release and packaging tests, 385 Rust tests (including F19 slow-input UI),
+fmt and Clippy passed. Verified all four package filenames use 1.0.1.

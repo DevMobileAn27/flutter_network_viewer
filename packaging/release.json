@@ -1,7 +1,6 @@
 {
-  "build": 10,
+  "build": 11,
   "identifier": "dev.quocan.flutterNetworkViewer.rust",
-  "title": "Flutter Network Viewer Rust — Bản thử nghiệm 0.1.9",
-  "notes": "- Chuyển ứng dụng desktop sang Rust, giữ các màn hình Network, Console, JSON và Settings.\n- Thêm bộ lọc tag cho Message trong Console; các tag hiển thị theo hàng và tự xuống dòng.\n- Đồng bộ giao diện JSON/Tree và bảng chi tiết; hỗ trợ kéo đường phân cách để chỉnh độ rộng cột.\n- Sửa lỗi kiểm tra cập nhật trên macOS mở hộp thoại làm ứng dụng không thoát.\n\nĐây là bản thử nghiệm. Chưa hoàn tất kiểm thử Windows trên GitHub Actions, ký ứng dụng và accessibility.\n",
+  "notes": "**Bản cập nhật lớn:** Flutter Network Viewer chuyển nền tảng ứng dụng desktop từ Flutter sang Rust. Bạn vẫn có thể theo dõi HTTP request/response và log từ ứng dụng Flutter, cũng như định dạng JSON trong cùng một cửa sổ.\n\n- Thêm bộ lọc tag cho cột Message trong Console; các tag hiển thị theo hàng và tự xuống dòng.\n- Đồng bộ giao diện JSON/Tree và bảng chi tiết; hỗ trợ kéo đường phân cách để chỉnh độ rộng cột.\n- Sửa lỗi ứng dụng không thoát được sau khi kiểm tra cập nhật trên macOS.\n",
   "public_key": "TNPdGQZDTuvlcdgdReTFjir/+sfSLq5+o92dT4IolFY="
 }

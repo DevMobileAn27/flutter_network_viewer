@@ -2662,7 +2662,9 @@
       "tools/test_draft_release.py::DraftReleaseTests::test_release_notes_follow_version_and_changelog_metadata"
     ],
     "verification": "Missing sections reproduced first; 9 draft tests and 13 packaging tests pass. No hosted mutation.",
-    "evidence": "docs/artifacts/ci-release-notes-2026-11-17"
+    "evidence": "docs/artifacts/ci-release-notes-2026-11-17",
+    "title_verification": "Create and edit both use the Cargo-derived product title; generated notes omit the preview label. 9 draft and 13 packaging tests passed.",
+    "version_verification": "1.0.1 build 11; metadata, generated title, archive names and native version resources verified by release tests. 22 release/packaging and 385 Rust tests passed."
   },
   "ci_f19_slow_click_2026_11_17": {
     "feature": "F19",

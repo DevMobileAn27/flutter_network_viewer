@@ -30,13 +30,13 @@ def metadata(root):
         raise ValueError('Require numeric X.Y.Z version and positive build')
     if meta['identifier']!='dev.quocan.flutterNetworkViewer.rust' or len(base64.b64decode(meta['public_key'],validate=True))!=32:
         raise ValueError('Invalid Rust identity or trust anchor')
-    if not meta['title'].strip() or '\n' in meta['title'] or '\r' in meta['title'] or not meta['notes'].strip():
-        raise ValueError('Require single-line title and release notes')
+    if not meta['notes'].strip():
+        raise ValueError('Require release notes')
     resource=(root/'native/windows.rc').read_text(encoding='utf-8')
     expected=version.replace('.',',')+','+str(meta['build'])
     if f'FILEVERSION {expected}' not in resource or f'PRODUCTVERSION {expected}' not in resource:
         raise ValueError('Windows version resource must match Cargo version/build')
-    return dict(meta,version=version,tag=f'rust-v{version}')
+    return dict(meta,version=version,tag=f'rust-v{version}',title=f'Flutter Network Viewer v{version}')
 
 
 def increased(version,build,previous,previous_build):
