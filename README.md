@@ -180,7 +180,7 @@ update được native Sparkle/WinSparkle xác minh trước khi cho cài đặt
 `python3 -B tools/f20_native_smoke.py [output_dir]` compile source, dựng app bundle
 thử nghiệm và chỉ phục vụ appcast loopback; không download hoặc cài installer.
 F21 đã tách Rust feed khỏi Flutter: kênh cố định `rust-updates`, tên `rust-appcast-*`,
-tag `rust-v0.1.0` và archive `flutter-network-viewer-rust-*`. Kênh chưa được publish;
+tag dạng `rust-vX.Y.Z` và archive `flutter-network-viewer-rust-*`. Kênh chưa được publish;
 feed thiếu báo lỗi/retry và không fallback sang artifact Flutter. Windows native và
 acceptance toàn app vẫn partial.
 
@@ -190,8 +190,9 @@ acceptance toàn app vẫn partial.
 Xem [release gates và bằng chứng](docs/release.md). Đã viết test trước tooling:
 8 release tests +2 native signature/integrity tests +1 actual signing-helper test pass; 270 Rust tests, fmt và
 all-targets clippy pass. Windows x64 cross-check/clippy cũng pass. CI cấu hình ba
-platform để test/build và upload artifact; chưa chạy GitHub CI, không có publish job.
+platform để test/build và upload artifact khi có PR, push vào `main` hoặc chạy thủ công; không có publish job.
 
+Version hiện tại: Rust `0.1.9`, build `10`. Bản kiểm thử F21 ban đầu dùng
 Rust `0.1.0`, build `1`, app ID `dev.quocan.flutterNetworkViewer.rust`; bundle chứa
 icon, Cascadia Mono/OFL, license/notices và Sparkle nguyên symlink/helpers.
 [ARM64 zip](docs/artifacts/f21/package-final/flutter-network-viewer-rust-0.1.0-macos-arm64.zip)

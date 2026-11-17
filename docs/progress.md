@@ -3801,3 +3801,16 @@ fixture remains under tests. Build outputs and local evidence stay on disk.
 
 Verified from the staged tree: 381 Cargo tests, rustfmt, Clippy, vendored
 updater checksums, and 11 packaging, signing, and integrity tests passed.
+
+## Rust 0.1.9 (build 10) and GitHub Actions
+
+Advance past Flutter 0.1.8 (build 9). Cargo, MCP, Windows resources, and
+release packaging now agree on the version. The Rust workflow also runs for
+pushes to main and names package artifacts using the validated release version.
+Sparkle symlink checks run on a compatible host, and Git keeps vendored updater
+files byte-for-byte for checksum verification.
+
+Verified locally: 381 Rust tests, 9 release-tool tests, formatting, Clippy,
+workflow YAML/triggers, and both macOS preview packages (version/build,
+architecture, layout, and SHA-256). The Windows installer and hosted workflow
+have not been run for this change. No release or feed was published.

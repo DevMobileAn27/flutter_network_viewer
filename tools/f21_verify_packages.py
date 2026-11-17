@@ -22,6 +22,7 @@ for directory,platform in [(Path(sys.argv[1]),'macos-arm64'),(Path(sys.argv[2]),
         plist=plistlib.loads(package.read(base+'Info.plist'))
         assert plist['CFBundleIdentifier']==meta['identifier']
         assert plist['CFBundleVersion']==str(meta['build'])
+        assert plist['CFBundleShortVersionString']==meta['version']
         assert plist['SUPublicEDKey']==meta['public_key']
         for key in ['SUEnableAutomaticChecks','SUAutomaticallyUpdate','SUAllowsAutomaticUpdates']: assert plist[key] is False
         link=package.getinfo(base+'Frameworks/Sparkle.framework/Versions/Current')

@@ -162,6 +162,10 @@ fn http_protocol_security_and_live_store() {
         );
         assert_eq!(code, 200);
         assert_eq!(b["result"]["protocolVersion"], version);
+        assert_eq!(
+            b["result"]["serverInfo"]["version"],
+            env!("CARGO_PKG_VERSION")
+        );
         assert!(h.to_lowercase().contains("mcp-session-id"));
     }
     for (method, path, headers, expected) in [

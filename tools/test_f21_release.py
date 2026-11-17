@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class ReleaseTests(unittest.TestCase):
     def test_metadata_and_monotonic_version_build(self):
         meta = release.metadata(ROOT)
-        self.assertEqual((meta['version'], meta['build'], meta['tag']), ('0.1.0', 1, 'rust-v0.1.0'))
+        self.assertTrue(release.increased(meta['version'], meta['build'], '0.1.8', 9))
+        self.assertEqual(meta['tag'], f"rust-v{meta['version']}")
         self.assertEqual(meta['identifier'], 'dev.quocan.flutterNetworkViewer.rust')
         self.assertTrue(release.increased('0.1.10', 11, '0.1.9', 10))
         self.assertFalse(release.increased('0.1.9', 11, '0.1.9', 10))
@@ -51,27 +52,34 @@ class ReleaseTests(unittest.TestCase):
             xml=release.feed(meta,platform,filename,123,'edSignature' if mac else 'dsaSignature',base64.b64encode(bytes(64)).decode())
             item=ET.fromstring(xml).find('channel/item')
             enclosure=item.find('enclosure').attrib
-            self.assertIn('/download/rust-v0.1.0/flutter-network-viewer-rust-',enclosure['url'])
-            self.assertEqual(item.find(f'{{{release.SPARKLE}}}version').text,'1' if mac else '0.1.0')
+            self.assertIn(f"/download/{meta['tag']}/flutter-network-viewer-rust-",enclosure['url'])
+            self.assertEqual(item.find(f'{{{release.SPARKLE}}}version').text,str(meta['build']) if mac else meta['version'])
             if not mac: self.assertEqual(enclosure[f'{{{release.SPARKLE}}}installerArguments'],'/SILENT /NORESTART /SP-')
             for sig,kind,name in [('', 'edSignature',filename),('bad','dsaSignature' if mac else 'edSignature',filename),('bad','edSignature' if mac else 'dsaSignature','flutter-setup.exe')]:
                 with self.assertRaises(ValueError): release.feed(meta,platform,name,123,kind,sig)
         with self.assertRaises(ValueError): release.sign_archive(ROOT/'Cargo.toml','macos-arm64','')
 
-    def test_bundle_layout_assets_symlinks_and_checksums(self):
+    @unittest.skipIf(os.name == 'nt', 'Sparkle symlinks are checked on macOS runners')
+    def test_macos_bundle_layout_assets_and_symlinks(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'docs/artifacts/f21') as folder:
             folder=Path(folder)
             binary=folder/'binary'; binary.write_bytes(b'inert fixture'); binary.chmod(0o755)
             meta=release.metadata(ROOT)
             app=release.stage(ROOT,meta,'macos-arm64',binary,folder/'stage')
             info=plistlib.loads((app/'Contents/Info.plist').read_bytes())
-            self.assertEqual(info['CFBundleVersion'],'1')
-            self.assertEqual(info['CFBundleShortVersionString'],'0.1.0')
+            self.assertEqual(info['CFBundleVersion'],str(meta['build']))
+            self.assertEqual(info['CFBundleShortVersionString'],meta['version'])
             self.assertEqual(info['CFBundleIdentifier'],meta['identifier'])
             for key in ['SUEnableAutomaticChecks','SUAutomaticallyUpdate','SUAllowsAutomaticUpdates']: self.assertIs(info[key],False)
             self.assertTrue((app/'Contents/Frameworks/Sparkle.framework/Versions/Current').is_symlink())
             for name in ['AppIcon.icns','LICENSE','THIRD_PARTY_NOTICES.md','fonts/cascadia_mono/CascadiaMono-Variable.ttf']:
                 self.assertTrue((app/'Contents/Resources'/name).is_file(),name)
+
+    def test_windows_bundle_layout_and_checksums(self):
+        with tempfile.TemporaryDirectory(dir=ROOT/'docs/artifacts/f21') as folder:
+            folder=Path(folder)
+            binary=folder/'binary'; binary.write_bytes(b'inert fixture')
+            meta=release.metadata(ROOT)
             win=release.stage(ROOT,meta,'windows-x64',binary,folder/'win')
             self.assertEqual((win/'WinSparkle.dll').read_bytes(),(ROOT/'vendor/winsparkle/x64/WinSparkle.dll').read_bytes())
             manifest=release.checksums([binary],folder/'SHA256SUMS.txt')
@@ -91,7 +99,11 @@ class ReleaseTests(unittest.TestCase):
 
     def test_windows_executable_has_version_icon_resource(self):
         source=(ROOT/'native/windows.rc').read_text(encoding='utf-8')
-        self.assertIn('FILEVERSION 0,1,0,1',source)
+        meta=release.metadata(ROOT)
+        version,build=meta['version'],meta['build']
+        self.assertIn(f"FILEVERSION {version.replace('.', ',')},{build}",source)
+        self.assertIn(f'VALUE "FileVersion", "{version}.{build}\\0"',source)
+        self.assertIn(f'VALUE "ProductVersion", "{version}\\0"',source)
         self.assertIn('ICON',source)
         self.assertIn('Flutter Network Viewer Rust',source)
         self.assertIn('windows.rc',(ROOT/'build.rs').read_text(encoding='utf-8'))
@@ -135,6 +147,7 @@ class ReleaseTests(unittest.TestCase):
         workflow=(ROOT/'.github/workflows/checks.yml').read_text(encoding='utf-8')
         for text in ['aarch64-apple-darwin','x86_64-apple-darwin','x86_64-pc-windows-msvc','cargo test --locked','cargo clippy --all-targets --locked','cargo fmt --check','test_f21_release.py','tools/release.py','contents: read']:
             self.assertIn(text,workflow)
+        self.assertRegex(workflow, r'(?m)^  push:\s*\n    branches: \[main\]$')
         self.assertNotIn('gh release',workflow)
 
 if __name__=='__main__': unittest.main()

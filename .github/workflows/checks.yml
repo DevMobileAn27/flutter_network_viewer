@@ -1,5 +1,7 @@
 name: Rust checks and local packages
 on:
+  push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -10,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             target: aarch64-apple-darwin
             platform: macos-arm64
           - os: macos-15-intel
@@ -51,19 +53,30 @@ jobs:
           python3 -B tools/f17_native_smoke.py docs/artifacts/f21/ci-f17
           python3 -B tools/f19_native_smoke.py docs/artifacts/f21/ci-f19
           python3 -B tools/f20_native_smoke.py docs/artifacts/f21/ci-f20
-      - run: python -B tools/release.py package ${{ matrix.platform }}
+      - name: Package Rust preview
+        id: package
+        shell: bash
+        run: |
+          python -B tools/release.py package ${{ matrix.platform }}
+          cat dist/actions-output.txt >> "$GITHUB_OUTPUT"
       - name: Build Windows installer (never install)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          FNV_VERSION: ${{ steps.package.outputs.version }}
         run: |
-          $version = (Get-Content packaging/release.json | ConvertFrom-Json)
-          $cargoVersion = (Select-String '^version = "(.*)"' Cargo.toml).Matches[0].Groups[1].Value
-          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$cargoVersion" "/DOutputName=flutter-network-viewer-rust-$cargoVersion-windows-x64-setup" packaging/windows.iss
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:FNV_VERSION" "/DOutputName=flutter-network-viewer-rust-$($env:FNV_VERSION)-windows-x64-setup" packaging/windows.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: python -B tools/release.py manifest dist
       - run: python -B tools/release.py verify dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: rust-preview-${{ matrix.platform }}
-          path: dist/
+          name: rust-preview-${{ steps.package.outputs.version }}-${{ matrix.platform }}
+          path: |
+            dist/*.zip
+            dist/*.exe
+            dist/*.sha256
+            dist/SHA256SUMS.txt
+            dist/*-status.json
+            dist/release-notes.md
           if-no-files-found: error

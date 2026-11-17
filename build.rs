@@ -3,8 +3,9 @@ fn main() {
     println!("cargo:rerun-if-changed=vendor/SHA256SUMS");
     println!("cargo:rerun-if-changed=vendor/sparkle");
     println!("cargo:rerun-if-changed=vendor/winsparkle");
+    let python = if cfg!(windows) { "python" } else { "python3" };
     assert!(
-        std::process::Command::new("python3")
+        std::process::Command::new(python)
             .args(["-B", "tools/verify_updater_vendor.py"])
             .status()
             .unwrap()

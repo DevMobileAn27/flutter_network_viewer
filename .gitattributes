@@ -1,0 +1,2 @@
+# Preserve the byte-for-byte updater files verified by vendor/SHA256SUMS.
+/vendor/** -text

@@ -1,12 +1,12 @@
 # Rust build/release — F21
 
 Status: local preview packaging implemented; whole-app acceptance **partial**.
-No release, production feed, installer execution or Git initialization performed.
+No release, production feed or installer execution performed.
 
 ## Identity and update compatibility
 
-Cargo version `0.1.0`, release build `1` in `packaging/release.json`.
-Tag `rust-v0.1.0`; bundle/installer ID `dev.quocan.flutterNetworkViewer.rust`.
+Cargo version `0.1.9`, release build `10` in `packaging/release.json`.
+Tag `rust-v0.1.9`; bundle/installer ID `dev.quocan.flutterNetworkViewer.rust`.
 Windows WinSparkle application name and executable version resource identify Rust.
 Settings already use a separate `flutter-network-viewer-rust` directory.
 
@@ -17,12 +17,13 @@ The dedicated `rust-updates` channel is **not provisioned/published**. A missing
 feed reports the real native error and offers retry. There is no fallback to the
 Flutter latest release or its `appcast-*` assets.
 
-Archives: `flutter-network-viewer-rust-0.1.0-{platform}.zip`.
+Archives: `flutter-network-viewer-rust-0.1.9-{platform}.zip`.
 Windows updater accepts only the corresponding `-windows-x64-setup.exe`, never
-the portable zip. Feed enclosures use `/releases/download/rust-v0.1.0/…`.
+the portable zip. Feed enclosures use `/releases/download/rust-v0.1.9/…`.
 A future authorized release must provision the Rust channel separately, after
-all gates pass. The checked-in workflow only uploads private workflow artifacts;
-it has contents:read and no release/publish/feed mutation job.
+all gates pass. The workflow runs on pull requests, pushes to `main`, and manual
+dispatch. It uploads versioned workflow artifacts for macOS ARM64, macOS Intel,
+and Windows x64. It has `contents: read` and no release or feed publication job.
 
 ## Local commands
 
@@ -55,7 +56,7 @@ gates; the included notices explicitly identify that review as incomplete.
 Build Windows setup without installing:
 
 ```powershell
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 /DOutputName=flutter-network-viewer-rust-0.1.0-windows-x64-setup packaging/windows.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.9 /DOutputName=flutter-network-viewer-rust-0.1.9-windows-x64-setup packaging/windows.iss
 python -B tools/release.py manifest dist
 ```
 
@@ -83,8 +84,8 @@ No private release key is available; **no production signed feed was generated**
 Neither the macOS signing branch with a matching release key nor Windows DSA
 signing has been verified for release. Inert verifier tests remain separate.
 
-Appcast build/version semantics: Sparkle uses monotonic build `1`, display `0.1.0`;
-WinSparkle uses `0.1.0`. XML, notes, workflow outputs and manifests explicitly use
+Appcast build/version semantics: Sparkle uses monotonic build `10`, display `0.1.9`;
+WinSparkle uses `0.1.9`. XML, notes, workflow outputs and manifests explicitly use
 UTF-8. Signatures and platform/archive identity are required. SHA256 manifests
 reject empty, duplicate, malformed, nonlocal and tampered entries. Checksums
 validate artifact bytes; native updater signatures authenticate update archives.
