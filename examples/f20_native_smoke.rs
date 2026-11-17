@@ -18,6 +18,7 @@ struct Smoke {
     stage: Instant,
     step: u8,
     available_only: bool,
+    localized_result_verified: bool,
     done: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 impl Smoke {
@@ -61,6 +62,7 @@ impl eframe::App for Smoke {
             self.app.updater.status
         );
         self.app.update(ctx, frame);
+        ctx.request_repaint_after(Duration::from_millis(16));
         for e in ctx.input(|i| i.events.clone()) {
             if let Event::Screenshot {
                 image, user_data, ..
@@ -157,17 +159,35 @@ impl eframe::App for Smoke {
                 if self.stage.elapsed() < Duration::from_millis(500) {
                     return;
                 }
-                assert!(
-                    self.app
-                        .ui
-                        .probe
-                        .support_text
-                        .contains("Bạn đang dùng phiên bản mới nhất.")
-                );
-                assert!(
-                    ctx.content_rect()
-                        .contains_rect(self.app.ui.probe.widgets["check-app-updates"])
-                );
+                assert_eq!(self.app.updater.status, Status::Current);
+                // Update results now appear as localized notifications, not
+                // inline status text in the Settings section.
+                if !self.localized_result_verified {
+                    assert_eq!(
+                        self.app.ui.probe.notification_title,
+                        flutter_network_viewer::desktop_support::tr(ctx, "Success")
+                    );
+                    assert!(self.app.ui.probe.widgets.contains_key("notification"));
+                    self.localized_result_verified = true;
+                }
+                if !ctx
+                    .content_rect()
+                    .contains_rect(self.app.ui.probe.widgets["check-app-updates"])
+                {
+                    // On a narrow window the updates section is below the fold.
+                    let pos = self.app.ui.probe.widgets["settings-scroll"].center();
+                    self.events.push_back(vec![Event::PointerMoved(pos)]);
+                    self.events.push_back(vec![Event::MouseWheel {
+                        unit: egui::MouseWheelUnit::Point,
+                        delta: egui::vec2(0., -10000.),
+                        modifiers: Modifiers::NONE,
+                    }]);
+                    for _ in 0..12 {
+                        self.events.push_back(vec![]);
+                    }
+                    return;
+                }
+                assert!(self.app.ui.probe.support_scroll > 0.);
                 self.shot(ctx, "settings-current-vi-narrow.png");
                 self.stage = Instant::now();
             }
@@ -223,6 +243,7 @@ fn main() -> eframe::Result {
                 stage: Instant::now(),
                 step: 0,
                 available_only,
+                localized_result_verified: false,
                 done,
             }))
         }),

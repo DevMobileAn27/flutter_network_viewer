@@ -224,11 +224,11 @@ fn main() -> eframe::Result {
             ..Default::default()
         },
         Box::new(move |_| {
+            let mut app = DesktopApp::with_diagnostics(settings, blocker.join("nested"));
+            // Saved URLs no longer initiate a connection when the host opens.
+            app.dispatch(flutter_network_viewer::desktop::Action::Connect(uri), 0);
             Ok(Box::new(Smoke {
-                app: Some(DesktopApp::with_diagnostics(
-                    settings,
-                    blocker.join("nested"),
-                )),
+                app: Some(app),
                 output,
                 events: VecDeque::new(),
                 start: Instant::now(),

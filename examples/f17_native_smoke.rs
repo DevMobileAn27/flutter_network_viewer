@@ -1,9 +1,9 @@
 //! Native F17 acceptance uses the production host, input, persisted settings,
-//! OS clipboard and screenshots. It exits unsuccessfully if any step fails.
+//! screenshots. It exits unsuccessfully if any step fails.
 use eframe::egui::{self, Event, Modifiers, PointerButton};
 use flutter_network_viewer::{
     desktop_host::DesktopApp,
-    desktop_support::{DISCUSSION_URL, NoticeKind, NoticeReceipt},
+    desktop_support::{NoticeKind, NoticeReceipt},
     settings::AppSettings,
 };
 use std::{
@@ -118,15 +118,11 @@ impl eframe::App for Smoke {
         }
         match self.step {
             0 => self.click("help"),
-            1 => self.click("discussion-copy"),
-            2 => {
-                assert_eq!(
-                    arboard::Clipboard::new().unwrap().get_text().unwrap(),
-                    DISCUSSION_URL
-                );
-                assert_eq!(self.app.ui.probe.notification_title, "Success");
-                self.screenshot(ctx, "help-en-light.png");
+            1 => {
+                assert!(self.app.ui.probe.widgets.contains_key("discussion"));
+                assert!(!self.app.ui.probe.widgets.contains_key("discussion-copy"));
             }
+            2 => self.screenshot(ctx, "help-en-light.png"),
             3 => {
                 if !self.output.join("help-en-light.png").exists() {
                     return;
@@ -264,7 +260,8 @@ impl eframe::App for Smoke {
                 }
                 assert_eq!(self.app.ui.settings.values().vm_service_uri, self.uri);
                 assert!(!self.app.ui.settings.values().auto_detect_vm_service);
-                self.click("notification-confirm");
+                // Connection feedback may have expired while captures arrive.
+                self.app.ui.notifications.dismiss(false);
                 self.click("settings");
             }
             31 => {
@@ -288,9 +285,9 @@ impl eframe::App for Smoke {
                     return;
                 }
                 assert_eq!(self.receipt.take().unwrap().result(), Some(true));
-                std::fs::write(self.output.join("native-result.json"),serde_json::to_vec_pretty(&serde_json::json!({"result":"pass","native_host":"DesktopApp","clipboard":DISCUSSION_URL,"manual_connection":true,"settings_reload":true,"narrow_scroll":true,"timers_wall_clock":true,"frames":self.frames})).unwrap()).unwrap();
+                std::fs::write(self.output.join("native-result.json"),serde_json::to_vec_pretty(&serde_json::json!({"result":"pass","native_host":"DesktopApp","discussion_button":true,"manual_connection":true,"settings_reload":true,"narrow_scroll":true,"timers_wall_clock":true,"frames":self.frames})).unwrap()).unwrap();
                 println!(
-                    "PASS native F17: production DesktopApp, real OS clipboard, settings reload VI/dark, help/settings/toast narrow scrolling, wall-clock deadlines/confirm/cancel, fresh VM manual connection"
+                    "PASS native F17: production DesktopApp, discussion button, settings reload VI/dark, help/settings/toast narrow scrolling, wall-clock deadlines/confirm/cancel, fresh VM manual connection"
                 );
                 self.success
                     .store(true, std::sync::atomic::Ordering::Release);
@@ -318,19 +315,6 @@ fn main() -> eframe::Result {
     ] {
         let _ = std::fs::remove_file(output.join(name));
     }
-    struct Restore(Option<String>);
-    impl Drop for Restore {
-        fn drop(&mut self) {
-            if let Some(text) = self.0.take() {
-                let _ = arboard::Clipboard::new().and_then(|mut c| c.set_text(text));
-            }
-        }
-    }
-    let _restore = Restore(
-        arboard::Clipboard::new()
-            .ok()
-            .and_then(|mut c| c.get_text().ok()),
-    );
     let mut settings = AppSettings::load(&path).unwrap();
     settings.set_auto_detect_vm_service(false).unwrap();
     let success = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));

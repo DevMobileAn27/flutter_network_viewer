@@ -3825,3 +3825,38 @@ have not been run for this change. No release or feed was published.
 - macOS: 382 test Rust và 9 test đóng gói pass; fmt và clippy pass.
 - Chụp lại slide 2 từ demo Rust, xuất lại GIF kết nối (3 frame), xác minh
   SHA-256 của 10 GIF còn lại không đổi.
+
+## 2026-11-17 — Repair CI native smoke and socket fixtures (F21)
+
+Screenshots from run 44038134966 showed the macOS native smoke using the
+removed `connect` probe and Windows failing the initial socket bootstrap.
+The macOS failure was reproduced before updating the test to `manual-url`
+and `json-copy`, retaining native screenshot delivery during injected input.
+
+A delayed HTTP-upgrade regression failed before the fixture fix. Accepted
+sockets can inherit nonblocking mode from the listener (BSD/macOS and Windows);
+the fixture now explicitly uses blocking mode for its blocking handshake.
+The scheduling budget is 15 s; the timeout/reconnect test uses a 2 s RPC
+budget rather than 250 ms. Its held RPC still times out, and assertions still
+require the original transport, preserved Clear cursor, and one reconnect.
+A separate 3.2 s startup test checks capture without advancing logical time.
+
+Remaining workflow smoke tests were exercised rather than skipped:
+- F17: assert the current Discussion action, replacing its removed copy action;
+  do not require a connection toast to remain mounted until captures arrive.
+- F19: explicitly connect its fresh VM; a saved URL no longer starts capture.
+- F20: verify the localized result notification, then scroll the narrow Settings
+  viewport to the updates action. Run injected input at 16 ms intervals.
+- MCP fragmented-body test: declare 41 bytes for its 40-byte body, so the
+  request actually remains pending until Stop instead of sometimes responding.
+
+Validation on macOS ARM64: 384 Rust tests pass with default parallel execution;
+fmt and all-target Clippy pass; 9 release, 2 updater integrity, 1 signing-helper
+Python tests and vendor checks pass. Individual native F21, multi-app, F17,
+F19, and Sparkle current/available checks pass. One earlier Sparkle run timed
+out after its current-result assertions passed; a fresh full rerun succeeded.
+Evidence: `docs/artifacts/ci-regression-2026-11-17`.
+Windows hosted CI and Intel native execution must still validate this change;
+no hosted run was triggered and no release was published.
+Final verification also ran the complete native workflow sequence in order
+(F21 → multi-app → F17 → F19 → F20 current/available), exit code 0.

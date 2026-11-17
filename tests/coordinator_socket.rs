@@ -17,11 +17,14 @@ use std::{
 use tungstenite::Message;
 #[track_caller]
 fn until(mut f: impl FnMut() -> bool) {
+    // This bounds wall-clock scheduling/socket progress, not an RPC deadline.
+    // Windows socket timers and shared CI workers can exceed three seconds
+    // across subscriptions, bootstrap and the first capture request.
     let start = Instant::now();
     while !f() {
         assert!(
-            start.elapsed() < Duration::from_secs(3),
-            "VM did not progress"
+            start.elapsed() < Duration::from_secs(15),
+            "VM did not progress within 15 seconds"
         );
         thread::sleep(Duration::from_millis(1));
     }
@@ -46,6 +49,9 @@ struct Vm {
 }
 impl Vm {
     fn new() -> Self {
+        Self::with_handshake_delay(Duration::ZERO)
+    }
+    fn with_handshake_delay(handshake_delay: Duration) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         listener.set_nonblocking(true).unwrap();
         let uri = format!("ws://{}/auth=/ws", listener.local_addr().unwrap());
@@ -67,6 +73,11 @@ impl Vm {
                         let st = st.clone();
                         let end = end.clone();
                         children.push(thread::spawn(move||{
+                    // Windows and BSD/macOS can inherit the listener's mode.
+                    // The WebSocket handshake below is a blocking operation.
+                    s.set_nonblocking(false).unwrap();
+                    s.set_nodelay(true).unwrap();
+                    thread::sleep(handshake_delay);
                     s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();let Ok(mut ws)=tungstenite::accept(s) else{return};
                     ws.get_mut().set_read_timeout(Some(Duration::from_millis(5))).unwrap();st.lock().unwrap().connections+=1;
                     let mut held=Vec::new();
@@ -199,7 +210,9 @@ fn real_exit_interrupts_hung_rpc_same_socket_hot_restart_and_late_reply_is_ignor
 fn real_socket_reconnect_keeps_clear_cursor_and_timeout_reattach_keeps_transport() {
     let vm = Vm::new();
     vm.profile("old", 100);
-    let mut c = viewer(Duration::from_millis(250));
+    // Keep setup RPCs viable on shared runners. The deliberately held profile
+    // below must still time out without dropping or replacing the transport.
+    let mut c = viewer(Duration::from_secs(2));
     c.connect(&vm.uri, 0).unwrap();
     until(|| {
         c.tick(0);
@@ -286,4 +299,44 @@ fn cancellation_wakes_pending_websocket_handshake_and_subscription_reads() {
         closed_rx.recv_timeout(Duration::from_secs(2)).unwrap();
         server.join().unwrap();
     }
+}
+
+#[test]
+fn delayed_vm_startup_still_captures_without_advancing_the_logical_clock() {
+    // A busy CI runner may schedule the connection worker late. The harness
+    // deadline is separate from the RPC timeout and the coordinator clock.
+    let vm = Vm::with_handshake_delay(Duration::from_millis(3200));
+    vm.profile("delayed", 100);
+    let mut c = viewer(Duration::from_secs(30));
+    c.connect(&vm.uri, 0).unwrap();
+    until(|| {
+        c.tick(0);
+        c.store().network().len() == 1
+    });
+    assert_eq!(vm.state.lock().unwrap().connections, 1);
+    assert!(c.last_error().is_none(), "{:?}", c.last_error());
+    c.stop();
+}
+
+#[test]
+fn fake_vm_keeps_accepted_socket_open_until_handshake_arrives() {
+    let vm = Vm::new();
+    let uri = url::Url::parse(&vm.uri).unwrap();
+    let socket = TcpStream::connect(("127.0.0.1", uri.port().unwrap())).unwrap();
+    socket
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+    // Accept the TCP socket before the client sends its HTTP upgrade. Accepted
+    // sockets can inherit nonblocking mode from the listening socket.
+    thread::sleep(Duration::from_millis(100));
+    let (mut ws, _) = tungstenite::client(vm.uri.as_str(), socket).unwrap();
+    ws.send(Message::Text(
+        json!({"jsonrpc":"2.0","id":1,"method":"streamListen","params":{"streamId":"Isolate"}})
+            .to_string()
+            .into(),
+    ))
+    .unwrap();
+    let reply: Value = serde_json::from_str(ws.read().unwrap().to_text().unwrap()).unwrap();
+    assert_eq!(reply["result"]["type"], "Success");
+    assert_eq!(vm.state.lock().unwrap().connections, 1);
 }

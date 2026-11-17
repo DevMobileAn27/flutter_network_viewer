@@ -1102,3 +1102,15 @@ and deleting an item after scrolling. It reproduced the missing card layout
 before the change. Of 381 regression tests, one socket test timed out on the
 initial run and passed when its suite was rerun. Fmt, Clippy and build passed.
 Evidence: `docs/artifacts/ui-parity/console-tags-wrap-*`.
+
+## CI acceptance fixture regression — 2026-11-17
+
+F21 native smoke uses the current Manual URL, JSON copy, Discussion and update
+notification controls. F19 explicitly connects its test VM; narrow updater
+Settings are scrolled before checking the action. F11 socket fixtures reset
+accepted sockets to blocking before handshake and cover delayed upgrades plus
+slow startup. MCP Stop checks an actually incomplete HTTP body.
+
+384 executable Rust tests, fmt and all-target Clippy pass on macOS ARM64.
+Windows and Intel hosted acceptance remain pending; see progress and
+`docs/artifacts/ci-regression-2026-11-17` for local evidence.

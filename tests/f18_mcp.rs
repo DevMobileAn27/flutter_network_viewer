@@ -382,7 +382,7 @@ fn fragmented_client_and_pending_socket_stop_do_not_block_owner() {
     stream
         .set_read_timeout(Some(Duration::from_secs(2)))
         .unwrap();
-    stream.write_all(b"POST /mcp HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 40\r\n\r\n").unwrap();
+    stream.write_all(b"POST /mcp HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: 41\r\n\r\n").unwrap();
     let start = Instant::now();
     for _ in 0..20 {
         m.poll(&s, &HashSet::new());

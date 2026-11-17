@@ -2601,5 +2601,22 @@
     ],
     "verification": "Test-first missing card layout reproduced; 381 tests passed across initial run and socket retry; fmt, Clippy and build passed.",
     "evidence": "docs/artifacts/ui-parity/console-tags-wrap-*"
+  },
+  "ci_native_regression_2026_11_17": {
+    "reference": "Repair CI acceptance after the current desktop UI changes and accept delayed WebSocket upgrades on the fake VM.",
+    "rust_tests": [
+      "tests/coordinator_socket.rs::fake_vm_keeps_accepted_socket_open_until_handshake_arrives",
+      "tests/coordinator_socket.rs::delayed_vm_startup_still_captures_without_advancing_the_logical_clock",
+      "tests/f18_mcp.rs::fragmented_client_and_pending_socket_stop_do_not_block_owner"
+    ],
+    "native_tests": [
+      "tools/f21_native_smoke.py",
+      "tools/f21_multiapp.py",
+      "tools/f17_native_smoke.py",
+      "tools/f19_native_smoke.py",
+      "tools/f20_native_smoke.py"
+    ],
+    "evidence": "docs/artifacts/ci-regression-2026-11-17",
+    "platform_limit": "Validated on macOS ARM64; Windows hosted run still required."
   }
 }

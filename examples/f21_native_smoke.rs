@@ -34,7 +34,20 @@ impl Smoke {
         self.click(&key);
     }
     fn click(&mut self, key: &str) {
-        let pos = self.app.ui.probe.widgets[key].center();
+        let pos = self
+            .app
+            .ui
+            .probe
+            .widgets
+            .get(key)
+            .unwrap_or_else(|| {
+                panic!(
+                    "missing widget {key} at smoke step {}: {:?}",
+                    self.step,
+                    self.app.ui.probe.widgets.keys()
+                )
+            })
+            .center();
         self.events.push_back(vec![
             Event::PointerMoved(pos),
             Event::PointerButton {
@@ -57,12 +70,20 @@ impl Smoke {
 impl eframe::App for Smoke {
     fn raw_input_hook(&mut self, _: &egui::Context, input: &mut egui::RawInput) {
         if let Some(events) = self.events.pop_front() {
+            // Keep screenshots delivered by the native backend while injecting input.
+            let screenshots: Vec<_> = input
+                .events
+                .iter()
+                .filter(|event| matches!(event, Event::Screenshot { .. }))
+                .cloned()
+                .collect();
             input.events = events;
+            input.events.extend(screenshots);
         }
     }
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         assert!(
-            self.start.elapsed() < Duration::from_secs(30),
+            self.start.elapsed() < Duration::from_secs(60),
             "native smoke timeout at step {}",
             self.step
         );
@@ -85,7 +106,7 @@ impl eframe::App for Smoke {
             return;
         }
         match self.step {
-            0 => self.click("connect"),
+            0 => self.click("manual-url"),
             1 => {
                 self.click("vm-uri");
                 self.events.push_back(vec![Event::Text(self.uri.clone())]);
@@ -143,7 +164,7 @@ impl eframe::App for Smoke {
                 self.app.ui.reveal_inspector_tab = Some(4);
             }
             15 => self.click("tab:4"),
-            16 => self.click("copy-detail"),
+            16 => self.click("json-copy"),
             17 => {
                 let text = arboard::Clipboard::new().unwrap().get_text().unwrap();
                 assert!(text.contains("created"));
