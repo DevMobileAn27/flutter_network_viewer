@@ -106,7 +106,7 @@ impl WindowsBackend {
                 let wide = |s: &str| s.encode_utf16().chain(Some(0)).collect::<Vec<_>>();
                 details(
                     wide("Nguyễn Quốc An").as_ptr(),
-                    wide("Flutter Network Viewer Rust").as_ptr(),
+                    wide("Flutter Network Viewer").as_ptr(),
                     wide(env!("CARGO_PKG_VERSION")).as_ptr(),
                 );
                 set_feed(CString::new(feed).map_err(|_| "Invalid feed")?.as_ptr());

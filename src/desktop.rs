@@ -480,7 +480,9 @@ impl DesktopUi {
             }
         }
         if self.connect_open {
-            let modal = egui::Modal::new(egui::Id::new("manual-url-popup")).show(ctx, |ui| {
+            let dialog = egui::Modal::new(egui::Id::new("manual-url-popup"))
+                .frame(egui::Frame::popup(&ctx.style()).inner_margin(12));
+            let modal = dialog.show(ctx, |ui| {
                 ui.set_width((width - 64.).clamp(240., 440.));
                 ui.spacing_mut().button_padding = egui::vec2(8., 3.);
                 ui.spacing_mut().interact_size.y = 24.;
@@ -542,6 +544,9 @@ impl DesktopUi {
                     }
                 }
             });
+            self.probe
+                .widgets
+                .insert("manual-url-frame".into(), modal.response.rect);
             if modal.should_close() {
                 self.connect_open = false;
             }

@@ -67,6 +67,9 @@ class ReleaseTests(unittest.TestCase):
             meta=release.metadata(ROOT)
             app=release.stage(ROOT,meta,'macos-arm64',binary,folder/'stage')
             info=plistlib.loads((app/'Contents/Info.plist').read_bytes())
+            self.assertEqual(app.name, 'Flutter Network Viewer.app')
+            self.assertEqual(info['CFBundleName'], 'Flutter Network Viewer')
+            self.assertEqual(info['CFBundleDisplayName'], 'Flutter Network Viewer')
             self.assertEqual(info['CFBundleVersion'],str(meta['build']))
             self.assertEqual(info['CFBundleShortVersionString'],meta['version'])
             self.assertEqual(info['CFBundleIdentifier'],meta['identifier'])
@@ -105,7 +108,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn(f'VALUE "FileVersion", "{version}.{build}\\0"',source)
         self.assertIn(f'VALUE "ProductVersion", "{version}\\0"',source)
         self.assertIn('ICON',source)
-        self.assertIn('Flutter Network Viewer Rust',source)
+        self.assertIn(r'VALUE "ProductName", "Flutter Network Viewer\0"',source)
         self.assertIn('windows.rc',(ROOT/'build.rs').read_text(encoding='utf-8'))
 
     def test_bundled_font_contains_vietnamese_glyphs_and_icons_are_native(self):
@@ -144,6 +147,7 @@ class ReleaseTests(unittest.TestCase):
         script=(ROOT/'packaging/windows.iss').read_text(encoding='utf-8')
         for text in ['ArchitecturesAllowed=x64compatible','PrivilegesRequired=lowest','CloseApplications=yes','AppId=dev.quocan.flutterNetworkViewer.rust','AppVersion={#AppVersion}','OutputBaseFilename={#OutputName}','WizardStyle=modern']:
             self.assertIn(text,script)
+        self.assertIn('AppName=Flutter Network Viewer\n',script)
         workflow=(ROOT/'.github/workflows/checks.yml').read_text(encoding='utf-8')
         for text in ['aarch64-apple-darwin','x86_64-apple-darwin','x86_64-pc-windows-msvc','cargo test --locked','cargo clippy --all-targets --locked','cargo fmt --check','test_f21_release.py','tools/release.py','contents: read']:
             self.assertIn(text,workflow)

@@ -66,7 +66,7 @@ def feed(meta,platform,name,length,kind,signature):
     except Exception as error: raise ValueError('Invalid signature encoding') from error
     if not raw or (mac and len(raw)!=64): raise ValueError('Invalid signature length')
     root=ET.Element('rss',version='2.0'); channel=ET.SubElement(root,'channel')
-    ET.SubElement(channel,'title').text='Flutter Network Viewer Rust'
+    ET.SubElement(channel,'title').text='Flutter Network Viewer'
     ET.SubElement(channel,'link').text=REPOSITORY
     item=ET.SubElement(channel,'item'); ET.SubElement(item,'title').text=meta['title']
     ET.SubElement(item,'description').text='<pre>'+html.escape(meta['notes'])+'</pre>'
@@ -121,11 +121,11 @@ def stage(root,meta,platform,binary,output):
     verify(root/'vendor')
     if platform not in PLATFORMS: raise ValueError('Unsupported platform')
     if platform.startswith('macos-'):
-        app=output/'Flutter Network Viewer Rust.app'; contents=app/'Contents'
+        app=output/'Flutter Network Viewer.app'; contents=app/'Contents'
         resources=contents/'Resources'; executable=contents/'MacOS/flutter-network-viewer'
         executable.parent.mkdir(parents=True,exist_ok=False)
         shutil.copytree(root/'vendor/sparkle/Sparkle.framework',contents/'Frameworks/Sparkle.framework',symlinks=True)
-        info={'CFBundleName':'Flutter Network Viewer Rust','CFBundleDisplayName':'Flutter Network Viewer Rust','CFBundleExecutable':'flutter-network-viewer','CFBundleIdentifier':meta['identifier'],'CFBundlePackageType':'APPL','CFBundleVersion':str(meta['build']),'CFBundleShortVersionString':meta['version'],'LSMinimumSystemVersion':'12.0','NSHighResolutionCapable':True,'CFBundleIconFile':'AppIcon.icns','SUPublicEDKey':meta['public_key'],'SUEnableInstallerLauncherService':True,'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False}
+        info={'CFBundleName':'Flutter Network Viewer','CFBundleDisplayName':'Flutter Network Viewer','CFBundleExecutable':'flutter-network-viewer','CFBundleIdentifier':meta['identifier'],'CFBundlePackageType':'APPL','CFBundleVersion':str(meta['build']),'CFBundleShortVersionString':meta['version'],'LSMinimumSystemVersion':'12.0','NSHighResolutionCapable':True,'CFBundleIconFile':'AppIcon.icns','SUPublicEDKey':meta['public_key'],'SUEnableInstallerLauncherService':True,'SUEnableAutomaticChecks':False,'SUAutomaticallyUpdate':False,'SUAllowsAutomaticUpdates':False}
         (contents/'Info.plist').write_bytes(plistlib.dumps(info)); resources.mkdir()
         shutil.copy2(root/'assets/icons/AppIcon.icns',resources/'AppIcon.icns')
     else:

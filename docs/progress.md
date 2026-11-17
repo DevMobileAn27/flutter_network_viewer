@@ -3814,3 +3814,14 @@ Verified locally: 381 Rust tests, 9 release-tool tests, formatting, Clippy,
 workflow YAML/triggers, and both macOS preview packages (version/build,
 architecture, layout, and SHA-256). The Windows installer and hosted workflow
 have not been run for this change. No release or feed was published.
+
+## 2026-11-17 — Padding Manual URL và tên app
+
+- `manual_url_modal_insets_the_header_input_and_find_button` phát hiện mép
+  trong chỉ 1 pt trước khi sửa; kiểm tra đủ bốn mép sau khi đặt padding 12 pt
+  ở hai kích thước cửa sổ (480 và 1360 pt).
+- Tên hiển thị: Flutter Network Viewer. Kiểm tra layout bundle macOS và
+  metadata/installer Windows qua `tools/test_f21_release.py`.
+- macOS: 382 test Rust và 9 test đóng gói pass; fmt và clippy pass.
+- Chụp lại slide 2 từ demo Rust, xuất lại GIF kết nối (3 frame), xác minh
+  SHA-256 của 10 GIF còn lại không đổi.

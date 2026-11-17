@@ -14,11 +14,11 @@ results=[]
 for directory,platform in [(Path(sys.argv[1]),'macos-arm64'),(Path(sys.argv[2]),'macos-x86_64')]:
     archive=directory/release.filename(meta,platform)
     release.verify_checksums(archive.with_suffix('.sha256'))
-    app=directory/platform/'Flutter Network Viewer Rust.app'
+    app=directory/platform/'Flutter Network Viewer.app'
     binary=app/'Contents/MacOS/flutter-network-viewer'
     subprocess.run(['lipo',str(binary),'-verify_arch','arm64' if platform=='macos-arm64' else 'x86_64'],check=True)
     with zipfile.ZipFile(archive) as package:
-        base='Flutter Network Viewer Rust.app/Contents/'
+        base='Flutter Network Viewer.app/Contents/'
         plist=plistlib.loads(package.read(base+'Info.plist'))
         assert plist['CFBundleIdentifier']==meta['identifier']
         assert plist['CFBundleVersion']==str(meta['build'])

@@ -11,9 +11,9 @@ BEGIN
     BLOCK "040904b0"
     BEGIN
       VALUE "CompanyName", "Nguyễn Quốc An\0"
-      VALUE "FileDescription", "Flutter Network Viewer Rust\0"
+      VALUE "FileDescription", "Flutter Network Viewer\0"
       VALUE "FileVersion", "0.1.9.10\0"
-      VALUE "ProductName", "Flutter Network Viewer Rust\0"
+      VALUE "ProductName", "Flutter Network Viewer\0"
       VALUE "ProductVersion", "0.1.9\0"
       VALUE "OriginalFilename", "flutter-network-viewer.exe\0"
       VALUE "LegalCopyright", "GPL-3.0-only; modified Rust port\0"

@@ -2030,6 +2030,31 @@ fn search_is_350_wide_in_navigation_before_capture_actions() {
 }
 
 #[test]
+fn manual_url_modal_insets_the_header_input_and_find_button() {
+    for width in [480., 1360.] {
+        let mut h = Harness::new(width);
+        h.click("manual-url");
+        h.frame(vec![]);
+        let input = h.ui.probe.widgets["vm-uri"];
+        let close = h.ui.probe.widgets["manual-close"];
+        let find = h.ui.probe.widgets["connect-submit"];
+        let controls = input.union(close).union(find);
+        let frame = h.ui.probe.widgets["manual-url-frame"];
+        for gap in [
+            controls.left() - frame.left(),
+            controls.top() - frame.top(),
+            frame.right() - controls.right(),
+            frame.bottom() - controls.bottom(),
+        ] {
+            assert!(
+                gap >= 11.5,
+                "missing 12 pt popup inset at width {width}: {gap}"
+            );
+        }
+    }
+}
+
+#[test]
 fn compact_header_manual_popup_and_console_header_filters_work() {
     let mut h = Harness::new(1360.);
     let header = h.ui.probe.widgets["header"];

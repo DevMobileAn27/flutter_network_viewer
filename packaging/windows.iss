@@ -7,10 +7,10 @@
 #endif
 [Setup]
 AppId=dev.quocan.flutterNetworkViewer.rust
-AppName=Flutter Network Viewer Rust
+AppName=Flutter Network Viewer
 AppVersion={#AppVersion}
 DefaultDirName={localappdata}\Programs\Flutter Network Viewer Rust
-DefaultGroupName=Flutter Network Viewer Rust
+DefaultGroupName=Flutter Network Viewer
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -26,4 +26,4 @@ SolidCompression=yes
 [Files]
 Source: "..\dist\windows-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
-Name: "{group}\Flutter Network Viewer Rust"; Filename: "{app}\flutter-network-viewer.exe"
+Name: "{group}\Flutter Network Viewer"; Filename: "{app}\flutter-network-viewer.exe"
