@@ -55,10 +55,9 @@ jobs:
           python3 -B tools/f20_native_smoke.py docs/artifacts/f21/ci-f20
       - name: Package Rust preview
         id: package
-        shell: bash
-        run: |
-          python -B tools/release.py package ${{ matrix.platform }}
-          cat dist/actions-output.txt >> "$GITHUB_OUTPUT"
+        # Keep the runner's native shell: Git Bash puts its link.exe before MSVC.
+        # Python appends step outputs so this command is identical on both OSes.
+        run: python -B tools/release.py package ${{ matrix.platform }} --github-output
       - name: Build Windows installer (never install)
         if: runner.os == 'Windows'
         shell: pwsh

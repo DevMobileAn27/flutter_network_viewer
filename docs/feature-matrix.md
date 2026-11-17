@@ -1114,3 +1114,11 @@ slow startup. MCP Stop checks an actually incomplete HTTP body.
 384 executable Rust tests, fmt and all-target Clippy pass on macOS ARM64.
 Windows and Intel hosted acceptance remain pending; see progress and
 `docs/artifacts/ci-regression-2026-11-17` for local evidence.
+
+## CI Windows package linker — 2026-11-17
+
+Package uses the native runner shell and appends step outputs from Python.
+Windows preflight rejects Git's link.exe before Cargo runs. 13 release tests,
+384 Rust regressions, fmt/clippy, YAML validation and a real macOS ARM64 package
+plus SHA-256/output verification pass. Windows hosted packaging remains pending.
+See `docs/artifacts/ci-msvc-linker-2026-11-17`.

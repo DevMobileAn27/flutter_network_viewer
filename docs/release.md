@@ -46,7 +46,11 @@ cargo test --locked --offline
 
 Install the respective rustup target first. On Windows run the matching
 `package windows-x64` command under an MSVC developer environment including
-Windows SDK `rc.exe` and `link.exe`. Package staging refuses existing app directories
+Windows SDK `rc.exe` and `link.exe`. Use developer PowerShell rather than Git
+Bash, whose `usr/bin/link.exe` can shadow MSVC. Windows packaging checks the
+resolved linker against `VCToolsInstallDir` before Cargo runs. CI passes
+`--github-output` to append package metadata to `GITHUB_OUTPUT` after success.
+Package staging refuses existing app directories
 and archives. It copies the full Sparkle framework preserving symlinks and helpers,
 or WinSparkle x64 DLL beside the executable. Assets include platform icons,
 Cascadia Mono/OFL, GPL-3.0-only source license and updater notices/licenses.

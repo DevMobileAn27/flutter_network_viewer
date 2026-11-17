@@ -2618,5 +2618,18 @@
     ],
     "evidence": "docs/artifacts/ci-regression-2026-11-17",
     "platform_limit": "Validated on macOS ARM64; Windows hosted run still required."
+  },
+  "ci_windows_msvc_linker_2026_11_17": {
+    "reference": "Windows packaging must retain the MSVC developer environment and publish GitHub outputs only after success.",
+    "feature": "F21",
+    "tests": [
+      "tools/test_f21_release.py::ReleaseTests::test_package_appends_github_outputs_as_utf8_after_success",
+      "tools/test_f21_release.py::ReleaseTests::test_failed_package_does_not_publish_github_outputs",
+      "tools/test_f21_release.py::ReleaseTests::test_windows_preflight_accepts_msvc_and_rejects_git_link",
+      "tools/test_f21_release.py::ReleaseTests::test_windows_package_checks_linker_before_running_cargo",
+      "tools/test_f21_release.py::ReleaseTests::test_installer_and_ci_contract"
+    ],
+    "verification": "13 release-tool tests, 384 Rust tests, fmt/clippy, workflow YAML and macOS ARM64 release zip/output/checksum pass. Windows native build awaits hosted validation.",
+    "evidence": "docs/artifacts/ci-msvc-linker-2026-11-17"
   }
 }

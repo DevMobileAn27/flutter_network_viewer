@@ -3860,3 +3860,28 @@ Windows hosted CI and Intel native execution must still validate this change;
 no hosted run was triggered and no release was published.
 Final verification also ran the complete native workflow sequence in order
 (F21 → multi-app → F17 → F19 → F20 current/available), exit code 0.
+
+## 2026-11-17 — Windows release linker shadowed by Git Bash (F21)
+
+The next hosted run reached Package Rust preview and selected
+`C:\Program Files\Git\usr\bin\link.exe`, which reports `/usr/bin/link:
+extra operand`. Earlier Windows test/build steps succeeded under the runner's
+native shell; the package step alone forced Git Bash and changed PATH order.
+
+Removed that shell override. The runner now uses PowerShell on Windows and
+Bash on macOS. `release.py package --github-output` appends validated UTF-8
+metadata to GITHUB_OUTPUT only after packaging succeeds, preserving the
+existing step ID/outputs consumed by the installer and artifact upload.
+Windows packaging verifies that PATH resolves link.exe inside VCToolsInstallDir
+before starting Cargo, so a shadowed or missing toolchain reports its cause.
+
+Test-first: output/preflight tests failed before implementation. 13 release
+Python tests now pass, covering output append, failure without output publish,
+accepting MSVC/rejecting Git or missing linker, and preflight before Cargo.
+The workflow contract rejects a Bash override on the package step. YAML parse,
+384 Rust regression tests, fmt and all-target Clippy pass. A real macOS ARM64
+release ZIP and SHA-256 check pass; actual GITHUB_OUTPUT matches UTF-8 metadata.
+Evidence: `docs/artifacts/ci-msvc-linker-2026-11-17`.
+
+Windows native linking/installer and the hosted workflow require another run;
+this macOS host cannot establish a Windows build pass. No commit or push yet.

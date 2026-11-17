@@ -8,6 +8,7 @@ from pathlib import Path
 import plistlib
 import tempfile
 import struct
+import sys
 import unittest
 from unittest.mock import patch
 import xml.etree.ElementTree as ET
@@ -16,6 +17,56 @@ import release
 ROOT = Path(__file__).resolve().parents[1]
 
 class ReleaseTests(unittest.TestCase):
+    def test_package_appends_github_outputs_as_utf8_after_success(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder=Path(folder); output=folder/'dist'; github=folder/'github-output'
+            github.write_text('existing=value\n', encoding='utf-8')
+            def build(platform, directory, identity):
+                self.assertEqual(platform, 'windows-x64')
+                self.assertIsNone(identity)
+                release.prepare(release.metadata(ROOT), directory)
+                return directory/'preview.zip'
+            argv=['release.py','package','windows-x64','--output',str(output),'--github-output']
+            with patch.object(sys,'argv',argv), patch.dict(os.environ,{'GITHUB_OUTPUT':str(github)}), patch.object(release,'package',side_effect=build):
+                release.main()
+            expected=(output/'actions-output.txt').read_text(encoding='utf-8')
+            self.assertEqual(github.read_text(encoding='utf-8'), 'existing=value\n'+expected)
+            self.assertIn('version='+release.metadata(ROOT)['version'],expected)
+
+    def test_failed_package_does_not_publish_github_outputs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder=Path(folder); github=folder/'github-output'
+            github.write_text('existing=value\n', encoding='utf-8')
+            argv=['release.py','package','windows-x64','--output',str(folder/'dist'),'--github-output']
+            with patch.object(sys,'argv',argv), patch.dict(os.environ,{'GITHUB_OUTPUT':str(github)}), patch.object(release,'package',side_effect=RuntimeError('build failed')):
+                with self.assertRaisesRegex(RuntimeError,'build failed'):
+                    release.main()
+            self.assertEqual(github.read_text(encoding='utf-8'),'existing=value\n')
+
+    def test_windows_preflight_accepts_msvc_and_rejects_git_link(self):
+        with tempfile.TemporaryDirectory() as folder:
+            folder=Path(folder); msvc=folder/'VS'/'MSVC'; linker=msvc/'bin'/'Hostx64'/'x64'/'link.exe'
+            linker.parent.mkdir(parents=True); linker.write_bytes(b'inert')
+            with patch.dict(os.environ,{'VCToolsInstallDir':str(msvc)}):
+                with patch.object(release.shutil,'which',return_value=str(linker)):
+                    release.validate_msvc_environment()
+                with patch.object(release.shutil,'which',return_value=str(folder/'Git'/'usr'/'bin'/'link.exe')):
+                    with self.assertRaisesRegex(ValueError,'MSVC'):
+                        release.validate_msvc_environment()
+                with patch.object(release.shutil,'which',return_value=None):
+                    with self.assertRaisesRegex(ValueError,'MSVC'):
+                        release.validate_msvc_environment()
+            with patch.dict(os.environ,{},clear=True):
+                with self.assertRaisesRegex(ValueError,'MSVC'):
+                    release.validate_msvc_environment()
+
+    def test_windows_package_checks_linker_before_running_cargo(self):
+        with patch.object(release.os,'name','nt'), patch.object(release,'validate_msvc_environment',side_effect=ValueError('MSVC linker required')) as preflight, patch.object(release.subprocess,'run') as build:
+            with self.assertRaisesRegex(ValueError,'MSVC linker required'):
+                release.package('windows-x64',ROOT/'dist')
+            preflight.assert_called_once_with()
+            build.assert_not_called()
+
     def test_metadata_and_monotonic_version_build(self):
         meta = release.metadata(ROOT)
         self.assertTrue(release.increased(meta['version'], meta['build'], '0.1.8', 9))
@@ -149,6 +200,9 @@ class ReleaseTests(unittest.TestCase):
             self.assertIn(text,script)
         self.assertIn('AppName=Flutter Network Viewer\n',script)
         workflow=(ROOT/'.github/workflows/checks.yml').read_text(encoding='utf-8')
+        package_step=workflow.split('- name: Package Rust preview',1)[1].split('- name:',1)[0]
+        self.assertNotIn('shell: bash',package_step)
+        self.assertIn('--github-output',package_step)
         for text in ['aarch64-apple-darwin','x86_64-apple-darwin','x86_64-pc-windows-msvc','cargo test --locked','cargo clippy --all-targets --locked','cargo fmt --check','test_f21_release.py','tools/release.py','contents: read']:
             self.assertIn(text,workflow)
         self.assertRegex(workflow, r'(?m)^  push:\s*\n    branches: \[main\]$')

@@ -141,8 +141,23 @@ def stage(root,meta,platform,binary,output):
     return app
 
 
+def validate_msvc_environment():
+    # Git Bash prepends Git/usr/bin, which also contains an unrelated link.exe.
+    # Check PATH before Cargo builds host-side proc macros and build scripts.
+    tools=os.environ.get('VCToolsInstallDir')
+    linker=shutil.which('link.exe')
+    if not tools or not linker:
+        raise ValueError('MSVC developer environment required: VCToolsInstallDir and link.exe')
+    try:
+        Path(linker).resolve().relative_to(Path(tools).resolve())
+    except ValueError as error:
+        raise ValueError(f'MSVC linker required; PATH resolved link.exe to {linker}. Run from a Visual Studio developer PowerShell, not Git Bash.') from error
+    print(f'MSVC linker: {linker}')
+
+
 def package(platform,output,identity=None):
     meta=metadata(ROOT); target=PLATFORMS[platform]
+    if platform=='windows-x64' and os.name=='nt': validate_msvc_environment()
     subprocess.run(['cargo','build','--release','--locked','--offline','--target',target],cwd=ROOT,check=True)
     binary=ROOT/'target'/target/'release'/('flutter-network-viewer.exe' if platform=='windows-x64' else 'flutter-network-viewer')
     if platform.startswith('macos-'):
@@ -168,13 +183,16 @@ def package(platform,output,identity=None):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='command',required=True)
-    p=sub.add_parser('package'); p.add_argument('platform',choices=PLATFORMS); p.add_argument('--output',type=Path,default=ROOT/'dist'); p.add_argument('--identity')
+    p=sub.add_parser('package'); p.add_argument('platform',choices=PLATFORMS); p.add_argument('--output',type=Path,default=ROOT/'dist'); p.add_argument('--identity'); p.add_argument('--github-output',action='store_true',help='Append validated package outputs to GITHUB_OUTPUT after a successful build')
     p=sub.add_parser('feed'); p.add_argument('platform',choices=PLATFORMS); p.add_argument('archive',type=Path)
     p=sub.add_parser('manifest'); p.add_argument('directory',type=Path)
     p=sub.add_parser('verify'); p.add_argument('manifest',type=Path)
     args=parser.parse_args()
     if args.command=='package':
         args.output.mkdir(parents=True,exist_ok=True); print(package(args.platform,args.output,args.identity))
+        if args.github_output:
+            with Path(os.environ['GITHUB_OUTPUT']).open('a',encoding='utf-8',newline='') as stream:
+                stream.write((args.output/'actions-output.txt').read_text(encoding='utf-8'))
     elif args.command=='manifest':
         paths=[p for p in args.directory.iterdir() if p.suffix in ('.zip','.exe','.xml')]
         if not paths: raise ValueError('No artifacts to checksum')
