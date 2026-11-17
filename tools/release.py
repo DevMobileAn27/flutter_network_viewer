@@ -98,6 +98,19 @@ def sign_archive(archive,platform,private_key):
         return 'dsaSignature',base64.b64encode(signature).decode('ascii')
 
 
+def validate_legacy_appcast(meta, platform, appcast, archive):
+    kind = 'dsaSignature' if platform == 'windows-x64' else 'edSignature'
+    data = appcast.read_bytes()
+    try:
+        enclosure = ET.fromstring(data).find('./channel/item/enclosure')
+        signature = enclosure.get(f'{{{SPARKLE}}}{kind}', '') if enclosure is not None else ''
+        expected = feed(meta, platform, archive.name, archive.stat().st_size, kind, signature)
+    except (ET.ParseError, ValueError) as error:
+        raise ValueError(f'Appcast is invalid for {platform}') from error
+    if data != expected:
+        raise ValueError(f'Appcast does not describe the expected {platform} package')
+
+
 def checksums(paths,output):
     output.write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in sorted(paths)),encoding='utf-8')
     return output
@@ -184,7 +197,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='command',required=True)
     p=sub.add_parser('package'); p.add_argument('platform',choices=PLATFORMS); p.add_argument('--output',type=Path,default=ROOT/'dist'); p.add_argument('--identity'); p.add_argument('--github-output',action='store_true',help='Append validated package outputs to GITHUB_OUTPUT after a successful build')
-    p=sub.add_parser('feed'); p.add_argument('platform',choices=PLATFORMS); p.add_argument('archive',type=Path)
+    p=sub.add_parser('feed'); p.add_argument('platform',choices=PLATFORMS); p.add_argument('archive',type=Path); p.add_argument('--legacy',action='store_true',help='Use the appcast filename requested by the Flutter updater')
     p=sub.add_parser('manifest'); p.add_argument('directory',type=Path)
     p=sub.add_parser('verify'); p.add_argument('manifest',type=Path)
     args=parser.parse_args()
@@ -202,10 +215,16 @@ def main():
         archive=args.archive.resolve(); meta=metadata(ROOT)
         # Validate identity before reading keys or signing anything.
         if archive.name!=filename(meta,args.platform,installer=args.platform=='windows-x64'): raise ValueError('Unexpected Rust update archive filename')
-        kind,sig=sign_archive(archive,args.platform,os.environ.get('UPDATE_SIGNING_KEY',''))
-        output=archive.parent/f'rust-appcast-{args.platform}.xml'
+        prefix='appcast' if args.legacy else 'rust-appcast'
+        output=archive.parent/f'{prefix}-{args.platform}.xml'
         if output.exists(): raise ValueError('Refusing to overwrite feed')
+        kind,sig=sign_archive(archive,args.platform,os.environ.get('UPDATE_SIGNING_KEY',''))
         output.write_bytes(feed(meta,args.platform,archive.name,archive.stat().st_size,kind,sig))
         checksums([archive,output],archive.parent/f'{args.platform}-signed.sha256')
+        status=archive.parent/f'{args.platform}-status.json'
+        if status.is_file():
+            flags=json.loads(status.read_text(encoding='utf-8'))
+            flags['update_feed_generated']=True
+            status.write_text(json.dumps(flags,indent=2),encoding='utf-8')
 
 if __name__=='__main__': main()

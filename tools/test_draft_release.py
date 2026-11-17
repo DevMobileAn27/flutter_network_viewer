@@ -1,4 +1,5 @@
 """Draft release orchestration with inert assets and a mocked GitHub CLI."""
+import base64
 import json
 from pathlib import Path
 import subprocess
@@ -19,6 +20,7 @@ class DraftReleaseTests(unittest.TestCase):
         self.output = self.root / 'output'
         self.meta = release.metadata(release.ROOT)
         self.expected = []
+        self.appcasts = []
         for platform in release.PLATFORMS:
             folder = self.artifacts / f'rust-preview-{self.meta["version"]}-{platform}'
             folder.mkdir(parents=True)
@@ -31,6 +33,13 @@ class DraftReleaseTests(unittest.TestCase):
                 path.write_bytes(('inert ' + name).encode())
                 paths.append(path)
             self.expected.extend(names)
+            archive = paths[-1]
+            appcast = folder / f'appcast-{platform}.xml'
+            kind = 'dsaSignature' if platform == 'windows-x64' else 'edSignature'
+            appcast.write_bytes(release.feed(self.meta, platform, archive.name, archive.stat().st_size,
+                                             kind, base64.b64encode(bytes(64)).decode()))
+            self.appcasts.append(appcast)
+            paths.append(appcast)
             release.checksums(paths, folder / 'SHA256SUMS.txt')
             (folder / f'{platform}-status.json').write_text('{}')
 
@@ -53,7 +62,8 @@ class DraftReleaseTests(unittest.TestCase):
         upload = next(c for c in calls if c[:2] == ('release', 'upload'))
         self.assertTrue(set(self.expected).issubset({Path(s).name for s in upload}))
         release.verify_checksums(self.output / 'SHA256SUMS.txt')
-        self.assertEqual(len((self.output / 'SHA256SUMS.txt').read_text().splitlines()), 4)
+        self.assertTrue({p.name for p in self.appcasts}.issubset({Path(s).name for s in upload}))
+        self.assertEqual(len((self.output / 'SHA256SUMS.txt').read_text().splitlines()), 7)
         notes = (self.output / 'release-notes.md').read_text(encoding='utf-8')
         self.assertIn('## Có gì mới', notes)
         self.assertIn(self.meta['notes'].strip(), notes)
@@ -106,9 +116,18 @@ class DraftReleaseTests(unittest.TestCase):
 
     def test_manifest_must_cover_installer_too(self):
         folder = next(self.artifacts.glob('*windows-x64'))
-        release.checksums(list(folder.glob('*.zip')), folder / 'SHA256SUMS.txt')
+        release.checksums([*folder.glob('*.zip'), *folder.glob('*.xml')], folder / 'SHA256SUMS.txt')
         with patch.object(draft_release, 'gh') as gh:
             with self.assertRaisesRegex(ValueError, 'cover'):
+                draft_release.create_draft(self.artifacts, self.output, 'owner/repo', 'a' * 40)
+            gh.assert_not_called()
+
+    def test_wrong_appcast_is_rejected_even_with_valid_checksums(self):
+        mac, other = self.appcasts[:2]
+        mac.write_bytes(other.read_bytes())
+        release.checksums([*mac.parent.glob('*.zip'), mac], mac.parent / 'SHA256SUMS.txt')
+        with patch.object(draft_release, 'gh') as gh:
+            with self.assertRaisesRegex(ValueError, 'Appcast'):
                 draft_release.create_draft(self.artifacts, self.output, 'owner/repo', 'a' * 40)
             gh.assert_not_called()
 
@@ -127,6 +146,9 @@ class DraftReleaseTests(unittest.TestCase):
 
     def test_workflow_waits_for_all_builds_and_limits_write_permission(self):
         workflow = (release.ROOT / '.github/workflows/checks.yml').read_text()
+        self.assertIn('secrets.MACOS_UPDATE_PRIVATE_KEY', workflow)
+        self.assertIn('secrets.WINDOWS_UPDATE_PRIVATE_KEY', workflow)
+        self.assertIn('dist/appcast-*.xml', workflow)
         job = workflow.split('  draft-release:', 1)[1]
         self.assertIn('needs: desktop', job)
         self.assertIn("github.ref == 'refs/heads/main'", job)

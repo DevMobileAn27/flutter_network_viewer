@@ -48,7 +48,7 @@ Các lệnh trên gỡ thuộc tính cách ly (quarantine) và mở lại ứng 
 def create_draft(artifacts, output, repository, commit):
     meta = release.metadata(release.ROOT)
     assets = []
-    binaries = []
+    checksummed = []
     # Keep artifacts separate: each build has its own SHA256SUMS.txt.
     for platform in release.PLATFORMS:
         folder = artifacts / f'rust-preview-{meta["version"]}-{platform}'
@@ -58,11 +58,13 @@ def create_draft(artifacts, output, repository, commit):
         names = [release.filename(meta, platform)]
         if platform == 'windows-x64':
             names.append(release.filename(meta, platform, installer=True))
-        if covered != set(names):
-            raise ValueError(f'Manifest must cover all expected packages for {platform}')
-        for name in names:
-            binaries.append(folder / name)
-        assets.extend(folder / name for name in names)
+        appcast = folder / f'appcast-{platform}.xml'
+        if covered != {*names, appcast.name}:
+            raise ValueError(f'Manifest must cover all expected packages and appcast for {platform}')
+        release.validate_legacy_appcast(meta, platform, appcast, folder / names[-1])
+        package_assets = [*(folder / name for name in names), appcast]
+        checksummed.extend(package_assets)
+        assets.extend(package_assets)
         status = folder / f'{platform}-status.json'
         json.loads(status.read_text(encoding='utf-8'))
         assets.append(status)
@@ -76,7 +78,7 @@ def create_draft(artifacts, output, repository, commit):
     output.mkdir(parents=True, exist_ok=True)
     for asset in assets:
         shutil.copy2(asset, output / asset.name)
-    manifest = release.checksums([output / path.name for path in binaries], output / 'SHA256SUMS.txt')
+    manifest = release.checksums([output / path.name for path in checksummed], output / 'SHA256SUMS.txt')
     release.verify_checksums(manifest)
     notes = output / 'release-notes.md'
     notes.write_text(release_notes(meta), encoding='utf-8')

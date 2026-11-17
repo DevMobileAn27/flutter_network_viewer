@@ -19,6 +19,8 @@ Nếu Releases chưa có gói Rust, mở một lượt chạy thành công trong
 - **macOS 12 trở lên:** giải nén ZIP và kéo **Flutter Network Viewer.app** vào **Applications**.
 - **Windows:** chạy installer. Nếu chọn bản portable, giải nén cả thư mục rồi mở **flutter-network-viewer.exe**; giữ các tệp đi kèm cạnh tệp thực thi.
 
+Nếu đang dùng bản Flutter `0.1.8` và không cập nhật được trong app, hãy tải và cài thủ công bản Rust mới nhất từ GitHub Releases. Release `1.0.1` không có feed dành cho bản Flutter cũ; workflow bổ sung các feed này từ `1.0.2`.
+
 ## Kết nối ứng dụng Flutter
 
 1. Chạy app Flutter cần theo dõi ở chế độ **debug** hoặc **profile**, chẳng hạn bằng `flutter run`.

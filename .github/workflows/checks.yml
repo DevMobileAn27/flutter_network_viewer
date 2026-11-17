@@ -78,6 +78,19 @@ jobs:
         run: |
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$env:FNV_VERSION" "/DOutputName=flutter-network-viewer-rust-$($env:FNV_VERSION)-windows-x64-setup" packaging/windows.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Sign macOS archive for the Flutter updater
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && runner.os == 'macOS'
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.MACOS_UPDATE_PRIVATE_KEY }}
+          FNV_VERSION: ${{ steps.package.outputs.version }}
+          FNV_PLATFORM: ${{ matrix.platform }}
+        run: python3 -B tools/release.py feed "$FNV_PLATFORM" "dist/flutter-network-viewer-rust-${FNV_VERSION}-${FNV_PLATFORM}.zip" --legacy
+      - name: Sign Windows installer for the Flutter updater
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && runner.os == 'Windows'
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.WINDOWS_UPDATE_PRIVATE_KEY }}
+          FNV_VERSION: ${{ steps.package.outputs.version }}
+        run: python -B tools/release.py feed windows-x64 "dist/flutter-network-viewer-rust-${env:FNV_VERSION}-windows-x64-setup.exe" --legacy
       - run: python -B tools/release.py manifest dist
       - run: python -B tools/release.py verify dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
@@ -86,6 +99,7 @@ jobs:
           path: |
             dist/*.zip
             dist/*.exe
+            dist/appcast-*.xml
             dist/*.sha256
             dist/SHA256SUMS.txt
             dist/*-status.json

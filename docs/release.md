@@ -1,12 +1,13 @@
 # Rust build/release — F21
 
-Status: local preview packaging implemented; whole-app acceptance **partial**.
-No release, production feed or installer execution performed.
+The build workflow creates a GitHub draft after all platform jobs pass.
+Publishing remains manual. Release `rust-v1.0.1` was already published without
+legacy appcasts; installing that release from Flutter `0.1.8` is manual.
 
 ## Identity and update compatibility
 
-Cargo version `0.1.9`, release build `10` in `packaging/release.json`.
-Tag `rust-v0.1.9`; bundle/installer ID `dev.quocan.flutterNetworkViewer.rust`.
+Version comes from Cargo and the build number from `packaging/release.json`.
+Tags use `rust-v<version>`; bundle/installer ID `dev.quocan.flutterNetworkViewer.rust`.
 Windows WinSparkle application name and executable version resource identify Rust.
 Settings already use a separate `flutter-network-viewer-rust` directory.
 
@@ -17,13 +18,24 @@ The dedicated `rust-updates` channel is **not provisioned/published**. A missing
 feed reports the real native error and offers retry. There is no fallback to the
 Flutter latest release or its `appcast-*` assets.
 
-Archives: `flutter-network-viewer-rust-0.1.9-{platform}.zip`.
+Archives: `flutter-network-viewer-rust-<version>-{platform}.zip`.
 Windows updater accepts only the corresponding `-windows-x64-setup.exe`, never
-the portable zip. Feed enclosures use `/releases/download/rust-v0.1.9/…`.
+the portable zip. Feed enclosures use `/releases/download/rust-v<version>/…`.
 A future authorized release must provision the Rust channel separately, after
 all gates pass. The workflow runs on pull requests, pushes to `main`, and manual
 dispatch. It uploads versioned workflow artifacts for macOS ARM64, macOS Intel,
-and Windows x64. It has `contents: read` and no release or feed publication job.
+and Windows x64. Main runs sign the update packages before upload using the
+existing `MACOS_UPDATE_PRIVATE_KEY` and `WINDOWS_UPDATE_PRIVATE_KEY` secrets.
+The draft job verifies and attaches `appcast-macos-arm64.xml`,
+`appcast-macos-x86_64.xml`, and `appcast-windows-x64.xml`. Flutter `0.1.8`
+requests those names from `releases/latest/download`; the draft is only visible
+to the updater after it is manually published as latest.
+
+The public keys match Flutter. Signature compatibility and a successful
+in-place upgrade are separate: Rust still uses distinct bundle/installer IDs
+and settings storage. Validate the migration on an existing `0.1.8`
+installation on each OS before relying on it. Signed appcast enclosures also
+do not replace OS code signing or notarization.
 
 ## Local commands
 
@@ -79,17 +91,18 @@ branch has **not** been exercised: `security find-identity` found zero valid ide
 Ad-hoc Mach-O linker signatures do not make these bundles Developer ID signed.
 Notarization/stapling and Authenticode signing are pending and not automated here.
 
-`tools/release.py feed PLATFORM ARCHIVE` reads `UPDATE_SIGNING_KEY` from the
-environment, refuses missing keys and wrong artifact names, and never publishes.
+`tools/release.py feed PLATFORM ARCHIVE --legacy` reads `UPDATE_SIGNING_KEY`
+from the environment and produces `appcast-<platform>.xml`. Omitting `--legacy`
+keeps the `rust-appcast-<platform>.xml` filename for the dedicated Rust channel.
+Both refuse missing keys and wrong artifact names, and never publish.
 The macOS signer accepts the seed over stdin and checks the derived Ed25519
 public key against `SUPublicEDKey`. The Windows signer checks the DSA public key,
 uses WinSparkle 0.8.x's SHA1 digest signing contract and verifies its output.
-No private release key is available; **no production signed feed was generated**.
-Neither the macOS signing branch with a matching release key nor Windows DSA
-signing has been verified for release. Inert verifier tests remain separate.
+Production signing is only exercised when the main workflow can access the
+repository secrets. Local signer tests use inert bytes and test keys.
 
-Appcast build/version semantics: Sparkle uses monotonic build `10`, display `0.1.9`;
-WinSparkle uses `0.1.9`. XML, notes, workflow outputs and manifests explicitly use
+Appcast build/version semantics: Sparkle uses the monotonic build number;
+WinSparkle uses the Cargo version. XML, notes, workflow outputs and manifests explicitly use
 UTF-8. Signatures and platform/archive identity are required. SHA256 manifests
 reject empty, duplicate, malformed, nonlocal and tampered entries. Checksums
 validate artifact bytes; native updater signatures authenticate update archives.

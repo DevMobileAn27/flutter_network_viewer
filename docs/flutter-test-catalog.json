@@ -2676,5 +2676,17 @@
     "verification": "Old input fails both deterministic UI and native 1.2 s/frame control with the paused assertion. Fixed UI/native stress and two normal native runs pass; 384 existing Rust tests, fmt/clippy, 9 draft and 13 packaging tests pass.",
     "evidence": "docs/artifacts/ci-f19-slow-click-2026-11-17",
     "platform_limit": "Native validation on macOS ARM64 only; hosted run pending."
+  },
+  "ci_legacy_update_feed": {
+    "feature": "F21",
+    "reference": "Flutter 0.1.8 feed discovery on future Rust releases.",
+    "tests": [
+      "tools/test_f21_release.py::ReleaseTests::test_legacy_feed_command_uses_same_trust_contract_and_updates_status",
+      "tools/test_draft_release.py::DraftReleaseTests::test_wrong_appcast_is_rejected_even_with_valid_checksums",
+      "tools/test_f21_signer.py"
+    ],
+    "verification": "24 release tests, real macOS signing with ephemeral keys, 385 Rust tests, fmt, Clippy and YAML passed. Production secrets and in-place upgrade not exercised.",
+    "evidence": "docs/artifacts/ci-legacy-update-feed-2026-11-17",
+    "version_verification": "v1.0.2 build 12, targets a new draft; version gate red on 1.0.1/11; 24 release/packaging tests and 385 Rust tests pass. Evidence: docs/artifacts/ci-v1.0.2."
   }
 }

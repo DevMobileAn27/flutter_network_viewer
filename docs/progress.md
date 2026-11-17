@@ -3987,3 +3987,32 @@ desktop implementation to Rust. No release was created or published locally.
 Version/build regression failed on the old metadata, then passed. All 22
 release and packaging tests, 385 Rust tests (including F19 slow-input UI),
 fmt and Clippy passed. Verified all four package filenames use 1.0.1.
+
+## F21 — Legacy Flutter appcast compatibility
+
+Flutter 0.1.8 requests `appcast-<platform>.xml` from the latest public release.
+The published `rust-v1.0.1` has no such assets. Both embedded public keys match
+between Flutter and Rust. Ported the old CI signing wiring using the existing
+platform secrets and the Rust signer. Release builds sign both macOS ZIPs and
+the Windows installer; the draft job requires the three feeds, validates each
+against its package, and includes them in the combined checksums and draft.
+Pull requests do not access the signing secrets. Published releases are not
+modified by the workflow.
+
+The tests cover missing keys, checked-in workflow wiring, required appcasts,
+wrong platform appcasts with valid checksums, signatures on inert test data,
+and the published release guard. All 24 Python release/packaging tests, the
+real macOS signer test, 385 Rust tests, fmt, Clippy and workflow YAML pass.
+Evidence: `docs/artifacts/ci-legacy-update-feed-2026-11-17`.
+Production signing and in-place Flutter-to-Rust installation remain pending.
+Rust uses distinct bundle/installer IDs and a separate Rust update channel.
+No commit, push, version bump or hosted release mutation was performed.
+
+## F21 — Flutter Network Viewer v1.0.2
+
+Bumped Cargo and Windows product version to 1.0.2 and native build to 12.
+The workflow targets a new draft `rust-v1.0.2` with the legacy appcasts and
+leaves published `rust-v1.0.1` unchanged. The version/build gate failed before
+metadata was bumped. 24 release/packaging tests, 385 Rust tests, fmt and Clippy
+passed. Evidence: `docs/artifacts/ci-v1.0.2`. Hosted signing and the installed
+Flutter-to-Rust upgrade still require validation.

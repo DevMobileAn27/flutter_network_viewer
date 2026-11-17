@@ -70,8 +70,7 @@ class ReleaseTests(unittest.TestCase):
     def test_metadata_and_monotonic_version_build(self):
         meta = release.metadata(ROOT)
         self.assertTrue(release.increased(meta['version'], meta['build'], '0.1.8', 9))
-        self.assertGreaterEqual(meta['build'], 11)
-        self.assertGreaterEqual(tuple(map(int, meta['version'].split('.'))), (1, 0, 1))
+        self.assertTrue(release.increased(meta['version'], meta['build'], '1.0.1', 11))
         self.assertEqual(meta['tag'], f"rust-v{meta['version']}")
         self.assertEqual(meta['identifier'], 'dev.quocan.flutterNetworkViewer.rust')
         self.assertTrue(release.increased('0.1.10', 11, '0.1.9', 10))
@@ -111,6 +110,31 @@ class ReleaseTests(unittest.TestCase):
             for sig,kind,name in [('', 'edSignature',filename),('bad','dsaSignature' if mac else 'edSignature',filename),('bad','edSignature' if mac else 'dsaSignature','flutter-setup.exe')]:
                 with self.assertRaises(ValueError): release.feed(meta,platform,name,123,kind,sig)
         with self.assertRaises(ValueError): release.sign_archive(ROOT/'Cargo.toml','macos-arm64','')
+
+    def test_legacy_feed_command_uses_same_trust_contract_and_updates_status(self):
+        meta = release.metadata(ROOT)
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            platform = 'macos-arm64'
+            archive = folder / release.filename(meta, platform)
+            archive.write_bytes(b'inert package')
+            status = folder / f'{platform}-status.json'
+            status.write_text('{"update_feed_generated": false, "code_signed": false}', encoding='utf-8')
+            appcast = folder / f'appcast-{platform}.xml'
+            argv = ['release.py', 'feed', platform, str(archive), '--legacy']
+            with patch.object(sys, 'argv', argv), patch.dict(os.environ, {'UPDATE_SIGNING_KEY': ''}):
+                with self.assertRaisesRegex(ValueError, 'Missing private update key'):
+                    release.main()
+            self.assertFalse(appcast.exists())
+            signature = base64.b64encode(bytes(64)).decode()
+            with patch.object(sys, 'argv', argv), patch.dict(os.environ, {'UPDATE_SIGNING_KEY': 'fixture-secret'}), \
+                 patch.object(release, 'sign_archive', return_value=('edSignature', signature)) as signer:
+                release.main()
+            signer.assert_called_once_with(archive.resolve(), platform, 'fixture-secret')
+            release.validate_legacy_appcast(meta, platform, appcast, archive)
+            release.verify_checksums(folder / f'{platform}-signed.sha256')
+            self.assertIn('"update_feed_generated": true', status.read_text(encoding='utf-8'))
+            self.assertIn('"code_signed": false', status.read_text(encoding='utf-8'))
 
     @unittest.skipIf(os.name == 'nt', 'Sparkle symlinks are checked on macOS runners')
     def test_macos_bundle_layout_assets_and_symlinks(self):
