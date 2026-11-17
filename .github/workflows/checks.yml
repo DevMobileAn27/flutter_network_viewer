@@ -1,88 +1,69 @@
-name: Check pull request
-run-name: 'Check PR #${{ github.event.pull_request.number }} · ${{ github.event.pull_request.title }}'
-
+name: Rust checks and local packages
 on:
   pull_request:
-  workflow_call:
-
+  workflow_dispatch:
 permissions:
   contents: read
-
-concurrency:
-  group: desktop-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  release_tools:
-    name: Test release tools (${{ matrix.os }})
+  desktop:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            platform: macos-arm64
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            platform: macos-x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            platform: windows-x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Test release tools with locale encoding
-        run: python -X utf8=0 -m unittest discover -s tool -p 'test_*.py'
-
-  checks:
-    name: Format, analyze and test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed lib test tool
-      - run: flutter analyze
-      - run: flutter test
-      - name: Test native list geometry
-        run: c++ -std=c++17 tool/test_capture_list_layout.cpp -o /tmp/test-capture-layout && /tmp/test-capture-layout
-
-      - name: Test native JSON folding and navigation
-        run: c++ -std=c++17 -Wall -Wextra -Werror tool/test_json_view_layout.cpp -o /tmp/test-json-layout && /tmp/test-json-layout
-
-  native_builds:
-    name: Compile native viewers (${{ matrix.os }})
-    if: github.event_name == 'pull_request'
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - run: cargo fetch --locked
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked --offline -- -D warnings
+      - run: cargo test --locked --offline
+      - run: python -B tools/test_f21_release.py
+      - run: python -B tools/verify_updater_vendor.py
+      - if: runner.os == 'macOS'
+        run: |
+          python3 -B tools/test_f20_integrity.py
+          python3 -B tools/test_f21_signer.py
+      - name: Fake VM full flow, combined discovery and native regressions
+        if: runner.os == 'macOS'
+        env:
+          FNV_DIAGNOSTICS_DIR: ${{ github.workspace }}/docs/artifacts/f21/ci-diagnostics
+        run: |
+          python3 -B tools/f21_native_smoke.py docs/artifacts/f21/ci-native
+          python3 -B tools/f21_multiapp.py docs/artifacts/f21/ci-multiapp
+          python3 -B tools/f17_native_smoke.py docs/artifacts/f21/ci-f17
+          python3 -B tools/f19_native_smoke.py docs/artifacts/f21/ci-f19
+          python3 -B tools/f20_native_smoke.py docs/artifacts/f21/ci-f20
+      - run: python -B tools/release.py package ${{ matrix.platform }}
+      - name: Build Windows installer (never install)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = (Get-Content packaging/release.json | ConvertFrom-Json)
+          $cargoVersion = (Select-String '^version = "(.*)"' Cargo.toml).Matches[0].Groups[1].Value
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$cargoVersion" "/DOutputName=flutter-network-viewer-rust-$cargoVersion-windows-x64-setup" packaging/windows.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - run: python -B tools/release.py manifest dist
+      - run: python -B tools/release.py verify dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
         with:
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - name: Compile AppKit renderer
-        if: runner.os == 'macOS'
-        run: bash tool/build_macos.sh arm64
-      - name: Test AppKit list rendering and interaction
-        if: runner.os == 'macOS'
-        run: bash tool/test_native_capture_lists_macos.sh
-      - name: Test AppKit JSON rendering and interaction
-        if: runner.os == 'macOS'
-        run: bash tool/test_native_json_macos.sh
-      - name: Test AppKit image decoding and interaction
-        if: runner.os == 'macOS'
-        run: bash tool/test_native_image_macos.sh
-      - name: Compile Win32 renderer
-        if: runner.os == 'Windows'
-        run: flutter build windows --release
-      - name: Configure WIC decoder tests
-        if: runner.os == 'Windows'
-        run: cmake -S tool/native_image_windows -B build/native-image-tests
-      - name: Compile WIC decoder tests
-        if: runner.os == 'Windows'
-        run: cmake --build build/native-image-tests --config Release
-      - name: Test WIC image decoding
-        if: runner.os == 'Windows'
-        run: .\build\native-image-tests\Release\native_image_tests.exe
+          name: rust-preview-${{ matrix.platform }}
+          path: dist/
+          if-no-files-found: error

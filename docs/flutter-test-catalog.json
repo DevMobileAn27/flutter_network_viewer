@@ -1,0 +1,2605 @@
+{
+  "purpose": "Source test names for traceability; this catalog is not an executed Rust test suite. Parameterized names retain Dart interpolation. See feature-matrix.md for Rust verification.",
+  "source_version": "0.1.8+9",
+  "tests": [
+    {
+      "source": "test/adaptive_capture_test.dart",
+      "line": 40,
+      "name": "production timings are 1.4s, +0.2s, capped at 5s",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::defaults_backoff_cap_and_no_overlap_with_slow_poll"
+      ]
+    },
+    {
+      "source": "test/adaptive_capture_test.dart",
+      "line": 48,
+      "name": "unchanged requests back off; new requests and responses reset",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::unchanged_summary_skips_detail_and_completion_resets_only_network",
+        "tests/capture_lifecycle.rs::clear_then_new_request_at_later_cursor_resets_network_only"
+      ]
+    },
+    {
+      "source": "test/adaptive_capture_test.dart",
+      "line": 84,
+      "name": "console batches logs in order and backs off independently",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::console_batches_in_order_during_hung_network_and_resets_independently",
+        "tests/capture_worker.rs::real_vm_console_flows_during_hung_detail_and_stop_interrupts_read"
+      ]
+    },
+    {
+      "source": "test/adaptive_capture_test.dart",
+      "line": 109,
+      "name": "pending console is bounded and Clear/Pause discard old logs",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::pending_queue_count_and_utf8_byte_budget_are_bounded",
+        "tests/capture_lifecycle.rs::pause_discards_queued_chunks_and_advances_network_without_resume_replay",
+        "tests/capture_worker.rs::worker_overflow_is_counted_by_capture_store_and_keeps_latest_logs",
+        "tests/capture_worker.rs::worker_byte_budget_and_drop_close_idle_socket"
+      ]
+    },
+    {
+      "source": "test/adaptive_capture_test.dart",
+      "line": 132,
+      "name": "slow network polls never overlap and Stop cancels both timers",
+      "rust_status": "partial",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::defaults_backoff_cap_and_no_overlap_with_slow_poll",
+        "tests/capture_lifecycle.rs::stop_cancels_both_deadlines_and_discards_late_detail",
+        "tests/capture_worker.rs::real_vm_console_flows_during_hung_detail_and_stop_interrupts_read"
+      ],
+      "rust_note": "F10 verifies polling/Stop; F11 coordinator creates fresh workers for reconnect and cancels pending setup."
+    },
+    {
+      "source": "test/animated_pill_indicator_test.dart",
+      "line": 7,
+      "name": "pill shrinks and fades between tabs 0 and $destination",
+      "rust_status": "pending"
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 24,
+      "name": "each supported CPU gets its own published release feed",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::feeds_are_exact_and_unsupported_makes_no_native_calls"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 49,
+      "name": "checks are serialized and errors allow retry",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::serialized_retry_timeout_and_cleanup"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 69,
+      "name": "macOS keeps no-update result after Sparkle abort callback",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::serialized_retry_timeout_and_cleanup"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 89,
+      "name": "Windows errors after no-update are still reported",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::background_availability_waits_for_manual_action_before_native_progress"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 103,
+      "name": "Windows background discovery opens confirmation only once",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::background_availability_waits_for_manual_action_before_native_progress"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 129,
+      "name": "macOS leaves native confirmation and restart to Sparkle",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::backend_errors_are_contained_and_macos_does_not_duplicate_confirmation"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 148,
+      "name": "unsupported platform never invokes the native updater",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::feeds_are_exact_and_unsupported_makes_no_native_calls"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/app_updater_test.dart",
+      "line": 157,
+      "name": "native exception is contained and listener is removed on disposal",
+      "rust_status": "covered_F20_controller_macos_native_Windows_native_F21",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_updater.rs::backend_errors_are_contained_and_macos_does_not_duplicate_confirmation"
+      ],
+      "rust_note": "5 executable controller tests; real Sparkle error/current/available callbacks in examples/f20_native_smoke.rs. Windows callbacks exercised via backend contract; Windows native build/run remains F21."
+    },
+    {
+      "source": "test/application_tabs_test.dart",
+      "line": 10,
+      "name": "application tabs scroll and filter both captures at $width",
+      "rust_status": "covered_F13_egui_UI_passed_macos_native_smoke",
+      "rust_feature": "F13",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "app_tabs_scope_network_and_console_and_all_restores",
+        "many_app_tabs_scroll_at_narrow_width_and_filter_both_pages"
+      ]
+    },
+    {
+      "source": "test/body_color_test.dart",
+      "line": 12,
+      "name": "recognizes CSS and Flutter colors without guessing IDs or substrings",
+      "rust_status": "covered_F07_core_passed",
+      "rust_suite": "tests/body_color.rs",
+      "rust_tests": [
+        "css_hex_expands_and_uses_trailing_alpha",
+        "flutter_hex_uses_leading_alpha",
+        "rgb_numbers_percentages_and_rounding",
+        "source_accepts_mixed_separators_and_optional_alpha_on_either_name",
+        "hsl_wraps_hue_and_converts_achromatic_values",
+        "all_source_names_and_case_whitespace",
+        "rejects_ids_substrings_and_unsupported_names",
+        "rejects_malformed_hex_and_functions",
+        "rejects_non_finite_and_out_of_range_channels"
+      ]
+    },
+    {
+      "source": "test/body_color_test.dart",
+      "line": 55,
+      "name": "color previews preserve JSON, search, copy and folding in ${brightness.name}",
+      "rust_status": "partial_F07_core_passed_remaining_UI_pending",
+      "rust_suite": "tests/body_color.rs",
+      "rust_tests": [
+        "previews_only_string_values_including_arrays_and_root",
+        "offsets_are_utf16_and_cover_encoded_token_with_escaped_whitespace",
+        "metadata_is_lazy_cached_and_response_specific",
+        "search_copy_data_and_folding_remain_unchanged",
+        "escaped_json_color_and_code_folds_keep_original_token_offsets",
+        "large_document_shares_one_metadata_cache_across_threads"
+      ],
+      "remaining": "Core value metadata/UTF-16/search/data/fold-index invariants pass. Light/dark swatches, checkerboard alpha, tooltip/semantics, actual clipboard, toggles and GUI/native rendering remain F15/F16 pending."
+    },
+    {
+      "source": "test/capture_cleanup_test.dart",
+      "line": 37,
+      "name": "socket disconnect deletes project, requests, logs and pending logs",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::stop_and_disconnect_remove_retained_session_and_release_pending_state",
+        "tests/capture_worker.rs::idle_disconnect_reaches_lifecycle_and_cleans_session"
+      ]
+    },
+    {
+      "source": "test/capture_cleanup_test.dart",
+      "line": 54,
+      "name": "Clear drops all captured history without replay at inclusive cursor",
+      "rust_status": "partial",
+      "rust_feature": "F10/F11",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::clear_drops_pending_partial_and_inflight_detail_and_excludes_inclusive_cursor",
+        "tests/capture_lifecycle.rs::clear_while_summary_pending_advances_returned_timestamp_without_detail",
+        "tests/capture_worker.rs::real_clear_while_detail_pending_uses_exclusive_boundary_and_accepts_new_data",
+        "tests/vm_coordinator.rs::socket_closure_reconnects_same_url_with_clear_boundary_and_endpoint_switch_cleans_session",
+        "tests/vm_coordinator.rs::clear_before_first_summary_survives_reconnect_without_replaying_unknown_history"
+      ],
+      "rust_note": "F10 covers in-flight discard; F11 preserves exclusive Clear position through reattach/reconnect, including Clear without a received summary."
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 13,
+      "name": "removing a disconnected session removes only its retained data",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 37,
+      "name": "SDK batch merges fetch/XHR phases and preserves full bodies and args",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 61,
+      "name": "same request IDs from two devices do not collide; replay is idempotent",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 80,
+      "name": "response may arrive before its request in a later batch",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 98,
+      "name": "pause discards events, clear removes captures, resume accepts events",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 118,
+      "name": "retention bounds records and bytes even when full bodies are large",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 137,
+      "name": "unsupported envelopes fail; malformed events do not poison valid events",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/capture_store_test.dart",
+      "line": 167,
+      "name": "cURL uses shell-safe quotes for captured text",
+      "rust_status": "covered_by_F01_suite_passed",
+      "rust_suite": "tests/capture_store.rs"
+    },
+    {
+      "source": "test/flutter_console_test.dart",
+      "line": 26,
+      "name": "groups Flutter JSON in order while preserving original records",
+      "rust_status": "covered_by_F04_core_suite_passed",
+      "rust_suite": "tests/console_model.rs",
+      "rust_tests": [
+        "groups_json_in_order_without_mutating_input",
+        "nested_array_closes_only_when_json_is_complete"
+      ]
+    },
+    {
+      "source": "test/flutter_console_test.dart",
+      "line": 48,
+      "name": "does not merge unrelated logs, incomplete JSON, isolates or sources",
+      "rust_status": "covered_by_F04_core_suite_passed",
+      "rust_suite": "tests/console_model.rs",
+      "rust_tests": [
+        "incomplete_invalid_and_ordinary_logs_remain_separate",
+        "attribution_boundaries_prevent_grouping",
+        "time_window_uses_first_record_and_absolute_milliseconds",
+        "grouping_is_bounded_at_200_records",
+        "grouping_budget_counts_utf16_including_newlines"
+      ]
+    },
+    {
+      "source": "test/flutter_console_test.dart",
+      "line": 64,
+      "name": "groups Flutter exception frames and keeps following output separate",
+      "rust_status": "covered_by_F04_core_suite_passed",
+      "rust_suite": "tests/console_model.rs",
+      "rust_tests": [
+        "exception_promotes_level_and_stops_at_terminator"
+      ]
+    },
+    {
+      "source": "test/flutter_console_test.dart",
+      "line": 82,
+      "name": "terminal styles are removed only from the displayed message",
+      "rust_status": "covered_by_F04_core_suite_passed",
+      "rust_suite": "tests/console_model.rs",
+      "rust_tests": [
+        "display_cleanup_preserves_raw_and_export",
+        "csi_cleanup_accepts_parameters_intermediates_and_multiple_lines"
+      ]
+    },
+    {
+      "source": "test/flutter_console_test.dart",
+      "line": 92,
+      "name": "Flutter Console shows grouped JSON and searches logger/stack at $width",
+      "rust_status": "covered_F04_core_and_F14_egui_UI_passed",
+      "rust_suite": "tests/console_model.rs",
+      "rust_tests": [
+        "search_includes_logger_error_stack_args_and_source",
+        "details_use_explicit_values_then_typed_args",
+        "metadata_defaults_severity_and_source_labels"
+      ],
+      "rust_feature": "F14",
+      "rust_ui_tests": [
+        "tests/desktop_ui.rs::console_source_level_search_and_app_filters_combine",
+        "tests/desktop_ui.rs::console_groups_json_exception_inspects_copies_and_lazily_opens_raw"
+      ]
+    },
+    {
+      "source": "test/form_body_test.dart",
+      "line": 36,
+      "name": "binary multipart preserves Unicode, repeats, empty fields and file metadata",
+      "rust_status": "covered_by_F05_suite_passed",
+      "rust_suite": "tests/form_body.rs"
+    },
+    {
+      "source": "test/form_body_test.dart",
+      "line": 68,
+      "name": "UTF-8 form and extended filenames preserve case and characters",
+      "rust_status": "covered_by_F05_suite_passed",
+      "rust_suite": "tests/form_body.rs"
+    },
+    {
+      "source": "test/form_body_test.dart",
+      "line": 78,
+      "name": "form URL encoding retains duplicate fields, plus, Unicode and empty values",
+      "rust_status": "covered_by_F05_suite_passed",
+      "rust_suite": "tests/form_body.rs"
+    },
+    {
+      "source": "test/form_body_test.dart",
+      "line": 96,
+      "name": "truncated multipart retains captured parts and reports incomplete",
+      "rust_status": "covered_by_F05_suite_passed",
+      "rust_suite": "tests/form_body.rs"
+    },
+    {
+      "source": "test/form_body_test.dart",
+      "line": 103,
+      "name": "invalid boundary, base64 and percent escapes never throw",
+      "rust_status": "covered_by_F05_suite_passed",
+      "rust_suite": "tests/form_body.rs"
+    },
+    {
+      "source": "test/form_body_test.dart",
+      "line": 112,
+      "name": "content type detection accepts case-insensitive names and lists",
+      "rust_status": "covered_by_F05_suite_passed",
+      "rust_suite": "tests/form_body.rs"
+    },
+    {
+      "source": "test/form_body_view_test.dart",
+      "line": 19,
+      "name": "multipart displays field values and file metadata, with exact Raw toggle",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_suite": "tests/form_body.rs",
+      "notes": "F16 input UI + native Form/Raw/copy/live updates; multipart file metadata and MIME replacement covered. EN/VI localization belongs to F17.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_form_raw_live_update_and_omitted_notice",
+        "tests/desktop_ui.rs::f16_multipart_files_request_response_and_body_identity_invalidation"
+      ]
+    },
+    {
+      "source": "test/form_body_view_test.dart",
+      "line": 58,
+      "name": "body updates replace form fields and MIME changes discard form preview",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_suite": "tests/form_body.rs",
+      "notes": "F16 input UI + native Form/Raw/copy/live updates; multipart file metadata and MIME replacement covered. EN/VI localization belongs to F17.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_form_raw_live_update_and_omitted_notice",
+        "tests/desktop_ui.rs::f16_multipart_files_request_response_and_body_identity_invalidation"
+      ]
+    },
+    {
+      "source": "test/form_body_view_test.dart",
+      "line": 82,
+      "name": "omitted body explains size limit even without captured value in $language",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_suite": "tests/form_body.rs",
+      "notes": "F16 Form/Image/Raw tests plus F17 live EN/VI body/omission notices and bundled Vietnamese glyph coverage. Windows F21.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_form_raw_live_update_and_omitted_notice",
+        "tests/desktop_ui.rs::f16_multipart_files_request_response_and_body_identity_invalidation",
+        "tests/f17_ui.rs::localized_body_notices_update_without_redecode_or_payload_translation"
+      ]
+    },
+    {
+      "source": "test/help_dialog_test.dart",
+      "line": 12,
+      "name": "Home help and manual connection stay separate in $language",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::help_keeps_discussion_link_without_copy_action",
+        "tests/f17_ui.rs::narrow_support_dialogs_and_toast_scroll_with_both_locales_themes"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/image_preview_test.dart",
+      "line": 13,
+      "name": "captured image previews in request and response with zoom and raw view",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_suite": "tests/image_body.rs",
+      "notes": "Egui inline/enlarged views share one texture; bounded single decode worker, zoom/pan/Fit, Raw, corrupt fallback, live replacement, nested modal and disposal. ImageIO bounded thumbnail >64MiB tested on macOS. Rust has no child native host or IPC creation path. Windows execution/thumbnail backend remains F21.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_image_shares_texture_zoom_modal_clips_and_clear_releases",
+        "tests/desktop_ui.rs::f16_discarded_image_worker_never_replaces_new_body_after_clear",
+        "tests/image_body.rs::over_budget_source_has_bounded_thumbnail_and_new_resource_is_independent",
+        "examples/f16_native_smoke.rs"
+      ]
+    },
+    {
+      "source": "test/image_preview_test.dart",
+      "line": 156,
+      "name": "body handles $kind and live response updates",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_suite": "tests/image_body.rs",
+      "notes": "Egui inline/enlarged views share one texture; bounded single decode worker, zoom/pan/Fit, Raw, corrupt fallback, live replacement, nested modal and disposal. ImageIO bounded thumbnail >64MiB tested on macOS. Rust has no child native host or IPC creation path. Windows execution/thumbnail backend remains F21.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_image_shares_texture_zoom_modal_clips_and_clear_releases",
+        "tests/desktop_ui.rs::f16_discarded_image_worker_never_replaces_new_body_after_clear",
+        "tests/image_body.rs::over_budget_source_has_bounded_thumbnail_and_new_resource_is_independent",
+        "examples/f16_native_smoke.rs"
+      ]
+    },
+    {
+      "source": "test/inspector_performance_test.dart",
+      "line": 31,
+      "name": "Clear releases selected inspector and JSON cache at $width",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "tests/desktop_ui.rs::f16_clear_then_same_ids_before_next_frame_cannot_reuse_stale_detail",
+        "tests/desktop_ui.rs::f16_raw_network_is_lazy_stable_and_updates_only_selected_record",
+        "tests/desktop_ui.rs::f16_console_append_revisits_bounded_tail_and_keeps_open_raw_cache",
+        "examples/f16_stress.rs"
+      ],
+      "rust_feature": "F16",
+      "notes": "Per-record revisions keep unrelated updates out of selected detail preparation; lazy Raw; Clear epoch releases selection/resources even with same IDs before paint; bounded tail regrouping; renderer + native frame/RSS measured. Widget identity assertions are replaced by stable egui IDs, input behavior and preparation counters."
+    },
+    {
+      "source": "test/inspector_performance_test.dart",
+      "line": 72,
+      "name": "request selection does not format unopened Raw tab",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "tests/desktop_ui.rs::f16_clear_then_same_ids_before_next_frame_cannot_reuse_stale_detail",
+        "tests/desktop_ui.rs::f16_raw_network_is_lazy_stable_and_updates_only_selected_record",
+        "tests/desktop_ui.rs::f16_console_append_revisits_bounded_tail_and_keeps_open_raw_cache",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Per-record revisions keep unrelated updates out of selected detail preparation; lazy Raw; Clear epoch releases selection/resources even with same IDs before paint; bounded tail regrouping; renderer + native frame/RSS measured. Widget identity assertions are replaced by stable egui IDs, input behavior and preparation counters."
+    },
+    {
+      "source": "test/inspector_performance_test.dart",
+      "line": 92,
+      "name": "console selection does not serialize a collapsed Raw event",
+      "rust_status": "covered_F14_egui_UI_passed",
+      "rust_feature": "F14",
+      "rust_tests": [
+        "tests/desktop_ui.rs::console_groups_json_exception_inspects_copies_and_lazily_opens_raw",
+        "tests/desktop_ui.rs::console_live_append_keeps_search_focus_scroll_selection_and_unopened_raw_lazy"
+      ]
+    },
+    {
+      "source": "test/inspector_performance_test.dart",
+      "line": 109,
+      "name": "selecting requests and logs leaves the shell toolbar intact",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "tests/desktop_ui.rs::f16_clear_then_same_ids_before_next_frame_cannot_reuse_stale_detail",
+        "tests/desktop_ui.rs::f16_raw_network_is_lazy_stable_and_updates_only_selected_record",
+        "tests/desktop_ui.rs::f16_console_append_revisits_bounded_tail_and_keeps_open_raw_cache",
+        "examples/f16_stress.rs"
+      ],
+      "rust_feature": "F16",
+      "notes": "Per-record revisions keep unrelated updates out of selected detail preparation; lazy Raw; Clear epoch releases selection/resources even with same IDs before paint; bounded tail regrouping; renderer + native frame/RSS measured. Widget identity assertions are replaced by stable egui IDs, input behavior and preparation counters."
+    },
+    {
+      "source": "test/inspector_performance_test.dart",
+      "line": 164,
+      "name": "unrelated events preserve detail but completion refreshes it",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "tests/desktop_ui.rs::f16_clear_then_same_ids_before_next_frame_cannot_reuse_stale_detail",
+        "tests/desktop_ui.rs::f16_raw_network_is_lazy_stable_and_updates_only_selected_record",
+        "tests/desktop_ui.rs::f16_console_append_revisits_bounded_tail_and_keeps_open_raw_cache",
+        "examples/f16_stress.rs"
+      ],
+      "rust_feature": "F16",
+      "notes": "Per-record revisions keep unrelated updates out of selected detail preparation; lazy Raw; Clear epoch releases selection/resources even with same IDs before paint; bounded tail regrouping; renderer + native frame/RSS measured. Widget identity assertions are replaced by stable egui IDs, input behavior and preparation counters."
+    },
+    {
+      "source": "test/json_beautify_test.dart",
+      "line": 23,
+      "name": "beautify divider resizes panes without losing edits or folds",
+      "rust_status": "covered_by_F15_input_UI_and_native_passed",
+      "rust_feature": "F15",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_draft_folds_query_mode_and_split_survive_navigation_resize"
+      ]
+    },
+    {
+      "source": "test/json_beautify_test.dart",
+      "line": 103,
+      "name": "beautify Find retains 2 of 3 across views, tabs and resize at $width",
+      "rust_status": "covered_by_F15_input_UI_and_native_passed",
+      "rust_feature": "F15",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_find_retains_active_match_across_views_tabs_and_resize_and_focuses_from_draft"
+      ]
+    },
+    {
+      "source": "test/json_beautify_test.dart",
+      "line": 200,
+      "name": "beautify formats JSON, switches views and retains drafts at $width",
+      "rust_status": "covered_by_F15_input_UI_and_native_passed",
+      "rust_feature": "F15",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_format_shortcut_error_preserves_draft_and_previous_output"
+      ]
+    },
+    {
+      "source": "test/json_body_height_test.dart",
+      "line": 11,
+      "name": "JSON and Tree fill the body viewport and long JSON scrolls",
+      "rust_status": "partial_F15_UI_passed_remaining_pending",
+      "rust_feature": "F15/F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_network_body_uses_shared_find_tree_copy_and_live_invalidation",
+        "tests/desktop_ui.rs::json_output_scrolls_both_axes_and_select_all_copies_hidden_rows_without_gutter"
+      ],
+      "remaining": "JSON code/Tree scroll and body integration tested. Visible-row rendering/large body performance, all preview types and clipping/disposal stress remain F16."
+    },
+    {
+      "source": "test/json_body_test.dart",
+      "line": 42,
+      "name": "JSON folds nested ranges, preserves line numbers and copies full data",
+      "rust_status": "partial_F02_core_passed_remaining_pending",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "folds_ignore_brackets_in_strings_and_preserve_data",
+        "tests/desktop_ui.rs::json_body_uses_plain_line_numbers_compact_toolbar_and_terminal_tree"
+      ],
+      "remaining": "Rust renderer now covers gutter/fold control, terminal connectors, counts and body styling; existing desktop tests cover folding and clipboard. Native visual comparison remains pending."
+    },
+    {
+      "source": "test/json_body_test.dart",
+      "line": 119,
+      "name": "terminal tree preserves branches, array indexes and folding",
+      "rust_status": "partial_F02_core_passed_remaining_pending",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "tree_branches_counts_and_array_indices_match_flutter",
+        "tests/desktop_ui.rs::json_body_uses_plain_line_numbers_compact_toolbar_and_terminal_tree"
+      ],
+      "remaining": "Rust renderer now covers gutter/fold control, terminal connectors, counts and body styling; existing desktop tests cover folding and clipboard. Native visual comparison remains pending."
+    },
+    {
+      "source": "test/json_body_test.dart",
+      "line": 164,
+      "name": "JSON body formats, selects and scrolls in ${brightness.name}",
+      "rust_status": "pending"
+    },
+    {
+      "source": "test/json_body_test.dart",
+      "line": 234,
+      "name": "empty objects and scalar JSON display; invalid JSON stays verbatim",
+      "rust_status": "partial_F02_core_passed_remaining_pending",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "invalid_json_preserves_raw_and_reports_line_column"
+      ],
+      "remaining": "Core fallback and scalar parsing covered; display F15/F16."
+    },
+    {
+      "source": "test/json_document_test.dart",
+      "line": 14,
+      "name": "clear releases all parsed documents and resets the cache budget",
+      "rust_status": "covered_by_F02_core_suite_passed",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "cache_cost_uses_utf16_and_clear_releases_ownership"
+      ]
+    },
+    {
+      "source": "test/json_document_test.dart",
+      "line": 25,
+      "name": "empty search does not serialize or index a body",
+      "rust_status": "partial_F02_core_passed_remaining_pending",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "presentation_is_lazy_and_shared"
+      ],
+      "remaining": "Search controller serialization behavior remains F03."
+    },
+    {
+      "source": "test/json_document_test.dart",
+      "line": 37,
+      "name": "cache reuses immutable source and evicts least recently read entries",
+      "rust_status": "covered_by_F02_core_suite_passed",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "cache_reuses_and_evicts_least_recently_read",
+        "cache_keys_are_exact_source_strings"
+      ]
+    },
+    {
+      "source": "test/json_document_test.dart",
+      "line": 52,
+      "name": "cache budget is bounded and oversized bodies are not retained",
+      "rust_status": "covered_by_F02_core_suite_passed",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "cache_budget_oversized_disabled_and_invalid"
+      ]
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 39,
+      "name": "find document matches JsonEncoder for nested, escaped and scalar values",
+      "rust_status": "covered_by_F03_core_suite_passed",
+      "rust_suite": "tests/json_find.rs",
+      "rust_tests": [
+        "scalar_empty_and_nested_documents_share_the_existing_format"
+      ]
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 72,
+      "name": "case, whole word, regex, wraparound and invalid/zero width expressions",
+      "rust_status": "covered_by_F03_core_suite_passed",
+      "rust_suite": "tests/json_find.rs",
+      "rust_tests": [
+        "case_word_regex_navigation_and_errors_match_flutter",
+        "regex_supports_multiline_lookaround_backreferences_and_skips_zero_width",
+        "navigation_wraps_arbitrary_signed_deltas"
+      ]
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 107,
+      "name": "highlight spans preserve original text and find paths for keys and array values",
+      "rust_status": "partial_F03_core_F15_UI_passed_remaining_pending",
+      "rust_suite": "tests/json_find.rs",
+      "rust_tests": [
+        "unicode_utf16_offsets_and_escaped_keys_map_to_typed_paths",
+        "tests/desktop_ui.rs::json_find_focus_options_highlights_navigation_and_fold_reveal",
+        "tests/desktop_ui.rs::json_find_retains_active_match_across_views_tabs_and_resize_and_focuses_from_draft"
+      ],
+      "remaining": "F15 verifies local keyboard focus, code/Tree find, options, counter/navigation retention, highlighted rendering, unfold and horizontal scroll. All preview body-type visibility, themes and large-document performance remain F16/F17/F21.",
+      "rust_feature": "F03/F15/F16"
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 137,
+      "name": "find highlights, unfolds, navigates and stays visible at $width ${brightness.name}",
+      "rust_status": "partial_F03_core_F15_UI_passed_remaining_pending",
+      "rust_suite": "tests/json_find.rs",
+      "rust_tests": [
+        "reveal_unfolds_only_active_ancestors_in_both_views",
+        "large_document_maps_every_result_and_reveals_last_folded_descendant",
+        "value_refresh_keeps_query_options_and_mode_but_resets_active",
+        "tests/desktop_ui.rs::json_find_focus_options_highlights_navigation_and_fold_reveal",
+        "tests/desktop_ui.rs::json_find_retains_active_match_across_views_tabs_and_resize_and_focuses_from_draft"
+      ],
+      "remaining": "F15 verifies local keyboard focus, code/Tree find, options, counter/navigation retention, highlighted rendering, unfold and horizontal scroll. All preview body-type visibility, themes and large-document performance remain F16/F17/F21.",
+      "rust_feature": "F03/F15/F16"
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 267,
+      "name": "No results and 2 of 3 retain layout and highlight in ${brightness.name}",
+      "rust_status": "partial_F03_core_F15_UI_passed_remaining_pending",
+      "rust_suite": "tests/json_find.rs",
+      "rust_tests": [
+        "literals_escape_regex_metacharacters_and_no_results_clear_active",
+        "value_refresh_keeps_query_options_and_mode_but_resets_active",
+        "navigation_wraps_arbitrary_signed_deltas",
+        "tests/desktop_ui.rs::json_find_focus_options_highlights_navigation_and_fold_reveal",
+        "tests/desktop_ui.rs::json_find_retains_active_match_across_views_tabs_and_resize_and_focuses_from_draft"
+      ],
+      "remaining": "F15 verifies local keyboard focus, code/Tree find, options, counter/navigation retention, highlighted rendering, unfold and horizontal scroll. All preview body-type visibility, themes and large-document performance remain F16/F17/F21.",
+      "rust_feature": "F03/F15/F16"
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 354,
+      "name": "find scrolls horizontally and Cmd/Ctrl+F focuses the local search",
+      "rust_status": "partial_F03_core_F15_UI_passed_remaining_pending",
+      "remaining": "F15 verifies local keyboard focus, code/Tree find, options, counter/navigation retention, highlighted rendering, unfold and horizontal scroll. All preview body-type visibility, themes and large-document performance remain F16/F17/F21.",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_find_reveals_horizontal_match_on_long_unicode_line"
+      ],
+      "rust_feature": "F03/F15/F16"
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 403,
+      "name": "find appears only for valid JSON, not text, images, base64 or headers",
+      "rust_status": "partial_F03_core_F15_UI_passed_remaining_pending",
+      "remaining": "F15 verifies local keyboard focus, code/Tree find, options, counter/navigation retention, highlighted rendering, unfold and horizontal scroll. All preview body-type visibility, themes and large-document performance remain F16/F17/F21.",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_body_search_is_local_and_only_valid_json_bodies_offer_find"
+      ],
+      "rust_feature": "F03/F15/F16"
+    },
+    {
+      "source": "test/json_find_test.dart",
+      "line": 444,
+      "name": "both request and response bodies support find; replacing data refreshes results",
+      "rust_status": "partial_F03_core_F15_UI_passed_remaining_pending",
+      "rust_suite": "tests/json_find.rs",
+      "rust_tests": [
+        "value_refresh_keeps_query_options_and_mode_but_resets_active",
+        "tests/desktop_ui.rs::json_network_body_uses_shared_find_tree_copy_and_live_invalidation",
+        "tests/desktop_ui.rs::json_body_search_is_local_and_only_valid_json_bodies_offer_find"
+      ],
+      "remaining": "F15 verifies local keyboard focus, code/Tree find, options, counter/navigation retention, highlighted rendering, unfold and horizontal scroll. All preview body-type visibility, themes and large-document performance remain F16/F17/F21.",
+      "rust_feature": "F03/F15/F16"
+    },
+    {
+      "source": "test/layout_preferences_test.dart",
+      "line": 16,
+      "name": "invalid saved layout values fall back to usable defaults",
+      "rust_status": "covered_F08_core_passed",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "invalid_saved_layouts_fall_back_independently",
+        "layout_validation_rejects_nonfinite_and_out_of_range_without_mutation"
+      ]
+    },
+    {
+      "source": "test/layout_preferences_test.dart",
+      "line": 31,
+      "name": "old request detail selections migrate and all six new tabs persist",
+      "rust_status": "covered_F08_core_passed",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "legacy_four_tabs_migrate_without_reinterpreting_invalid_indexes",
+        "named_tab_takes_precedence_and_all_six_persist_by_name"
+      ]
+    },
+    {
+      "source": "test/layout_preferences_test.dart",
+      "line": 55,
+      "name": "request tab follows selection and restart at width $width",
+      "rust_status": "covered_F13_egui_UI_passed",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "inspector_tab_follows_new_selection_and_file_restart_wide_and_narrow",
+        "pending_modal_stays_live_and_all_six_inspector_tabs_render"
+      ],
+      "rust_feature": "F13"
+    },
+    {
+      "source": "test/layout_preferences_test.dart",
+      "line": 125,
+      "name": "each divider restores independently across tabs and restart",
+      "rust_status": "partial_F14_network_console_dividers_passed_F15_remaining",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "independent_split_and_column_values_survive_real_file_restart"
+      ],
+      "remaining": "Network/Console widths independently dragged, persisted and restored; JSON divider and double-click reset acceptance remain F15/F16.",
+      "rust_ui_tests": [
+        "tests/desktop_ui.rs::console_split_persists_independently_of_network_and_survives_restart",
+        "tests/desktop_ui.rs::three_column_dividers_align_with_rows_and_persist_across_restart"
+      ]
+    },
+    {
+      "source": "test/live_vm_capture_test.dart",
+      "line": 9,
+      "name": "captures real Dart VM HTTP profile, stdout and developer.log",
+      "rust_status": "pending",
+      "rust_note": "Pending live Dart SDK integration and console decoding; F09 loopback fake VM is not a live SDK pass (F10/F11/F21)."
+    },
+    {
+      "source": "test/native_capture_list_test.dart",
+      "line": 12,
+      "name": "diff sends summaries once, patches changes, and releases removed rows",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "examples/f16_native_smoke.rs",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Rust uses one clipped egui surface instead of native child views/IPC. Only viewport rows create widgets/galleys; document/folds/color-row indexes cached. Selection/copy/overlay/disposal verified on macOS. Native create/dispose/message assertions have no direct Rust equivalent; no native host to fail. Windows execution remains F21."
+    },
+    {
+      "source": "test/native_capture_list_test.dart",
+      "line": 39,
+      "name": "native list separates selection, hides for overlays and disposes after updates",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "examples/f16_native_smoke.rs",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Rust uses one clipped egui surface instead of native child views/IPC. Only viewport rows create widgets/galleys; document/folds/color-row indexes cached. Selection/copy/overlay/disposal verified on macOS. Native create/dispose/message assertions have no direct Rust equivalent; no native host to fail. Windows execution remains F21."
+    },
+    {
+      "source": "test/native_capture_list_test.dart",
+      "line": 127,
+      "name": "AppKit compositing keeps the native list present under Flutter overlays",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "examples/f16_native_smoke.rs",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Rust uses one clipped egui surface instead of native child views/IPC. Only viewport rows create widgets/galleys; document/folds/color-row indexes cached. Selection/copy/overlay/disposal verified on macOS. Native create/dispose/message assertions have no direct Rust equivalent; no native host to fail. Windows execution remains F21."
+    },
+    {
+      "source": "test/native_capture_list_test.dart",
+      "line": 175,
+      "name": "native creation failure releases host and shows Flutter fallback",
+      "rust_status": "not_applicable_child_host_replaced_by_egui_F16",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "examples/f16_native_smoke.rs",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Rust uses one clipped egui surface instead of native child views/IPC. Only viewport rows create widgets/galleys; document/folds/color-row indexes cached. Selection/copy/overlay/disposal verified on macOS. Native create/dispose/message assertions have no direct Rust equivalent; no native host to fail. Windows execution remains F21."
+    },
+    {
+      "source": "test/native_image_view_test.dart",
+      "line": 13,
+      "name": "inline and enlarged views share bytes; zoom and fit do not reload",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_suite": "tests/image_body.rs",
+      "notes": "Egui inline/enlarged views share one texture; bounded single decode worker, zoom/pan/Fit, Raw, corrupt fallback, live replacement, nested modal and disposal. ImageIO bounded thumbnail >64MiB tested on macOS. Rust has no child native host or IPC creation path. Windows execution/thumbnail backend remains F21.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_image_shares_texture_zoom_modal_clips_and_clear_releases",
+        "tests/desktop_ui.rs::f16_discarded_image_worker_never_replaces_new_body_after_clear",
+        "tests/image_body.rs::over_budget_source_has_bounded_thumbnail_and_new_resource_is_independent",
+        "examples/f16_native_smoke.rs"
+      ]
+    },
+    {
+      "source": "test/native_image_view_test.dart",
+      "line": 81,
+      "name": "replacing a live native image binds the new resource without recreating the host",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_suite": "tests/image_body.rs",
+      "notes": "Egui inline/enlarged views share one texture; bounded single decode worker, zoom/pan/Fit, Raw, corrupt fallback, live replacement, nested modal and disposal. ImageIO bounded thumbnail >64MiB tested on macOS. Rust has no child native host or IPC creation path. Windows execution/thumbnail backend remains F21.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_image_shares_texture_zoom_modal_clips_and_clear_releases",
+        "tests/desktop_ui.rs::f16_discarded_image_worker_never_replaces_new_body_after_clear",
+        "tests/image_body.rs::over_budget_source_has_bounded_thumbnail_and_new_resource_is_independent",
+        "examples/f16_native_smoke.rs"
+      ]
+    },
+    {
+      "source": "test/native_image_view_test.dart",
+      "line": 119,
+      "name": "native failure releases host and displays Flutter fallback",
+      "rust_status": "not_applicable_child_host_replaced_by_egui_F16",
+      "notes": "Egui inline/enlarged views share one texture; bounded single decode worker, zoom/pan/Fit, Raw, corrupt fallback, live replacement, nested modal and disposal. ImageIO bounded thumbnail >64MiB tested on macOS. Rust has no child native host or IPC creation path. Windows execution/thumbnail backend remains F21. Decode failure fallback is executable; native host creation failure injection is inapplicable.",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_image_shares_texture_zoom_modal_clips_and_clear_releases",
+        "tests/desktop_ui.rs::f16_discarded_image_worker_never_replaces_new_body_after_clear",
+        "tests/image_body.rs::over_budget_source_has_bounded_thumbnail_and_new_resource_is_independent",
+        "examples/f16_native_smoke.rs"
+      ]
+    },
+    {
+      "source": "test/native_image_view_test.dart",
+      "line": 149,
+      "name": "Windows enlarged image stays native in its own dialog and hides under nested overlays",
+      "rust_status": "pending_F21_Windows_execution",
+      "notes": "Egui inline/enlarged views share one texture; bounded single decode worker, zoom/pan/Fit, Raw, corrupt fallback, live replacement, nested modal and disposal. ImageIO bounded thumbnail >64MiB tested on macOS. Rust has no child native host or IPC creation path. Windows execution/thumbnail backend remains F21.",
+      "rust_feature": "F16",
+      "rust_tests": []
+    },
+    {
+      "source": "test/native_json_document_test.dart",
+      "line": 7,
+      "name": "native text offsets and token mappings preserve Unicode and escaped keys",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "unicode_keys_offsets_and_tree_mappings_match_document",
+        "tests/desktop_ui.rs::json_colors_are_separate_clickable_swatches_and_copy_keeps_unicode",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find"
+      ],
+      "rust_feature": "F16",
+      "notes": "Core UTF-16 mappings plus F15/F16 egui swatches/Unicode selection; native IPC path replaced by egui."
+    },
+    {
+      "source": "test/native_json_document_test.dart",
+      "line": 43,
+      "name": "all JSON scalar and empty collection documents are native compatible",
+      "rust_status": "covered_by_F02_core_suite_passed",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "scalars_and_empty_collections_have_one_row"
+      ]
+    },
+    {
+      "source": "test/native_json_document_test.dart",
+      "line": 55,
+      "name": "Tree retains unquoted keys, array indexes and branch continuation metadata",
+      "rust_status": "covered_by_F02_core_suite_passed",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "tree_branches_counts_and_array_indices_match_flutter"
+      ]
+    },
+    {
+      "source": "test/native_json_document_test.dart",
+      "line": 88,
+      "name": "native width reserves room for wide Unicode text",
+      "rust_status": "covered_by_F02_core_suite_passed",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "width_counts_non_ascii_as_two_cells"
+      ]
+    },
+    {
+      "source": "test/native_json_document_test.dart",
+      "line": 95,
+      "name": "large tree indexes include folded descendants without building widgets",
+      "rust_status": "covered_by_F02_core_suite_passed",
+      "rust_suite": "tests/json_document.rs",
+      "rust_tests": [
+        "large_tree_keeps_folded_descendants"
+      ]
+    },
+    {
+      "source": "test/native_json_view_test.dart",
+      "line": 11,
+      "name": "native documents transfer once; navigation and mode use separate messages",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "examples/f16_native_smoke.rs",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Rust uses one clipped egui surface instead of native child views/IPC. Only viewport rows create widgets/galleys; document/folds/color-row indexes cached. Selection/copy/overlay/disposal verified on macOS. Native create/dispose/message assertions have no direct Rust equivalent; no native host to fail. Windows execution remains F21."
+    },
+    {
+      "source": "test/native_json_view_test.dart",
+      "line": 84,
+      "name": "native viewport follows ancestor scrolling and clips child windows",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "examples/f16_native_smoke.rs",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Rust uses one clipped egui surface instead of native child views/IPC. Only viewport rows create widgets/galleys; document/folds/color-row indexes cached. Selection/copy/overlay/disposal verified on macOS. Native create/dispose/message assertions have no direct Rust equivalent; no native host to fail. Windows execution remains F21."
+    },
+    {
+      "source": "test/native_json_view_test.dart",
+      "line": 147,
+      "name": "native creation error disposes the host and uses Flutter fallback",
+      "rust_status": "not_applicable_child_host_replaced_by_egui_F16",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_clear_external_narrow_and_wide_drops_json_and_image_inspectors",
+        "examples/f16_native_smoke.rs",
+        "examples/f16_stress.rs"
+      ],
+      "notes": "Rust uses one clipped egui surface instead of native child views/IPC. Only viewport rows create widgets/galleys; document/folds/color-row indexes cached. Selection/copy/overlay/disposal verified on macOS. Native create/dispose/message assertions have no direct Rust equivalent; no native host to fail. Windows execution remains F21."
+    },
+    {
+      "source": "test/network_columns_test.dart",
+      "line": 16,
+      "name": "all three column dividers resize and survive tab changes and restart",
+      "rust_status": "covered_F13_egui_UI_passed",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "three_column_dividers_align_with_rows_and_persist_across_restart",
+        "layouts_fit_narrow_sidebar_and_columns_scroll_and_resize"
+      ],
+      "rust_feature": "F13"
+    },
+    {
+      "source": "test/network_columns_test.dart",
+      "line": 95,
+      "name": "wide saved columns stay usable in a narrow pane without overwriting widths",
+      "rust_status": "covered_F13_egui_UI_passed",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "three_column_dividers_align_with_rows_and_persist_across_restart",
+        "layouts_fit_narrow_sidebar_and_columns_scroll_and_resize"
+      ],
+      "rust_feature": "F13"
+    },
+    {
+      "source": "test/network_columns_test.dart",
+      "line": 142,
+      "name": "invalid persisted column layouts fall back safely",
+      "rust_status": "covered_F08_core_passed",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "invalid_persisted_column_layouts_fall_back",
+        "column_validation_and_copy_ownership"
+      ]
+    },
+    {
+      "source": "test/process_resource_usage_test.dart",
+      "line": 16,
+      "name": "samples memory periodically and stops when disposed",
+      "rust_status": "covered_equivalent_egui_F19_macos",
+      "rust_feature": "F19",
+      "rust_tests": [
+        "tests/f19_diagnostics.rs::samples_immediately_every_two_seconds_clear_failure_recover_and_stop",
+        "tests/f19_diagnostics.rs::process_sample_is_real_and_positive",
+        "tests/f19_ui.rs::ram_status_renders_changes_and_preserves_input_and_capture_caches"
+      ],
+      "notes": "Owner-clock immediate/2s sampling, failure clears/recovery, stop/drop; renderer/input and production native macOS task_info physical footprint + independent ps RSS. Windows backend present but untested, F21."
+    },
+    {
+      "source": "test/process_resource_usage_test.dart",
+      "line": 42,
+      "name": "clears failed memory samples and recovers",
+      "rust_status": "covered_equivalent_egui_F19_macos",
+      "rust_feature": "F19",
+      "rust_tests": [
+        "tests/f19_diagnostics.rs::samples_immediately_every_two_seconds_clear_failure_recover_and_stop",
+        "tests/f19_diagnostics.rs::process_sample_is_real_and_positive",
+        "tests/f19_ui.rs::ram_status_renders_changes_and_preserves_input_and_capture_caches"
+      ],
+      "notes": "Owner-clock immediate/2s sampling, failure clears/recovery, stop/drop; renderer/input and production native macOS task_info physical footprint + independent ps RSS. Windows backend present but untested, F21."
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 69,
+      "name": "background discovery keeps connection controls and draft stable",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::language_switch_keeps_capture_filters_and_connection_draft_during_scan_updates"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 143,
+      "name": "settings scrolls across its full width with a stable $mode header",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::settings_header_stays_fixed_while_narrow_content_scrolls",
+        "tests/f17_ui.rs::settings_is_a_full_page_with_compact_section_order_and_back_navigation",
+        "tests/f17_ui.rs::settings_compact_header_balances_text_back_and_removes_connection",
+        "tests/f17_ui.rs::settings_back_hover_grows_in_place_without_resizing_header"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21. Settings full-page route/layout revision 2026-11-13: renderer regression passed; prior native smoke evidence does not validate the revised layout. Native screenshot check pending. Settings layout revision 2026-11-16: text Back with symmetric spacer, centered Setting title, 8 px margins/full width, Connection removed. Production egui UI and 347 regression tests pass; toolbar Manual URL remains. Native screenshot not rerun. Header padding revision 2026-11-16: removed fixed height, all four margins 12px, content-driven row height; production UI geometry/back/scroll tests at font sizes 14 and 24 pass. Native screenshot not rerun. Follow-up: Settings header padding reduced from 12px to 8px on all sides; UI geometry assertions updated, content-driven height retained. Back hover fix: header siblings use the reserved resting layout height rather than the enlarged action response. UI reproduces old header growth (48 to 52px), then verifies repeated hover/exit, 1.1x control growth, stable title/spacer/content and back click at widths 360/700/1360, fonts 14/24, EN/VI. No new native screenshot."
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 210,
+      "name": "MCP defaults off and persists opt-in and a validated port",
+      "rust_status": "covered_F08_core_passed",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "defaults_are_light_english_and_mcp_opt_in",
+        "mcp_persists_opt_in_disable_and_port_boundaries",
+        "invalid_ports_do_not_mutate_memory_or_file"
+      ]
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 232,
+      "name": "MCP settings toggle, retry, validate ports and copy client configs",
+      "rust_status": "covered_F18_renderer_native_macos",
+      "rust_feature": "F18",
+      "rust_tests": [
+        "tests/f18_ui.rs::mcp_inputs_validate_persist_retry_and_copy",
+        "examples/f18_native_smoke.rs",
+        "tests/f18_ui.rs::mcp_display_and_input_share_field_style_and_copy_buttons_include_icon_and_label"
+      ],
+      "notes": "Production DesktopApp native toggle/port restart/conflict/retry, persisted settings reload, real Codex/Claude OS clipboard, VI/dark and narrow scrolling passed. Windows remains F21. 2026-11-16 UI refinement: automatic atomic switch save/reconfigure, Enter port apply, exact separate Codex/Claude copy actions, matching input/display font/padding/height and distinct backgrounds verified in production egui tests. 347 Rust tests pass. Native smoke script updated but native run not repeated for this revision."
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 376,
+      "name": "MCP settings adapt to width $width",
+      "rust_status": "covered_F18_renderer_native_macos",
+      "rust_feature": "F18",
+      "rust_tests": [
+        "tests/f18_ui.rs::mcp_narrow_locales_themes_scroll",
+        "tests/f18_ui.rs::opening_settings_keeps_language_controls_visible_and_clickable",
+        "examples/f18_native_smoke.rs",
+        "tests/f17_ui.rs::settings_is_a_full_page_with_compact_section_order_and_back_navigation",
+        "tests/f18_ui.rs::settings_dropdown_widths_are_bounded_and_endpoint_hugs_its_text"
+      ],
+      "notes": "Production DesktopApp native toggle/port restart/conflict/retry, persisted settings reload, real Codex/Claude OS clipboard, VI/dark and narrow scrolling passed. Windows remains F21. Settings full-page route/layout revision 2026-11-13: renderer regression passed; prior native smoke evidence does not validate the revised layout. Native screenshot check pending. Settings layout revision 2026-11-16: text Back with symmetric spacer, centered Setting title, 8 px margins/full width, Connection removed. Production egui UI and 347 regression tests pass; toolbar Manual URL remains. Native screenshot not rerun. 2026-11-16 widths: equal 220px Interface dropdowns and content-sized endpoint verified via production egui paint/input at 360/1360px, 14/24px fonts, EN/VI. 348 Rust tests pass; native screenshot not rerun."
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 435,
+      "name": "saved MCP opt-in and port are restored on app launch",
+      "rust_status": "covered_F18_renderer_native_macos",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "tests/settings.rs::mcp_persists_opt_in_disable_and_port_boundaries",
+        "examples/f18_native_smoke.rs"
+      ],
+      "rust_feature": "F18",
+      "notes": "Production DesktopApp native toggle/port restart/conflict/retry, persisted settings reload, real Codex/Claude OS clipboard, VI/dark and narrow scrolling passed. Windows remains F21."
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 465,
+      "name": "language preference persists across settings instances; unknown locale falls back",
+      "rust_status": "covered_F08_core_passed",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "language_round_trip_and_unknown_locale_fallback"
+      ]
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 483,
+      "name": "theme defaults to light and persists across settings instances",
+      "rust_status": "covered_F08_core_passed",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "theme_round_trip_and_system_is_rejected"
+      ]
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 504,
+      "name": "settings switches languages without resetting capture or filters at width $width",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::language_switch_keeps_capture_filters_and_connection_draft_during_scan_updates"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/settings_test.dart",
+      "line": 592,
+      "name": "Vietnamese and dark theme are restored on application launch",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_suite": "tests/settings.rs",
+      "rust_tests": [
+        "tests/f17_ui.rs::ui_settings_persist_reload_preserving_layout_and_manual_validation"
+      ],
+      "rust_feature": "F17",
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21. Settings layout revision 2026-11-16: text Back with symmetric spacer, centered Setting title, 8 px margins/full width, Connection removed. Production egui UI and 347 regression tests pass; toolbar Manual URL remains. Native screenshot not rerun."
+    },
+    {
+      "source": "test/settings_updates_test.dart",
+      "line": 15,
+      "name": "Settings updates show version, progress and retry in $language",
+      "rust_status": "covered_equivalent_egui_F20_macos",
+      "rust_feature": "F20",
+      "rust_tests": [
+        "tests/f20_ui.rs::updates_version_progress_retry_and_input_in_both_languages"
+      ],
+      "rust_note": "Production renderer/input EN/VI version/progress/busy/retry/unsupported + real native Settings smoke; no update installer accepted."
+    },
+    {
+      "source": "test/viewer_diagnostics_test.dart",
+      "line": 7,
+      "name": "diagnostics persist structured events and rotate within a fixed budget",
+      "rust_status": "covered_F19_macos",
+      "rust_feature": "F19",
+      "rust_tests": [
+        "tests/f19_diagnostics.rs::structured_rotation_and_queue_have_fixed_byte_budgets"
+      ],
+      "notes": "Typed metadata only, 128KiB queue, 250ms owner flush, 3 x 512KiB files; path failure swallowed/recovery, shutdown flush. Native fresh VM continues capture during blocked directory. No free-form URL/error/payload fields."
+    },
+    {
+      "source": "test/viewer_diagnostics_test.dart",
+      "line": 45,
+      "name": "unavailable log directory never breaks capture",
+      "rust_status": "covered_F19_macos",
+      "rust_feature": "F19",
+      "rust_tests": [
+        "tests/f19_diagnostics.rs::unavailable_path_recovers_and_capture_continues_without_sensitive_data"
+      ],
+      "notes": "Typed metadata only, 128KiB queue, 250ms owner flush, 3 x 512KiB files; path failure swallowed/recovery, shutdown flush. Native fresh VM continues capture during blocked directory. No free-form URL/error/payload fields."
+    },
+    {
+      "source": "test/viewer_dropdown_test.dart",
+      "line": 11,
+      "name": "closed dropdown matches untouched dropdown in $brightness",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::settings_dropdown_inputs_theme_locale_and_discovery",
+        "tests/f17_ui.rs::dropdown_escape_and_outside_restore_closed_geometry_without_change"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21. Settings layout revision 2026-11-16: text Back with symmetric spacer, centered Setting title, 8 px margins/full width, Connection removed. Production egui UI and 347 regression tests pass; toolbar Manual URL remains. Native screenshot not rerun."
+    },
+    {
+      "source": "test/viewer_mcp_server_test.dart",
+      "line": 31,
+      "name": "HTTP MCP exposes live captures and five read-only tools ($protocol)",
+      "rust_status": "covered_F18_HTTP_macos",
+      "rust_feature": "F18",
+      "rust_tests": [
+        "tests/f18_mcp.rs::queries_match_flutter_and_are_read_only",
+        "tests/f18_mcp.rs::validation_and_utf16_chunks",
+        "tests/f18_mcp.rs::http_all_five_tools_session_isolation_and_invalid_arguments",
+        "tests/f18_mcp.rs::setup_configs_and_formatted_payload_metadata_match_flutter"
+      ],
+      "notes": "Actual loopback HTTP integration. Synchronous owner-serialized bind/start/stop removes pending-bind races; no SSE stream (GET 405), JSON responses. Native production host + fresh VM HTTP passed; Windows F21."
+    },
+    {
+      "source": "test/viewer_mcp_server_test.dart",
+      "line": 204,
+      "name": "MCP stays off by default, handles conflicts, races and releases its port",
+      "rust_status": "covered_F18_HTTP_macos",
+      "rust_feature": "F18",
+      "rust_tests": [
+        "tests/f18_mcp.rs::conflicts_retry_reconfiguration_and_drop_release_port",
+        "tests/f18_mcp.rs::fragmented_client_and_pending_socket_stop_do_not_block_owner"
+      ],
+      "notes": "Actual loopback HTTP integration. Synchronous owner-serialized bind/start/stop removes pending-bind races; no SSE stream (GET 405), JSON responses. Native production host + fresh VM HTTP passed; Windows F21."
+    },
+    {
+      "source": "test/viewer_mcp_server_test.dart",
+      "line": 252,
+      "name": "HTTP rejects foreign origins, hosts, unknown routes and unsupported versions",
+      "rust_status": "covered_F18_HTTP_macos",
+      "rust_feature": "F18",
+      "rust_tests": [
+        "tests/f18_mcp.rs::http_protocol_security_and_live_store"
+      ],
+      "notes": "Actual loopback HTTP integration. Synchronous owner-serialized bind/start/stop removes pending-bind races; no SSE stream (GET 405), JSON responses. Native production host + fresh VM HTTP passed; Windows F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 41,
+      "name": "four variants, three rows and exact bottom-left position",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::toast_variants_position_rows_and_exact_mounted_deadlines"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 100,
+      "name": "confirmation waits for a choice and cancel returns false",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::confirmation_replace_and_dispose_cancel_pending_deadlines"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 124,
+      "name": "popup stays open, leaves app interactive and replaces previous",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::custom_delay_disable_zero_negative_and_nonmodal_interaction"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 153,
+      "name": "success and info auto-hide after 3 seconds by default",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::toast_variants_position_rows_and_exact_mounted_deadlines"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 175,
+      "name": "warnings, errors and confirmations stay open by default",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::toast_variants_position_rows_and_exact_mounted_deadlines",
+        "tests/f17_ui.rs::confirmation_replace_and_dispose_cancel_pending_deadlines"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 200,
+      "name": "autoHide honors the requested delay and never confirms",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::custom_delay_disable_zero_negative_and_nonmodal_interaction"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 221,
+      "name": "autoHide defaults to 3000ms and disabled ignores its delay",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::custom_delay_disable_zero_negative_and_nonmodal_interaction"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 250,
+      "name": "timers cancel on manual close, replacement and disposal",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::confirmation_replace_and_dispose_cancel_pending_deadlines"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 292,
+      "name": "zero delay hides immediately and negative delay is rejected",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::custom_delay_disable_zero_negative_and_nonmodal_interaction"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 317,
+      "name": "Vietnamese dark popup wraps and scrolls in a small window",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::narrow_support_dialogs_and_toast_scroll_with_both_locales_themes"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_notification_test.dart",
+      "line": 346,
+      "name": "copy uses success popup and writes the actual clipboard",
+      "rust_status": "covered_equivalent_egui_F17_macos",
+      "rust_feature": "F17",
+      "rust_tests": [
+        "tests/f17_ui.rs::help_keeps_discussion_link_without_copy_action"
+      ],
+      "notes": "Production egui renderer/input tests + examples/f17_native_smoke.rs on macOS. Help URL checked through OpenUrl platform command; native clipboard, settings reload, fresh VM connection, narrow scrolling and wall-clock timeouts verified. Egui layout replaces Flutter widgets; Windows remains F21."
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 14,
+      "name": "body guards use metadata and tolerate invalid captured bytes",
+      "rust_status": "covered",
+      "rust_feature": "F09",
+      "rust_tests": [
+        "tests/vm_protocol.rs::metadata_combined_guard_and_boundary",
+        "tests/vm_protocol.rs::body_unicode_binary_and_malformed",
+        "tests/vm_protocol.rs::oversized_actual_body_and_omission_preserve_metadata",
+        "tests/vm_protocol.rs::numeric_metadata_cannot_bypass_body_guard"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 68,
+      "name": "${oversized ? 'large multipart upload' : 'unreadable body'} preserves connection and later captures",
+      "rust_status": "partial",
+      "rust_feature": "F09",
+      "rust_tests": [
+        "tests/vm_protocol.rs::detail_guard_skips_rpc_and_detail_error_keeps_connection",
+        "tests/vm_protocol.rs::websocket_timeout_then_late_reply_notification_and_next_call"
+      ],
+      "rust_note": "F09/F10 cover body guards, detail failure omission and continued capture. F11 adds bootstrap/reattachment; the combined multipart bootstrap scenario is not directly tested."
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 147,
+      "name": "normalizes DevTools, encoded service, HTTP roots and WebSocket URLs",
+      "rust_status": "covered",
+      "rust_feature": "F09",
+      "rust_tests": [
+        "tests/vm_protocol.rs::normalize_service_and_devtools",
+        "tests/vm_protocol.rs::invalid_endpoints"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 175,
+      "name": "adapter preserves timing, headers, Unicode, binary bodies and errors",
+      "rust_status": "covered",
+      "rust_feature": "F09",
+      "rust_tests": [
+        "tests/vm_protocol.rs::profile_timing_headers_and_unicode",
+        "tests/vm_protocol.rs::pending_and_network_error",
+        "tests/vm_protocol.rs::body_unicode_binary_and_malformed"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 202,
+      "name": "one VM app groups its isolates without colliding request IDs",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::multiple_isolates_share_one_bounded_store_and_hot_restart_one_tab",
+        "tests/vm_coordinator.rs::multi_isolate_console_keeps_wire_order_and_separate_partial_buffers"
+      ],
+      "rust_note": "Shared app metadata/history and scoped requests covered; app tabs and both list scopes covered by F13 UI tests."
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 297,
+      "name": "isolate Exit cancels a hung profile and captures the restarted app immediately",
+      "rust_status": "partial",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::isolate_exit_discards_pending_and_late_reply_without_dropping_history",
+        "tests/coordinator_socket.rs::real_exit_interrupts_hung_rpc_same_socket_hot_restart_and_late_reply_is_ignored"
+      ],
+      "rust_note": "Capture resumes while the old reply remains gated, using one socket. Diagnostics assertions belong to F19."
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 376,
+      "name": "a transient profile timeout retries attachment without dropping existing captures",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::initial_and_later_profile_timeouts_keep_data_and_socket",
+        "tests/coordinator_socket.rs::real_socket_reconnect_keeps_clear_cursor_and_timeout_reattach_keeps_transport"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 430,
+      "name": "Clear stays cleared when a temporary timeout reattaches the same isolate",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::profile_timeout_preserves_socket_history_and_reattaches_exclusive_clear_cursor",
+        "tests/coordinator_socket.rs::real_socket_reconnect_keeps_clear_cursor_and_timeout_reattach_keeps_transport"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 467,
+      "name": "initial profile timeout keeps VM transport and resumes capture",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::initial_and_later_profile_timeouts_keep_data_and_socket"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 497,
+      "name": "unresponsive VM with an open socket reconnects to the same endpoint",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::vm_health_timeout_retries_same_endpoint_and_stop_cancels_retry"
+      ],
+      "rust_note": "A getVM health timeout triggers reconnect; profile RPC Timeout alone keeps the socket."
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 529,
+      "name": "hot restart keeps one application tab and retains old requests",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::multiple_isolates_share_one_bounded_store_and_hot_restart_one_tab",
+        "tests/coordinator_socket.rs::real_exit_interrupts_hung_rpc_same_socket_hot_restart_and_late_reply_is_ignored"
+      ],
+      "rust_note": "One backend identity across restart covered; F13 renders session IDs without producing additional isolate tabs."
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 564,
+      "name": "switching VM endpoints removes the disconnected application",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::socket_closure_reconnects_same_url_with_clear_boundary_and_endpoint_switch_cleans_session"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 590,
+      "name": "Clear and Pause do not replay unchanged remote history",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::pause_discards_queued_chunks_and_advances_network_without_resume_replay",
+        "tests/capture_lifecycle.rs::pause_resume_invalidates_summary_already_in_flight",
+        "tests/capture_lifecycle.rs::clear_then_new_request_at_later_cursor_resets_network_only"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 623,
+      "name": "new isolate extensions are discovered after a delayed app startup",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::bootstrap_delayed_extensions_and_enable_before_capture"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 656,
+      "name": "stdout preserves UTF-8 split across VM events",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::stdout_utf8_split_across_chunks_and_stderr_keep_order"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 675,
+      "name": "Flutter developer logs retain logger, severity, error and stack in order",
+      "rust_status": "partial",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::inline_logging_and_stdout_preserve_batch_order"
+      ],
+      "rust_note": "Inline Logging valueAsString and severity decode are implemented. Async invoke/getObject resolution for object errors and truncated strings, including cross-stream order while resolving, remains pending adapter integration; this full Flutter test is not covered."
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 756,
+      "name": "Clear discards a detail response already in flight",
+      "rust_status": "covered",
+      "rust_feature": "F10",
+      "rust_tests": [
+        "tests/capture_lifecycle.rs::clear_drops_pending_partial_and_inflight_detail_and_excludes_inclusive_cursor",
+        "tests/capture_worker.rs::real_clear_while_detail_pending_uses_exclusive_boundary_and_accepts_new_data"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 785,
+      "name": "latest connection wins and unexpected closure reconnects",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::latest_connect_wins_and_stop_cancel_pending_attempts",
+        "tests/vm_coordinator.rs::socket_closure_reconnects_same_url_with_clear_boundary_and_endpoint_switch_cleans_session",
+        "tests/coordinator_socket.rs::real_socket_reconnect_keeps_clear_cursor_and_timeout_reattach_keeps_transport"
+      ]
+    },
+    {
+      "source": "test/viewer_server_test.dart",
+      "line": 821,
+      "name": "invalid input reports an error and disposal cancels connection attempts",
+      "rust_status": "covered",
+      "rust_feature": "F11",
+      "rust_tests": [
+        "tests/vm_coordinator.rs::dispose_is_terminal_and_invalid_input_does_not_start_attempt",
+        "tests/coordinator_socket.rs::cancellation_wakes_pending_websocket_handshake_and_subscription_reads"
+      ],
+      "rust_note": "Stop/Drop cancels ownership and interrupts handshake/subscriptions once TCP exists. System DNS/TCP connect may finish in the background; their result cannot be installed."
+    },
+    {
+      "source": "test/viewer_widget_test.dart",
+      "line": 14,
+      "name": "filter menu selects a method and dismisses with Escape or outside tap",
+      "rust_status": "covered_F13_egui_UI_passed",
+      "rust_feature": "F13",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "method_status_search_combine_and_menus_dismiss",
+        "errors_pending_success_filters_and_picker_escape_outside_cancel"
+      ]
+    },
+    {
+      "source": "test/viewer_widget_test.dart",
+      "line": 64,
+      "name": "inspector dialog updates when a pending request completes",
+      "rust_status": "covered_F13_egui_UI_passed",
+      "rust_feature": "F13",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "pending_modal_stays_live_and_all_six_inspector_tabs_render"
+      ]
+    },
+    {
+      "source": "test/viewer_widget_test.dart",
+      "line": 103,
+      "name": "desktop shows network details, console objects, filters and pause",
+      "rust_status": "partial_F13_UI_passed",
+      "rust_feature": "F13",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "clipboard_commands_and_export_file_use_actual_selected_data",
+        "discovery_picker_and_capture_actions_are_wired_and_dismissible",
+        "overview_metadata_query_and_raw_match_the_capture_record"
+      ],
+      "remaining": "Console objects/detail F14; JSON layout/folding F15/F16. Native host smoke checks capture, inspector, clipboard, pause/resume, export and Clear."
+    },
+    {
+      "source": "test/viewer_widget_test.dart",
+      "line": 215,
+      "name": "empty desktop layout fits width $width and guide opens",
+      "rust_status": "partial_F13_UI_passed",
+      "rust_feature": "F13",
+      "rust_suite": "tests/desktop_ui.rs",
+      "rust_tests": [
+        "layouts_fit_narrow_sidebar_and_columns_scroll_and_resize"
+      ],
+      "remaining": "Guide/help dialog F17; Windows native run F21."
+    },
+    {
+      "source": "test/virtual_json_test.dart",
+      "line": 22,
+      "name": "large JSON builds visible rows, finds offscreen text and unfolds",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_find_reveals_horizontal_match_on_long_unicode_line",
+        "tests/desktop_ui.rs::json_find_focus_options_highlights_navigation_and_fold_reveal",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_select_all_copies_full_large_document_beyond_probe_budget",
+        "examples/f16_stress.rs",
+        "examples/f16_native_smoke.rs"
+      ],
+      "notes": "Viewport widgets/galleys only; offscreen find, fold reveal, Unicode cross-line selection and Ctrl+A/Copy beyond bounded probe verified. 20k-row stress and native frame/RSS measured; initial parse/index still synchronous."
+    },
+    {
+      "source": "test/virtual_json_test.dart",
+      "line": 81,
+      "name": "select all copies the complete large document without the gutter",
+      "rust_status": "covered_equivalent_egui_F16_macos",
+      "rust_feature": "F16",
+      "rust_tests": [
+        "tests/desktop_ui.rs::json_output_scrolls_both_axes_and_select_all_copies_hidden_rows_without_gutter",
+        "tests/desktop_ui.rs::f16_virtual_json_cross_line_unicode_selection_and_offscreen_find",
+        "tests/desktop_ui.rs::f16_select_all_copies_full_large_document_beyond_probe_budget",
+        "examples/f16_stress.rs",
+        "examples/f16_native_smoke.rs"
+      ],
+      "notes": "Viewport widgets/galleys only; offscreen find, fold reveal, Unicode cross-line selection and Ctrl+A/Copy beyond bounded probe verified. 20k-row stress and native frame/RSS measured; initial parse/index still synchronous."
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 15,
+      "name": "discovers and connects to a real local Flutter app",
+      "rust_status": "pending",
+      "rust_feature": "F12",
+      "rust_note": "Live Dart SDK discovery smoke pending; fake VM integration is not a live Flutter app test."
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 45,
+      "name": "only uses local DDS process arguments, preserving auth tokens",
+      "rust_status": "covered",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery.rs::only_local_dds_arguments_preserve_encoded_auth_and_cap_candidates"
+      ]
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 59,
+      "name": "follows the VM redirect to the DDS token and deduplicates a VM",
+      "rust_status": "covered",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery_socket.rs::real_redirect_encoded_token_and_vm_deduplication"
+      ],
+      "rust_note": "Real HTTP redirect and WebSocket getVM/getIsolate; also verifies accepting the first Flutter isolate before a later isolate exits."
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 90,
+      "name": "ignores non-Flutter VMs and the Viewer itself",
+      "rust_status": "covered",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery.rs::metadata_filters_non_flutter_self_and_viewer_and_uses_vm_identity",
+        "tests/discovery_socket.rs::real_probe_ignores_non_flutter_and_viewer"
+      ]
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 108,
+      "name": "locks discovery to the first successful connection until explicitly restarted",
+      "rust_status": "covered",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery.rs::waits_for_app_start_then_locks_scan_and_reconnects_same_endpoint"
+      ]
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 185,
+      "name": "each explicit scan adds one new project and keeps earlier projects live",
+      "rust_status": "partial",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery.rs::each_scan_adds_one_app_preserves_live_history_and_global_budget",
+        "tests/discovery.rs::retained_record_budget_is_global_across_apps",
+        "tests/discovery.rs::manual_app_is_excluded_from_later_scans",
+        "tests/discovery.rs::pause_clear_apply_to_all_apps_without_resurrecting_history"
+      ],
+      "rust_note": "Multi-app coordinator capture, shared history/budget and scan-only cancellation covered deterministically; combined multi-app real-socket/console and GUI acceptance remain pending."
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 282,
+      "name": "waits for a choice when multiple projects are found",
+      "rust_status": "covered",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery.rs::multiple_apps_require_choice_invalid_choice_has_no_effect"
+      ],
+      "rust_note": "Core selection and F13 egui picker actions/Cancel/Escape/outside covered. Full preferences/help F17 and live DDS/Windows acceptance remain pending."
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 313,
+      "name": "Stop and manual connection supersede an unfinished discovery",
+      "rust_status": "covered",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery.rs::stop_manual_and_drop_cancel_unfinished_scan_and_ignore_late_results",
+        "tests/discovery.rs::invalid_manual_submission_also_cancels_pending_discovery",
+        "tests/discovery_socket.rs::rejects_remote_redirect_and_cancellation_interrupts_hung_http"
+      ]
+    },
+    {
+      "source": "test/vm_service_discovery_test.dart",
+      "line": 342,
+      "name": "waits and retries when a project starts after the Viewer",
+      "rust_status": "covered",
+      "rust_feature": "F12",
+      "rust_tests": [
+        "tests/discovery.rs::waits_for_app_start_then_locks_scan_and_reconnects_same_endpoint",
+        "tests/discovery.rs::failed_auto_connection_retries_discovery_until_success",
+        "tests/discovery.rs::discovery_failure_is_visible_and_retry_does_not_overlap"
+      ]
+    },
+    {
+      "source": "test/vm_service_discovery_widget_test.dart",
+      "line": 34,
+      "name": "offers project choices; Stop and Start control discovery",
+      "rust_status": "covered_F13_picker_UI_passed",
+      "rust_feature": "F12",
+      "rust_note": "F12 core and F13 picker GUI actions/Cancel/Escape/outside covered by executable tests; full preferences/help F17 and live DDS/Windows discovery remain pending.",
+      "rust_tests": [
+        "tests/desktop_ui.rs::discovery_picker_and_capture_actions_are_wired_and_dismissible",
+        "tests/desktop_ui.rs::errors_pending_success_filters_and_picker_escape_outside_cancel"
+      ]
+    }
+  ],
+  "updater_integrity": {
+    "feature": "F20",
+    "source_references": [
+      "tool/test_update_feed.py",
+      "tool/test_release_encoding.py"
+    ],
+    "rust_tests": [
+      "tools/test_f20_integrity.py::Integrity.test_vendor_checksum_and_tamper_rejection",
+      "tools/test_f20_integrity.py::Integrity.test_native_signature_accepts_valid_rejects_modified_unsigned_and_wrong_key"
+    ],
+    "note": "Runtime feed selection covered in Rust; UTF-8 appcast parsed by real Sparkle smoke; native Sparkle verifier accepts valid signature and rejects unsigned/wrong signature/key/tampered bytes. Vendor SHA256 checked by build.rs. Release feed generation and release-notes/output encoding belong to F21 and are not claimed implemented here. F21 adds executable UTF-8 feed/version/archive/checksum/signing rejection contracts and a dedicated Rust channel. Production signed feeds remain pending private keys; see release_acceptance."
+  },
+  "release_acceptance": {
+    "feature": "F21",
+    "status": "partial",
+    "source_references": [
+      ".github/workflows/checks.yml",
+      ".github/workflows/desktop.yml",
+      "tool/test_update_feed.py",
+      "tool/test_release_encoding.py",
+      "tool/test_prepare_github_release.py",
+      "test/live_vm_capture_test.dart"
+    ],
+    "rust_tests": [
+      "tools/test_f21_release.py::ReleaseTests (8 tests)",
+      "tools/test_f20_integrity.py::Integrity (2 tests)",
+      "examples/f21_native_smoke.rs via tools/f21_native_smoke.py",
+      "examples/f21_live_vm.rs via tools/f21_live_vm.py",
+      "examples/f21_multiapp.rs via tools/f21_multiapp.py",
+      "examples/f21_wss.rs via tools/f21_wss.py",
+      "tools/f21_verify_packages.py (actual ARM64/Intel zips)",
+      "tools/f21_regression.py (native F13–F20)",
+      "examples/f16_stress.rs",
+      "tools/test_f21_signer.py (actual production Swift helper + real Sparkle verifier, ephemeral test key)"
+    ],
+    "executed": "270 Rust tests, fmt/clippy; Windows cross-check/clippy; 8 release+2 integrity Python; ARM64/Intel release zip build/layout/startup (Intel Rosetta); native fake VM full flow/MCP/export; live Dart SDK HTTP/Unicode/stdout/developer.log; combined DDS two-app sockets/console; self-signed WSS rejection; native regressions/stress; Vietnamese glyphs and screenshots. 1 actual signing-helper test passes with ephemeral test key; matching production key/code signing remain pending.",
+    "pending": [
+      "Windows MSVC linked build, resource/installer and native acceptance",
+      "Developer ID/notarization, Authenticode, matching private update keys and real release signatures",
+      "trusted WSS capture, live Flutter discovery/multi-app GUI, AccessKit/screen-reader/platform font acceptance",
+      "Windows thumbnail backend and dependency license/source review",
+      "GitHub CI execution; existing-tag/previous-commit publication logic intentionally not ported because no publish workflow is authorized"
+    ],
+    "evidence": "docs/release.md; docs/artifacts/f21/"
+  },
+  "ui_parity_supplement": {
+    "date": "2026-11-13",
+    "reference": "lib/ui/network_request_table.dart; lib/ui/viewer_shell.dart; lib/ui/components.dart",
+    "tests": [
+      "tests/desktop_ui.rs::network_columns_follow_flutter_order_with_two_line_url_rows",
+      "tests/desktop_ui.rs::three_column_dividers_align_with_rows_and_persist_across_restart",
+      "tests/desktop_ui.rs::empty_filter_results_offer_reset_for_network_and_console",
+      "tests/ui_parity.rs"
+    ],
+    "verification": "276 Rust tests pass; visual acceptance remains partial"
+  },
+  "ui_style_supplement": {
+    "reference": "pubspec.yaml; viewer_theme.dart; components.dart; json_beautify_screen.dart; inspector.dart; settings_screen.dart; help_dialog.dart; viewer_dropdown.dart",
+    "tests": [
+      "tests/ui_parity.rs::header_uses_real_semibold_font_and_left_alignment",
+      "tests/desktop_ui.rs::json_workspace_has_uniform_outer_padding_and_sixteen_pixel_divider",
+      "tests/f17_ui.rs::bundled_weight_faces_keep_vietnamese_and_settings_field_styling"
+    ],
+    "verification": "281 pass; visual/native acceptance remains pending"
+  },
+  "unified_font_and_plain_table": {
+    "date": "2026-11-16",
+    "reference": "User-requested Rust UI refinement; supersedes per-widget Flutter font sizes and colored table badges",
+    "tests": [
+      "tests/desktop_ui.rs::unified_font_setting_updates_all_painted_text_and_plain_network_grid",
+      "tests/settings.rs::font_size_defaults_validates_and_survives_restart",
+      "tests/ui_parity.rs",
+      "tests/f17_ui.rs"
+    ],
+    "verification": "313 tests pass; fmt/clippy/build pass; native Settings observed, native increment blocked by noWindowsAvailable; pointer UI test passed",
+    "evidence": "docs/artifacts/ui-parity/unified-font-*"
+  },
+  "network_header_scroll_clipping": {
+    "date": "2026-11-16",
+    "tests": [
+      "tests/desktop_ui.rs::scrolling_network_rows_are_clipped_below_fixed_header"
+    ],
+    "verification": "Red reproduced 3px content bleed; green for partial row scrolling in light/dark at font14/24. 314 regression tests pass; fmt/clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/header-scroll-*.log"
+  },
+  "network_title_filter_gap": {
+    "date": "2026-11-16",
+    "tests": [
+      "tests/desktop_ui.rs::network_columns_shrink_to_small_title_filter_gap"
+    ],
+    "verification": "Red reproduced excess gap19.6px; green measured2–3px gap on actual pointer resize, title unclipped and filters clickable; EN/VI, font14/24.315 regression pass; fmt/clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/filter-gap-*"
+  },
+  "silent_startup_update_check": {
+    "date": "2026-11-16",
+    "tests": [
+      "tests/f20_ui.rs::startup_update_failure_is_silent_but_manual_retry_reports_errors"
+    ],
+    "verification": "Red startup configure failure popup reproduced; green silent background configure/check/async/timeout/current, manual error notification and dismiss preserved.316 regression pass on retry; fmt/clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/startup-update-*"
+  },
+  "vintage_widget_lab": {
+    "date": "2026-11-16",
+    "scope": "Review-only new style kit; no legacy screen migration before user approval",
+    "inventory": "docs/vintage-widget-inventory.md; vintage::INVENTORY (35 families, 7 tabs)",
+    "tests": [
+      "tests/vintage_ui.rs::gallery_has_square_widgets_shared_font_and_complete_inventory",
+      "tests/vintage_ui.rs::gallery_controls_modals_and_json_are_interactive",
+      "tests/vintage_ui.rs::native_host_starts_in_gallery_without_changing_legacy_defaults",
+      "tests/vintage_ui.rs::inventory_examples_exist_and_narrow_gallery_scrolls_without_hiding_navigation"
+    ],
+    "verification": "320 tests pass,0 fail/ignored; fmt/clippy/build pass. Native screenshot timed out; user visual review pending.",
+    "evidence": "docs/artifacts/ui-parity/vintage-*"
+  },
+  "vintage_review_six_fixes": {
+    "date": "2026-11-16",
+    "scope": "Vintage demo only, legacy screens unchanged pending approval",
+    "tests": [
+      "tests/vintage_ui.rs::selected_popup_options_use_paper_text_and_focused_inputs_keep_ink_borders",
+      "tests/vintage_ui.rs::notice_icon_has_ink_tile_paper_glyph_and_json_has_paper_background",
+      "tests/vintage_ui.rs::vintage_table_grid_is_contiguous_and_has_outer_edges",
+      "tests/vintage_ui.rs::square_loader_cycles_one_inset_cell_for_three_to_ten_slots"
+    ],
+    "verification": "8 vintage tests/324 full regression pass,0 failed/ignored; fmt/clippy/build pass. Effective selected text colors, input borders under focus, icon tile and JSON exact background, contiguous grid perimeter, one active loader with 3..10 slots and wrap tested. Native screenshot not run this turn.",
+    "evidence": "docs/artifacts/ui-parity/vintage-refine-*"
+  },
+  "vintage_review_tables": {
+    "date": "2026-11-16",
+    "scope": "Vintage demo only; reusable 2/3-column metadata/Form tables and 4-column Console; legacy migration pending approval",
+    "tests": [
+      "tests/vintage_ui.rs::metadata_and_form_use_aligned_grids_with_optional_copy_action_column",
+      "tests/vintage_ui.rs::console_has_four_real_columns_grid_selection_and_fixed_header_when_scrolling"
+    ],
+    "verification": "10 vintage UI tests/326 full regression pass,0 failed/ignored; fmt/clippy/build pass. Real pointer Copy Unicode output, aligned contiguous cells, viewport containment, Console headers/selection/perimeter/wheel/fixed header/clip verified. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-tables-*"
+  },
+  "vintage_square_icon_buttons": {
+    "date": "2026-11-16",
+    "scope": "Vintage demo only; Controls/toolbar/table Copy share square34x34 icon buttons",
+    "tests": [
+      "tests/vintage_ui.rs::icon_buttons_are_square_in_controls_toolbar_and_table_actions",
+      "tests/vintage_ui.rs::metadata_and_form_use_aligned_grids_with_optional_copy_action_column"
+    ],
+    "verification": "11 vintage UI tests/327 full regression pass,0 failed/ignored; fmt/clippy/build pass. Square geometry at font10/14/24, table button containment and existing real pointer clipboard checked. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-icons-*"
+  },
+  "vintage_column_alignment": {
+    "date": "2026-11-16",
+    "scope": "Vintage metadata/Form content: Title left, Value right, Action centered; square icon retained",
+    "tests": [
+      "tests/vintage_ui.rs::key_value_content_aligns_title_and_value_left_and_actions_center"
+    ],
+    "verification": "12 vintage UI tests/328 full regression pass,0 failed/ignored; fmt/clippy/build pass. Production text galley edges and Action button centers verified at font14/24; clipboard regression passes. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-alignment-*"
+  },
+  "vintage_action_hover": {
+    "date": "2026-11-16",
+    "scope": "Vintage demo action controls hover paint1.2x, text/icons included; layout/base font stable, expanded hit region; disabled excluded",
+    "tests": [
+      "tests/vintage_ui.rs::action_hover_preserves_widget_dimensions_and_font_size",
+      "tests/vintage_ui.rs::hover_keeps_action_variants_and_popup_options_at_normal_size"
+    ],
+    "verification": "14 vintage UI tests/330 full regression pass,0 failed/ignored; fmt/clippy/build pass. Painted rect/font mesh ratios, restore, stable allocation, real clipboard click on expanded rim, dropdown option selection, variants at font14/24 and disabled no-scale checked. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-hover-*"
+  },
+  "vintage_hover_native_dimensions": {
+    "date": "2026-11-16",
+    "scope": "Supersedes vintage_action_hover mesh zoom: real widget width/height/font dimensions increased1.2 before rendering; demo only",
+    "tests": [
+      "tests/vintage_ui.rs::action_hover_preserves_widget_dimensions_and_font_size",
+      "tests/vintage_ui.rs::hovered_table_icon_keeps_center_and_rasterizes_at_current_dpi",
+      "tests/vintage_ui.rs::hover_keeps_action_variants_and_popup_options_at_normal_size"
+    ],
+    "verification": "15 vintage UI tests/331 full regression pass,0 failed/ignored; fmt/clippy/build pass. Real Response.rect growth, LayoutJob font sizes, equality to fresh font galley rows, native DPI1/2 and font14/24, centered square table icons, clipboard click, popup selection, disabled and narrow navigation tested. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-hover-sharp-*"
+  },
+  "vintage_hover_fixed_layout": {
+    "date": "2026-11-16",
+    "scope": "Vintage hover retains normal layout slot and offset; real larger widget/font rendered around center with enlarged hit area, no reflow or mesh zoom",
+    "tests": [
+      "tests/vintage_ui.rs::hover_keeps_controls_neighbors_rows_and_panels_unchanged",
+      "tests/vintage_ui.rs::action_hover_preserves_widget_dimensions_and_font_size",
+      "tests/vintage_ui.rs::hovered_table_icon_keeps_center_and_rasterizes_at_current_dpi"
+    ],
+    "verification": "16 vintage UI tests/332 full regression pass,0 failed/ignored; fmt/clippy/build pass. Every other probe rect remains exactly equal on hover and full probe map restores; center within1px, dimensions1.2x at font14/24, existing DPI1/2, fresh font, popup and clipboard tests pass. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-hover-fixed-slot-*"
+  },
+  "vintage_opaque_controls": {
+    "date": "2026-11-16",
+    "scope": "Vintage control opaque backing at rest/hover; hovered control paint above siblings, original interaction/clip retained",
+    "tests": [
+      "tests/vintage_ui.rs::action_controls_have_solid_backgrounds_at_rest_and_hover",
+      "tests/vintage_ui.rs::hovered_dropdown_stays_opaque_without_overlapping_neighbor_labels"
+    ],
+    "verification": "18 vintage UI tests/334 full regression pass,0 failed/ignored; fmt/clippy/build pass. Full control alpha255 backing and ordering above later neighbor labels verified; own text on top, popup selection, clipboard rim click, no-reflow, DPI1/2 retained. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-opaque-*"
+  },
+  "vintage_hover_110": {
+    "date": "2026-11-16",
+    "scope": "Current vintage hover factor1.1 replaces1.2; real font/widget/icon dimensions grow10%, fixed slot and opaque overlay retained",
+    "tests": [
+      "tests/vintage_ui.rs::action_hover_preserves_widget_dimensions_and_font_size",
+      "tests/vintage_ui.rs::hover_keeps_action_variants_and_popup_options_at_normal_size",
+      "tests/vintage_ui.rs::hovered_table_icon_keeps_center_and_rasterizes_at_current_dpi",
+      "tests/vintage_ui.rs::hover_keeps_controls_neighbors_rows_and_panels_unchanged"
+    ],
+    "verification": "18 vintage UI tests/334 full regression pass,0 failed/ignored; fmt/clippy/build pass. Expected dimensions1.1, native LayoutJob font1.1, glyph19.8, DPI1/2, layout, opacity/order, popup and clipboard pass. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-hover-110-*"
+  },
+  "vintage_dropdown_no_scale": {
+    "date": "2026-11-16",
+    "scope": "Vintage dropdowns and menu options exempt from hover scaling; opaque background/overlay retained; other action controls1.1",
+    "tests": [
+      "tests/vintage_ui.rs::dropdowns_and_options_keep_dimensions_and_font_size_on_hover",
+      "tests/vintage_ui.rs::hover_keeps_action_variants_and_popup_options_at_normal_size",
+      "tests/vintage_ui.rs::hover_keeps_controls_neighbors_rows_and_panels_unchanged"
+    ],
+    "verification": "19 vintage UI tests/335 full regression pass,0 failed/ignored; fmt/clippy/build pass. Theme/Network closed controls and options keep exact rects/font on hover at font14/24; actual option selection works, opaque and button1.1 regressions pass. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-dropdown-no-scale-*"
+  },
+  "vintage_action_cursors": {
+    "date": "2026-11-16",
+    "scope": "Vintage enabled click controls and selectable rows use PointingHand; disabled/TextEdit/drag/resize retain appropriate cursors",
+    "tests": [
+      "tests/vintage_ui.rs::clickable_widgets_and_dropdown_options_use_hand_cursor",
+      "tests/vintage_ui.rs::disabled_text_and_resize_widgets_keep_appropriate_cursors"
+    ],
+    "verification": "21 vintage UI tests/337 full regression pass,0 failed/ignored; fmt/clippy/build pass. Production platform cursor output checked for13 action/row variants, both dropdown menus/options, disabled, text, numeric, splitter and pointer exit reset. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-cursor-*"
+  },
+  "vintage_dropdown_option_padding": {
+    "date": "2026-11-16",
+    "scope": "Vintage dropdown list container margin0/gap0; full-width options own12px horizontal/8px vertical padding",
+    "tests": [
+      "tests/vintage_ui.rs::dropdown_list_has_no_outer_padding_and_options_keep_internal_padding",
+      "tests/vintage_ui.rs::dropdowns_and_options_keep_dimensions_and_font_size_on_hover",
+      "tests/vintage_ui.rs::clickable_widgets_and_dropdown_options_use_hand_cursor"
+    ],
+    "verification": "22 vintage UI tests/338 full regression pass,0 failed/ignored; fmt/clippy/build pass. Both popup row edges/gaps, text padding and border-only perimeter tested at font14/24. Selection, opaque background, no-scale and hand cursor regressions pass. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-dropdown-padding-*"
+  },
+  "vintage_plain_project_selector": {
+    "date": "2026-11-16",
+    "scope": "Vintage project selector plain labels without leading status glyph badges",
+    "tests": [
+      "tests/vintage_ui.rs::project_selector_uses_plain_names_without_status_badges"
+    ],
+    "verification": "23 vintage UI tests/339 full regression pass,0 failed/ignored; fmt/clippy/build pass. Plain painted project labels, absence of status glyphs and selection of all3 options tested. Native screenshot not verified.",
+    "evidence": "docs/artifacts/ui-parity/vintage-project-plain-*"
+  },
+  "vintage_production_cascadia_json": {
+    "date": "2026-11-16",
+    "scope": "Approved Vintage production rollout, Google Fonts Cascadia Mono, shared Code and Tree with interactive folds and connected branches",
+    "tests": [
+      "tests/desktop_ui.rs::json_root_connectors_reach_nested_arrows_and_folding_is_independent",
+      "tests/desktop_ui.rs::approved_metadata_and_form_tables_keep_copy_actions_and_full_values",
+      "tests/vintage_ui.rs::shared_json_demo_has_independent_clickable_root_and_child_folds",
+      "tests/vintage_ui.rs::native_host_starts_in_approved_production_app",
+      "tests/vintage_ui.rs::production_uses_vintage_surfaces_and_square_components",
+      "tests/f17_ui.rs::bundled_geist_and_cascadia_faces_keep_vietnamese_and_settings_field_styling",
+      "tests/ui_parity.rs::vintage_palette_and_cascadia_typography_are_used_in_both_themes",
+      "tools/test_f21_release.py"
+    ],
+    "verification": "343 Rust and 8 packaging tests passed; fmt, Clippy and build passed; macOS startup visually checked.",
+    "evidence": "docs/artifacts/ui-parity/vintage-production-*"
+  },
+  "vintage_empty_text_and_json_placeholders": {
+    "date": "2026-11-16",
+    "scope": "Network/Console and unselected inspectors show centered text only. Filter reset and connection remain in the toolbar. JSON workspace has no input heading and displays the new wrapping hints.",
+    "tests": [
+      "tests/desktop_ui.rs::empty_capture_panes_only_paint_centered_messages",
+      "tests/desktop_ui.rs::empty_filter_results_are_text_only_and_toolbar_can_reset",
+      "tests/desktop_ui.rs::json_workspace_panes_have_four_pixel_insets_and_top_left_placeholders",
+      "tests/ui_parity.rs::split_breakpoint_is_900_and_connect_remains_in_header"
+    ],
+    "verification": "345 Rust tests pass (0 failed/ignored); fmt, Clippy and build pass. Verified production egui paint/input; no native screenshot for this change.",
+    "evidence": "docs/artifacts/ui-parity/vintage-empty-text-*"
+  },
+  "vintage_json_pane_padding": {
+    "date": "2026-11-16",
+    "scope": "JSON workspace uses 4 px padding in both panes and top-left placeholder alignment. Verified typed text, wrapped hints and formatted output inset at widths 700 and 1360.",
+    "tests": [
+      "tests/desktop_ui.rs::json_workspace_panes_have_four_pixel_insets_and_top_left_placeholders"
+    ],
+    "verification": "345 Rust tests pass; fmt, Clippy and build pass. Verified production egui paint/input.",
+    "evidence": "docs/artifacts/ui-parity/vintage-json-padding-*"
+  },
+  "vintage_icon_visual_center": {
+    "date": "2026-11-16",
+    "scope": "Square icon controls center the painted glyph on both axes at rest and on hover. UI test reproduced the Settings glyph 2 px left, then verified Settings, Help, Pause, Clear and Export. Copy icon test measures the actual glyph at 1× and 2× DPI.",
+    "tests": [
+      "tests/desktop_ui.rs::toolbar_icon_ink_is_centered_on_both_axes_at_rest_and_on_hover",
+      "tests/vintage_ui.rs::hovered_table_icon_keeps_center_and_rasterizes_at_current_dpi"
+    ],
+    "verification": "346 Rust tests pass (0 failed/ignored); fmt, Clippy and build pass. Verified production egui paint and pointer input.",
+    "evidence": "docs/artifacts/ui-parity/vintage-icon-center-*"
+  },
+  "font_size_display_only": {
+    "date": "2026-11-16",
+    "reference": "User-requested Settings display-only font size; only increment/decrement buttons perform actions",
+    "tests": [
+      "tests/f17_ui.rs::font_size_value_is_display_only_and_buttons_change_and_persist_size",
+      "tests/desktop_ui.rs::unified_font_setting_updates_all_painted_text_and_plain_network_grid"
+    ],
+    "verification": "Test-first failure reproduced editable Text cursor. UI checks default cursor/no focus, ignores typing/arrows/drag, centered value, increment/decrement persistence and 10/24 bounds. Native screenshot not rerun. 350 regression tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-font-display-*"
+  },
+  "shared_display_text": {
+    "date": "2026-11-16",
+    "reference": "User requested reuse of MCP endpoint display for font-size value",
+    "tests": [
+      "tests/f18_ui.rs::font_size_and_mcp_endpoint_use_matching_display_text_style",
+      "tests/f17_ui.rs::font_size_value_is_display_only_and_buttons_change_and_persist_size",
+      "tests/f18_ui.rs::settings_dropdown_widths_are_bounded_and_endpoint_hugs_its_text"
+    ],
+    "verification": "Test-first paint failure reproduced separate padding. Both now call display_text using shared outlined_text_edit, same fill/height/12px padding/content width at fonts14/24. Font size cannot focus/edit/drag; MCP endpoint retains selection. Native screenshot not rerun. 351 regression tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-shared-display-*"
+  },
+  "vintage_shared_kit_audit": {
+    "date": "2026-11-16",
+    "reference": "User-requested Vintage component reuse and square +/- actions; docs/vintage-widget-kit.md",
+    "tests": [
+      "tests/f17_ui.rs::font_stepper_actions_are_square_at_rest_hover_and_disabled",
+      "tests/vintage_ui.rs::gallery_font_stepper_matches_production_square_display_only_control",
+      "tests/vintage_ui.rs::gallery_switch_previews_the_production_track_and_square_knob",
+      "tests/vintage_ui.rs::icon_buttons_are_square_in_controls_toolbar_and_table_actions",
+      "tests/f17_ui.rs::font_size_value_is_display_only_and_buttons_change_and_persist_size"
+    ],
+    "verification": "354 Rust tests pass,0 failed/ignored; fmt/Clippy/build pass. Test-first34x44 failure fixed. Shared square layout, font stepper, input and switch implementations used by gallery and production. No new native screenshot.",
+    "evidence": "docs/artifacts/ui-parity/vintage-kit-*"
+  },
+  "vintage_empty_tables_and_endpoint_copy": {
+    "date": "2026-11-16",
+    "reference": "User-requested copy beside endpoint, retained empty Network table and unified empty text",
+    "tests": [
+      "tests/f18_ui.rs::mcp_endpoint_copy_action_copies_only_the_endpoint_and_is_square",
+      "tests/f18_ui.rs::settings_dropdown_widths_are_bounded_and_endpoint_hugs_its_text",
+      "tests/desktop_ui.rs::empty_capture_panes_only_paint_centered_messages",
+      "tests/desktop_ui.rs::filtered_network_and_console_keep_headers_and_share_empty_text_in_both_locales"
+    ],
+    "verification": "356 Rust tests pass,0 failed/ignored; fmt/Clippy/build pass. Production egui paint/input, clipboard output, empty/filtered headers/borders, EN/VI and narrow24px font verified. No native screenshot.",
+    "evidence": "docs/artifacts/ui-parity/vintage-empty-copy-*"
+  },
+  "json_workspace_outer_padding": {
+    "date": "2026-11-16",
+    "reference": "User requested padding on the parent of both JSON panes",
+    "tests": [
+      "tests/desktop_ui.rs::json_workspace_has_uniform_outer_padding_and_sixteen_pixel_divider",
+      "tests/desktop_ui.rs::json_workspace_panes_have_four_pixel_insets_and_top_left_placeholders"
+    ],
+    "verification": "Test-first failure reproduced asymmetric top/side margins. Parent padding now8px on all sides, inner pane padding4px retained; UI geometry checked at700/1360px. No native screenshot. 356 regression tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-json-outer-*"
+  },
+  "json_tree_guides_and_toolbar_refinement": {
+    "date": "2026-11-16",
+    "reference": "User screenshots: JSON must not show branch guides; Tree dashed guides; equal icon sizes; padded tabs; no enclosing search-group border",
+    "tests": [
+      "tests/desktop_ui.rs::json_root_connectors_reach_nested_arrows_and_folding_is_independent",
+      "tests/desktop_ui.rs::json_toolbar_has_uniform_square_actions_padded_tabs_and_no_group_border",
+      "tests/desktop_ui.rs::json_find_clear_uses_same_material_icon_size_as_navigation",
+      "tests/desktop_ui.rs::json_find_focus_options_highlights_navigation_and_fold_reveal"
+    ],
+    "verification": "Production egui tests check zero Code connector segments, Tree branch geometry and folds (solid reference geometry supersedes the initial dashed interpretation; see tree_connector_reference_restore), uniform square search/navigation/clear/copy actions,8px tab side padding and no outer group stroke at14/24px in workspace and inspector. Existing search/folding/clipboard regressions retained. No new native screenshot. 357 regression tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-json-tools-*"
+  },
+  "tree_connector_reference_restore": {
+    "date": "2026-11-16",
+    "reference": "User confirmed original Tree screenshot is correct; source lib/ui/json_tree_view.dart::_TreeBranches.paint (Flutter source read-only)",
+    "tests": [
+      "tests/desktop_ui.rs::tree_connectors_match_reference_short_elbows_and_start_below_parent_rows",
+      "tests/desktop_ui.rs::json_root_connectors_reach_nested_arrows_and_folding_is_independent"
+    ],
+    "verification": "Test-first failure reproduced stems on parent rows. Solid connector geometry restored: x=(column*4+.5)*cell,2.5-cell horizontal elbow, ancestor continuation flags and last-child termination; no own-row stem. UI tests at14/24px verify short elbows, gap before text/arrows, root termination and collapse/reopen. Code mode still omits guides; toolbar changes retained. No new native screenshot. 358 regression tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-tree-reference-*"
+  },
+  "json_tree_fold_arrow_alignment": {
+    "date": "2026-11-16",
+    "reference": "User screenshots show fold arrows below the visible row text in JSON and Tree.",
+    "tests": [
+      "tests/desktop_ui.rs::json_and_tree_fold_arrows_center_on_visible_text",
+      "tests/desktop_ui.rs::tree_connectors_match_reference_short_elbows_and_start_below_parent_rows"
+    ],
+    "verification": "Production egui paint/input verifies vertical centering at 14px and 24px for root and nested rows in both views, expanded and collapsed. Hit areas and Tree branches retained. 359 Rust tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-json-arrow-*"
+  },
+  "action_only_hover_tooltips": {
+    "date": "2026-11-16",
+    "reference": "User screenshot shows a full URL tooltip over Network table rows.",
+    "tests": [
+      "tests/desktop_ui.rs::network_rows_do_not_show_tooltips_but_action_buttons_do"
+    ],
+    "verification": "Production UI test checks no URL tooltip, retained Settings tooltip, hand cursor and row selection. 360 Rust tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-action-tooltip-*"
+  },
+  "vintage_uniform_light_background": {
+    "date": "2026-11-16",
+    "reference": "User screenshot requests a uniform green-tinted content background with white editable fields and buttons.",
+    "tests": [
+      "tests/desktop_ui.rs::light_theme_keeps_content_green_and_uses_tinted_control_backgrounds"
+    ],
+    "verification": "Production UI checks exact fills on Network, the inspector, the JSON workspace and Settings. 361 Rust tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-green-background-*"
+  },
+  "vintage_json_workspace_full_header": {
+    "date": "2026-11-16",
+    "reference": "User screenshot shows Find in the JSON workspace header while related controls remain in the pane.",
+    "tests": [
+      "tests/desktop_ui.rs::json_workspace_puts_all_find_controls_and_view_tabs_in_the_header",
+      "tests/desktop_ui.rs::workspace_header_formats_finds_copies_and_downloads_json",
+      "tests/desktop_ui.rs::json_workspace_panes_have_four_pixel_insets_and_top_left_placeholders"
+    ],
+    "verification": "Production UI verifies toolbar location, vertical alignment and interaction. 362 Rust tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-json-header-controls-*"
+  },
+  "vintage_tinted_control_backgrounds": {
+    "date": "2026-11-16",
+    "reference": "User requested #E6EBDF for widgets formerly using white backgrounds.",
+    "tests": [
+      "tests/desktop_ui.rs::light_theme_keeps_content_green_and_uses_tinted_control_backgrounds"
+    ],
+    "verification": "Production UI verifies exact control and content fills and preservation of literal JSON sample colors. 362 tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-tinted-controls-*"
+  },
+  "vintage_control_background_d9ded3": {
+    "date": "2026-11-16",
+    "reference": "User requested #D9DED3 instead of #E6EBDF.",
+    "tests": [
+      "tests/desktop_ui.rs::light_theme_keeps_content_green_and_uses_tinted_control_backgrounds"
+    ],
+    "verification": "Test-first color failure; production UI fill test and all 362 Rust tests pass; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-d9ded3-*"
+  },
+  "vintage_control_background_e0e5d9": {
+    "reference": "User chose #E0E5D9 for light widget backgrounds.",
+    "tests": [
+      "tests/desktop_ui.rs::light_theme_keeps_content_green_and_uses_tinted_control_backgrounds"
+    ],
+    "verification": "Exact fill UI check and 362 Rust tests passed; fmt/Clippy/build passed.",
+    "evidence": "docs/artifacts/ui-parity/vintage-e0e5d9-*"
+  },
+  "vintage_header_action_borders": {
+    "date": "2026-11-17",
+    "reference": "User reports missing borders on rightmost second-row Copy/Export controls.",
+    "tests": [
+      "tests/desktop_ui.rs::both_header_rows_keep_complete_action_borders_with_and_without_json"
+    ],
+    "verification": "Test-first disabled border failure plus rightmost clipping failure reproduced; both header rows tested with empty and populated JSON. 363 tests pass, including 78 desktop UI tests; fmt/Clippy/build pass.",
+    "evidence": "docs/artifacts/ui-parity/vintage-header-border-*"
+  },
+  "vintage_settings_equal_section_padding": {
+    "date": "2026-11-17",
+    "reference": "User reports unequal top/bottom whitespace inside Settings sections.",
+    "tests": [
+      "tests/f18_ui.rs::settings_sections_have_equal_top_and_bottom_content_padding"
+    ],
+    "verification": "Test-first measured padding mismatch; real painted bounds verified for Interface, MCP and App updates at narrow/wide widths and 14/24px. All 364 tests and fmt/Clippy/build passed.",
+    "evidence": "docs/artifacts/ui-parity/vintage-settings-section-padding-*"
+  },
+  "vintage_settings_heading_icon_height": {
+    "date": "2026-11-17",
+    "reference": "User requests heading icons to have the same height as titles.",
+    "tests": [
+      "tests/f18_ui.rs::settings_heading_icons_match_title_height_and_vertical_center",
+      "tests/f18_ui.rs::settings_sections_have_equal_top_and_bottom_content_padding"
+    ],
+    "verification": "Test-first height mismatch reproduced; matching icon/title layout heights and centers verified at font14/24. 365 tests and fmt/Clippy/build passed.",
+    "evidence": "docs/artifacts/ui-parity/vintage-settings-heading-icon-*"
+  },
+  "vintage_help_and_localized_empty": {
+    "date": "2026-11-17",
+    "reference": "User requests removal of Help Copy and locale-aware empty text.",
+    "tests": [
+      "tests/f17_ui.rs::help_keeps_discussion_link_without_copy_action",
+      "tests/desktop_ui.rs::filtered_network_and_console_keep_headers_and_share_empty_text_in_both_locales",
+      "tests/desktop_ui.rs::empty_headers_and_bodies_show_localized_no_data",
+      "tests/desktop_ui.rs::empty_capture_panes_only_paint_centered_messages"
+    ],
+    "verification": "Both issues reproduced test-first; locale and Help UI tests plus all 365 Rust tests passed; fmt/Clippy/build passed.",
+    "evidence": "docs/artifacts/ui-parity/vintage-help-localized-empty-*"
+  },
+  "vintage_silent_update_probe_and_button_label": {
+    "date": "2026-11-17",
+    "reference": "Remove duplicated update label; probe updates silently at startup and change the button label when available.",
+    "tests": [
+      "tests/f20_ui.rs::updates_hide_duplicate_status_and_offer_latest_version_in_both_languages",
+      "tests/f20_ui.rs::startup_update_failure_is_silent_but_manual_retry_reports_errors",
+      "tests/f20_updater.rs::background_availability_waits_for_manual_action_before_native_progress"
+    ],
+    "verification": "Test-first UI/backend failures reproduced; 366 Rust tests, fmt/Clippy/build passed. Native Sparkle probe API compiled; no live update installation.",
+    "evidence": "docs/artifacts/ui-parity/vintage-background-update-label-*"
+  },
+  "vintage_four_pixel_icon_text_gap": {
+    "date": "2026-11-17",
+    "reference": "User requests a4px icon-to-text gap everywhere.",
+    "tests": [
+      "tests/desktop_ui.rs::icon_text_gaps_are_four_pixels_in_header_search_and_settings",
+      "tests/desktop_ui.rs::network_filters_live_in_header_and_search_has_compact_padding"
+    ],
+    "verification": "Test-first spacing failure reproduced. Production UI geometry checks at14/24px, resting and hovered, pass; 367 tests and fmt/Clippy/build passed.",
+    "evidence": "docs/artifacts/ui-parity/vintage-icon-text-gap-*"
+  },
+  "vintage_find_connect_label": {
+    "date": "2026-11-17",
+    "reference": "Rename Scan projects & connect to Find & connect.",
+    "tests": [
+      "tests/desktop_ui.rs::header_connection_controls_align_right_with_manual_popup_button",
+      "tests/desktop_ui.rs::discovery_picker_and_capture_actions_are_wired_and_dismissible"
+    ],
+    "verification": "Test-first label failure reproduced; production UI and all 367 Rust tests passed, with fmt/Clippy/build.",
+    "evidence": "docs/artifacts/ui-parity/vintage-find-connect-*"
+  },
+  "ventura_shared_palette": {
+    "date": "2026-11-17",
+    "reference": "Apply approved Ventura gray/white/blue light/dark palette while preserving widget geometry and seven JSON colors.",
+    "tests": [
+      "tests/desktop_ui.rs::ventura_palette_is_applied_to_production_controls_selection_and_json_in_both_modes",
+      "tests/desktop_ui.rs::light_theme_uses_ventura_content_and_control_backgrounds",
+      "tests/desktop_ui.rs::text_inputs_keep_vintage_default_and_focused_borders",
+      "tests/ui_parity.rs::ventura_palette_and_cascadia_typography_are_used_in_both_themes",
+      "tests/f17_ui.rs::toast_variants_position_rows_and_exact_mounted_deadlines",
+      "tests/f18_ui.rs::mcp_display_and_input_share_field_style_and_copy_buttons_include_icon_and_label",
+      "tests/vintage_ui.rs"
+    ],
+    "verification": "Test-first palette failure reproduced; all368 Rust tests passed, zero failed/ignored. fmt/Clippy/build passed; debug app refreshed. egui rendering verified; no native screenshot.",
+    "evidence": "docs/artifacts/ui-parity/ventura-palette-*"
+  },
+  "ui_remove_hover_scaling": {
+    "date": "2026-11-17",
+    "reference": "Remove1.1x hover scaling throughout the app, preserving hand cursors and action behavior.",
+    "tests": [
+      "tests/vintage_ui.rs::action_hover_preserves_widget_dimensions_and_font_size",
+      "tests/vintage_ui.rs::hover_keeps_action_variants_and_popup_options_at_normal_size",
+      "tests/vintage_ui.rs::hover_keeps_controls_neighbors_rows_and_panels_unchanged",
+      "tests/vintage_ui.rs::hovered_table_icon_keeps_center_and_rasterizes_at_current_dpi",
+      "tests/vintage_ui.rs::hovered_dropdown_stays_opaque_without_overlapping_neighbor_labels",
+      "tests/vintage_ui.rs::gallery_switch_previews_the_production_track_and_square_knob",
+      "tests/desktop_ui.rs::toolbar_icon_ink_is_centered_on_both_axes_at_rest_and_on_hover",
+      "tests/f17_ui.rs"
+    ],
+    "verification": "Test-first hover rectangle failure reproduced; real egui geometry/font/copy/cursor tests pass. All368 Rust tests, fmt/Clippy/build passed; app refreshed.",
+    "evidence": "docs/artifacts/ui-parity/vintage-no-hover-scale-*"
+  },
+  "geist_ui_cascadia_json_tree": {
+    "date": "2026-11-17",
+    "reference": "Use Geist for all UI and retain Cascadia Mono for JSON/Tree, with one shared font-size setting.",
+    "tests": [
+      "tests/desktop_ui.rs::geist_ui_and_cascadia_json_tree_share_the_configured_font_size",
+      "tests/f17_ui.rs::bundled_geist_and_cascadia_faces_keep_vietnamese_and_settings_field_styling",
+      "tests/f17_ui.rs::vietnamese_ui_glyphs_exist_in_both_font_families",
+      "tests/f17_ui.rs::font_stepper_actions_are_square_at_rest_hover_and_disabled",
+      "tests/desktop_ui.rs::json_toolbar_has_uniform_square_actions_padded_tabs_and_no_group_border",
+      "tests/desktop_ui.rs::json_workspace_puts_all_find_controls_and_view_tabs_in_the_header",
+      "tests/desktop_ui.rs::scrolling_network_rows_are_clipped_below_fixed_header",
+      "tests/vintage_ui.rs::hovered_table_icon_keeps_center_and_rasterizes_at_current_dpi"
+    ],
+    "verification": "Test-first UI font failure reproduced; actual egui text/family, Vietnamese, size14/24, Light/Dark and geometry checks pass. All369 tests, fmt/Clippy/build passed; bundled app refreshed.",
+    "evidence": "docs/artifacts/ui-parity/geist-ui-cascadia-json-*"
+  },
+  "wrapped_inspector_metadata_tables": {
+    "date": "2026-11-17",
+    "reference": "Wrap inspector table values without horizontal scroll; set fixed Title width and preserve alignment/copy.",
+    "tests": [
+      "tests/vintage_ui.rs::key_value_tables_wrap_full_values_inside_fixed_title_columns_without_horizontal_overflow",
+      "tests/desktop_ui.rs::inspector_overview_and_header_tables_wrap_values_inside_the_viewport",
+      "tests/vintage_ui.rs::key_value_content_aligns_title_and_value_left_and_actions_center",
+      "tests/vintage_ui.rs::metadata_and_form_use_aligned_grids_with_optional_copy_action_column",
+      "tests/desktop_ui.rs::approved_metadata_and_form_tables_keep_copy_actions_and_full_values"
+    ],
+    "verification": "Test-first horizontal overflow reproduced. Real egui tests verify wrapped full values,160px Title, dynamic heights, viewport fit, alignment, grid continuity and full copy. All371 Rust tests, fmt/Clippy/build passed; app refreshed.",
+    "evidence": "docs/artifacts/ui-parity/wrapped-metadata-tables-*"
+  },
+  "raw_colored_query": {
+    "date": "2026-11-17",
+    "reference": "Left-align table values and render/copy the raw encoded query using JSON syntax colors.",
+    "tests": [
+      "tests/desktop_ui.rs::query_parameters_preserve_raw_bytes_use_json_colors_and_left_align_values",
+      "tests/vintage_ui.rs::key_value_content_aligns_title_and_value_left_and_actions_center",
+      "tests/vintage_ui.rs::key_value_tables_wrap_full_values_inside_fixed_title_columns_without_horizontal_overflow"
+    ],
+    "verification": "Test-first failure reproduced; 372 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/raw-colored-query-*"
+  },
+  "overview_url_split": {
+    "date": "2026-11-17",
+    "reference": "Split Overview URL into Method, Domain, Endpoint and Query params.",
+    "tests": [
+      "tests/desktop_ui.rs::overview_lists_method_domain_endpoint_and_query_params_as_first_four_rows",
+      "tests/desktop_ui.rs::query_parameters_preserve_raw_bytes_use_json_colors_and_left_align_values",
+      "tests/desktop_ui.rs::inspector_overview_and_header_tables_wrap_values_inside_the_viewport"
+    ],
+    "verification": "Test-first row order failure reproduced; 373 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/overview-url-split-*"
+  },
+  "json_tree_segmented_control": {
+    "date": "2026-11-17",
+    "reference": "Use one shared blue border for the two JSON and Tree segments.",
+    "tests": [
+      "tests/desktop_ui.rs::json_toolbar_has_uniform_square_actions_padded_tabs_and_no_group_border",
+      "tests/desktop_ui.rs::json_workspace_puts_all_find_controls_and_view_tabs_in_the_header"
+    ],
+    "verification": "Test-first double border reproduced; 373 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/json-tree-segmented-control-*"
+  },
+  "full_width_metadata_table": {
+    "date": "2026-11-17",
+    "reference": "Remove the redundant bordered and padded wrapper around inspector tables.",
+    "tests": [
+      "tests/desktop_ui.rs::inspector_url_is_left_aligned_and_metadata_tables_fill_the_viewport",
+      "tests/desktop_ui.rs::inspector_overview_and_header_tables_wrap_values_inside_the_viewport"
+    ],
+    "verification": "Test-first inset reproduced; all 373 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/full-width-metadata-table-*"
+  },
+  "overview_domain_scheme": {
+    "date": "2026-11-17",
+    "reference": "Retain the source URL scheme in the Domain row and its clipboard output.",
+    "tests": [
+      "tests/desktop_ui.rs::overview_lists_method_domain_endpoint_and_query_params_as_first_four_rows"
+    ],
+    "verification": "Test-first missing scheme reproduced; all 373 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/overview-domain-scheme-*"
+  },
+  "ventura_inspector_scrollbar": {
+    "date": "2026-11-17",
+    "reference": "Ventura-style horizontal overlay scrollbar for overflowing inspector tabs.",
+    "tests": [
+      "tests/desktop_ui.rs::inspector_ventura_scrollbar_is_overlay_and_drags_to_hidden_tabs"
+    ],
+    "verification": "Test-first missing scrollbar reproduced; all 374 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/ventura-scrollbar-*"
+  },
+  "ventura_scrollbar_clearance": {
+    "date": "2026-11-17",
+    "reference": "The horizontal inspector scrollbar stays below the tab buttons, including on hover.",
+    "tests": [
+      "tests/desktop_ui.rs::inspector_ventura_scrollbar_is_overlay_and_drags_to_hidden_tabs"
+    ],
+    "verification": "Overlap reproduced before the fix; all 374 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/ventura-scrollbar-clearance-*"
+  },
+  "standalone_icon_button_size": {
+    "date": "2026-11-17",
+    "reference": "Standalone icon controls use 24 pt square frames and 14 pt glyphs.",
+    "tests": [
+      "tests/desktop_ui.rs::standalone_icon_buttons_use_24_point_frames_and_14_point_glyphs",
+      "tests/desktop_ui.rs::network_columns_shrink_to_small_title_filter_gap",
+      "tests/f17_ui.rs::font_stepper_actions_are_square_at_rest_hover_and_disabled",
+      "tests/vintage_ui.rs::hovered_table_icon_keeps_center_and_rasterizes_at_current_dpi"
+    ],
+    "verification": "Test-first size mismatches reproduced; all 375 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/icon-button-size-*"
+  },
+  "persistent_text_input_borders": {
+    "date": "2026-11-17",
+    "reference": "Text input borders stay visible across idle and focus states.",
+    "tests": [
+      "tests/desktop_ui.rs::text_inputs_keep_vintage_default_and_focused_borders",
+      "tests/f17_ui.rs::settings_text_fields_have_gray_idle_and_blue_focus_borders",
+      "tests/vintage_ui.rs::selected_popup_options_use_paper_text_and_focused_inputs_keep_ink_borders"
+    ],
+    "verification": "Inspector JSON search focus border regression reproduced before the fix; all 375 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/input-borders-*"
+  },
+  "inspector_json_vertical_spacing": {
+    "date": "2026-11-17",
+    "reference": "6 pt from the inspector scrollbar lane to the JSON toolbar and 12 pt from the toolbar to the first JSON or Tree row.",
+    "tests": [
+      "tests/desktop_ui.rs::json_body_uses_plain_line_numbers_compact_toolbar_and_terminal_tree"
+    ],
+    "verification": "Test-first 18 pt gap reproduced; all 375 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/inspector-json-spacing-*"
+  },
+  "table_header_filter_icon_size": {
+    "date": "2026-11-17",
+    "reference": "Network and Console header filters retain 24 pt square buttons with 20 pt arrow glyphs.",
+    "tests": [
+      "tests/desktop_ui.rs::network_columns_shrink_to_small_title_filter_gap",
+      "tests/desktop_ui.rs::compact_header_manual_popup_and_console_header_filters_work"
+    ],
+    "verification": "All 375 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/table-filter-size-*"
+  },
+  "console_table_header_seam": {
+    "date": "2026-11-17",
+    "reference": "Console rows and empty results start at the fixed table header edge.",
+    "tests": [
+      "tests/desktop_ui.rs::console_table_joins_header_and_body_and_clips_scrolling_rows"
+    ],
+    "verification": "Test-first 6 pt gap reproduced; all 376 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/console-table-seam-*"
+  },
+  "console_message_wrap": {
+    "date": "2026-11-17",
+    "reference": "Show complete Console messages by wrapping within variable-height rows.",
+    "tests": [
+      "tests/desktop_ui.rs::console_message_wraps_full_text_and_grows_only_its_row",
+      "tests/desktop_ui.rs::console_table_joins_header_and_body_and_clips_scrolling_rows",
+      "tests/desktop_ui.rs::f16_lists_and_json_build_only_viewport_and_detail_cache_ignores_other_events"
+    ],
+    "verification": "Test-first truncation reproduced; all 377 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/console-message-wrap-*"
+  },
+  "shared_console_network_inspector": {
+    "date": "2026-11-17",
+    "reference": "Use shared inspector frame, tabs and JSON/Tree controls in Console and Network.",
+    "tests": [
+      "tests/desktop_ui.rs::console_and_network_inspectors_share_tabs_spacing_and_json_controls",
+      "tests/desktop_ui.rs::console_groups_json_exception_inspects_copies_and_lazily_opens_raw"
+    ],
+    "verification": "Reproduced plain-text Console detail before the fix; all 378 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/shared-inspector-*"
+  },
+  "console_detail_metadata_table": {
+    "date": "2026-11-17",
+    "reference": "Remove Console inspector heading; Detail uses shared Network metadata table; Raw retains JSON/Tree.",
+    "tests": [
+      "tests/desktop_ui.rs::console_and_network_inspectors_share_tabs_spacing_and_json_controls",
+      "tests/desktop_ui.rs::console_groups_json_exception_inspects_copies_and_lazily_opens_raw"
+    ],
+    "verification": "Test-first missing table reproduced; 378 regression tests passed, 12 focused Console UI tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/console-detail-table-*"
+  },
+  "console_column_resize": {
+    "date": "2026-11-17",
+    "reference": "Console header dividers resize adjacent columns and reflow Message.",
+    "tests": [
+      "tests/desktop_ui.rs::console_column_dividers_resize_adjacent_cells_and_reflow_message",
+      "tests/desktop_ui.rs::console_message_wraps_full_text_and_grows_only_its_row"
+    ],
+    "verification": "Test-first missing grip reproduced; 379 regression tests and 13 focused Console UI tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/console-column-resize-*"
+  },
+  "network_filter_all_labels": {
+    "date": "2026-11-17",
+    "reference": "Method and Status dropdowns display ALL in EN/VI and restore unfiltered Network rows.",
+    "tests": [
+      "tests/desktop_ui.rs::network_filter_menus_show_all_and_restore_unfiltered_requests"
+    ],
+    "verification": "UI test failed before the label fix and passed after it. 380 regression tests passed across the initial run and socket retry; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/network-filter-all-*"
+  },
+  "console_message_tag_filter": {
+    "date": "2026-11-17",
+    "reference": "Console Message header filter manages and applies message tags in a fixed popup.",
+    "tests": [
+      "tests/desktop_ui.rs::console_message_filter_tags_add_remove_and_match_only_message_text"
+    ],
+    "verification": "Test-first missing control reproduced; 381 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/console-message-tags-*"
+  },
+  "console_message_tag_icons": {
+    "date": "2026-11-17",
+    "reference": "Console message tags use the bundled Add and Close icons.",
+    "tests": [
+      "tests/desktop_ui.rs::console_message_filter_tags_add_remove_and_match_only_message_text"
+    ],
+    "verification": "Font map verified, wrong glyph reproduced before the fix, and all 381 tests passed; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/console-tag-icons-*"
+  },
+  "console_message_tag_wrap": {
+    "date": "2026-11-17",
+    "reference": "Console filter tags wrap from the left as fitted, bordered cards with 8 pt gaps.",
+    "tests": [
+      "tests/desktop_ui.rs::console_message_filter_tags_add_remove_and_match_only_message_text"
+    ],
+    "verification": "Test-first missing card layout reproduced; 381 tests passed across initial run and socket retry; fmt, Clippy and build passed.",
+    "evidence": "docs/artifacts/ui-parity/console-tags-wrap-*"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "helpTitle": {
+    "en": "Basic usage guide",
+    "vi": "Hướng dẫn sử dụng cơ bản"
+  },
+  "helpConnectTitle": {
+    "en": "1. Connect your Flutter app",
+    "vi": "1. Kết nối ứng dụng Flutter"
+  },
+  "helpConnectBody": {
+    "en": "Run your Flutter app in debug or profile mode, then click Find & connect. One project connects automatically; choose from the list if several are found. Or click Manual URL, paste a DevTools or VM Service URL and click Find.",
+    "vi": "Chạy ứng dụng Flutter ở chế độ debug hoặc profile, rồi bấm Tìm & kết nối. Một dự án sẽ tự kết nối; nếu có nhiều dự án, chọn trong danh sách. Hoặc bấm Manual URL, dán URL DevTools hoặc VM Service rồi bấm Tìm."
+  },
+  "helpNetworkTitle": {
+    "en": "2. Inspect requests in Network",
+    "vi": "2. Xem request trong tab Mạng"
+  },
+  "helpNetworkBody": {
+    "en": "Select a request to inspect its headers and body. Search by URL; filter method and status in the table headings. Switch between JSON / Tree, search the body or preview images and colors. Drag dividers to resize panels and columns.",
+    "vi": "Chọn request để xem header và body. Tìm theo URL; lọc method và trạng thái ở tiêu đề cột. Chuyển JSON / Tree, tìm trong body hoặc xem trước ảnh và màu. Kéo đường chia để đổi kích thước khung và cột."
+  },
+  "helpConsoleTitle": {
+    "en": "3. Read logs in Console",
+    "vi": "3. Đọc log trong tab Nhật ký"
+  },
+  "helpConsoleBody": {
+    "en": "Read print/debugPrint, errors and developer logs after connecting. Use the search bar and Source / Level filters in the table headings. Select a log for details and its stack trace.",
+    "vi": "Xem print/debugPrint, lỗi và developer log sau khi kết nối. Dùng thanh tìm kiếm và bộ lọc Nguồn / Mức độ ở tiêu đề cột. Chọn log để xem chi tiết và stack trace."
+  },
+  "helpJsonTitle": {
+    "en": "4. Format JSON in Json beautify",
+    "vi": "4. Định dạng JSON trong Json beautify"
+  },
+  "helpJsonBody": {
+    "en": "Paste JSON into the left panel. Click Format or press ⌘/Ctrl + Enter. Use Find, Copy and Download in the toolbar; browse the result as JSON / Tree. No app connection is required.",
+    "vi": "Dán JSON vào khung trái. Bấm Định dạng hoặc nhấn ⌘/Ctrl + Enter. Dùng Tìm kiếm, Sao chép và Tải xuống trên thanh công cụ; xem kết quả dạng JSON / Tree. Không cần kết nối ứng dụng."
+  },
+  "helpCaptureTitle": {
+    "en": "5. Pause, clear and export",
+    "vi": "5. Tạm dừng, xóa và xuất dữ liệu"
+  },
+  "helpCaptureBody": {
+    "en": "Pause stops collecting new requests and logs; Resume continues. Clear removes captured data. Download saves the capture as JSON. Download before closing if you need to keep it.",
+    "vi": "Tạm dừng ngừng thu thập request và log mới; Tiếp tục bật lại. Xóa loại bỏ dữ liệu đã thu thập. Tải xuống lưu dữ liệu thành JSON. Tải xuống trước khi đóng nếu cần giữ dữ liệu."
+  }
+}

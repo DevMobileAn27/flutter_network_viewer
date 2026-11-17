@@ -1,0 +1,7 @@
+{
+  "build": 1,
+  "identifier": "dev.quocan.flutterNetworkViewer.rust",
+  "title": "Flutter Network Viewer Rust — Bản thử nghiệm 0.1.0",
+  "notes": "Rust desktop preview. Chưa hoàn tất acceptance Windows, signing và accessibility.\n",
+  "public_key": "TNPdGQZDTuvlcdgdReTFjir/+sfSLq5+o92dT4IolFY="
+}
