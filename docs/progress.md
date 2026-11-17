@@ -4016,3 +4016,21 @@ leaves published `rust-v1.0.1` unchanged. The version/build gate failed before
 metadata was bumped. 24 release/packaging tests, 385 Rust tests, fmt and Clippy
 passed. Evidence: `docs/artifacts/ci-v1.0.2`. Hosted signing and the installed
 Flutter-to-Rust upgrade still require validation.
+
+## F21 — macOS bundle validation for v1.0.3
+
+Compared the published 0.1.8 and 1.0.2 Apple Silicon bundles. The 1.0.2 ZIP
+matched the appcast length and Ed25519 signature using the 0.1.8 public key.
+The old app passed strict codesign validation; the 1.0.2 app failed with
+`code has no resources but signature indicates they must be present` because it
+only had the Mach-O linker signature. Signing its outer bundle ad hoc while
+preserving the vendor Sparkle signatures made strict validation pass.
+
+macOS packaging now seals the bundle before zipping and requires strict deep
+verification. Appcast descriptions use escaped HTML that can wrap. Bumped to
+1.0.3/build 13; no existing GitHub release changed. The package regression
+reproduced the same codesign failure before the fix. A real 1.0.3 ARM64 ZIP was
+built, extracted and verified. All 25 release/packaging tests, macOS signer test,
+385 Rust tests, fmt and Clippy passed. Evidence: `docs/artifacts/ci-v1.0.3-macos-signing`.
+The full upgrade from the installed 0.1.8 app using a production-signed 1.0.3
+feed, and hosted Intel validation, are still pending.

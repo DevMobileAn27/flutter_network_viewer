@@ -69,7 +69,10 @@ def feed(meta,platform,name,length,kind,signature):
     ET.SubElement(channel,'title').text='Flutter Network Viewer'
     ET.SubElement(channel,'link').text=REPOSITORY
     item=ET.SubElement(channel,'item'); ET.SubElement(item,'title').text=meta['title']
-    ET.SubElement(item,'description').text='<pre>'+html.escape(meta['notes'])+'</pre>'
+    ET.SubElement(item,'description').text=''.join(
+        '<p>'+'<br>'.join(html.escape(line) for line in paragraph.splitlines())+'</p>'
+        for paragraph in meta['notes'].strip().split('\n\n') if paragraph.strip()
+    )
     ET.SubElement(item,f'{{{SPARKLE}}}version').text=str(meta['build']) if mac else meta['version']
     ET.SubElement(item,f'{{{SPARKLE}}}shortVersionString').text=meta['version']
     if mac: ET.SubElement(item,f'{{{SPARKLE}}}minimumSystemVersion').text='12.0'
@@ -183,13 +186,19 @@ def package(platform,output,identity=None):
         code=framework/'Versions/B'
         for path in [code/'XPCServices/Downloader.xpc',code/'XPCServices/Installer.xpc',code/'Updater.app',code/'Autoupdate',framework,app]:
             subprocess.run(['codesign','--force','--preserve-metadata=entitlements,requirements,flags','--options','runtime','--timestamp','--sign',identity,str(path)],check=True)
+    elif platform.startswith('macos-'):
+        # The Mach-O linker signature doesn't seal app resources. Keep the
+        # vendor signatures on Sparkle and seal the outer bundle before ZIP.
+        subprocess.run(['codesign','--force','--sign','-',str(app)],check=True)
+    if platform.startswith('macos-'):
         subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
     archive=output/filename(meta,platform)
     if archive.exists(): raise ValueError('Refusing to overwrite archive')
     if platform.startswith('macos-'): subprocess.run(['ditto','-c','-k','--sequesterRsrc','--keepParent',str(app),str(archive)],check=True)
     else: shutil.make_archive(str(archive.with_suffix('')),'zip',app)
     checksums([archive],archive.with_suffix('.sha256')); prepare(meta,output)
-    (output/f'{platform}-status.json').write_text(json.dumps({'code_signed':bool(identity),'notarized':False,'update_feed_generated':False,'release_ready':False},indent=2),encoding='utf-8')
+    signing='developer-id' if identity else 'ad-hoc' if platform.startswith('macos-') else 'none'
+    (output/f'{platform}-status.json').write_text(json.dumps({'code_signed':signing!='none','signing':signing,'notarized':False,'update_feed_generated':False,'release_ready':False},indent=2),encoding='utf-8')
     return archive
 
 

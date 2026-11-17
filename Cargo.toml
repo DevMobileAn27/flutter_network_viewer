@@ -1,6 +1,6 @@
 [package]
 name = "flutter-network-viewer"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 description = "Rust port of Flutter Network Viewer"
 publish = false

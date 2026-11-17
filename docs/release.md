@@ -1,8 +1,10 @@
 # Rust build/release — F21
 
 The build workflow creates a GitHub draft after all platform jobs pass.
-Publishing remains manual. Release `rust-v1.0.1` was already published without
-legacy appcasts; installing that release from Flutter `0.1.8` is manual.
+Publishing remains manual. Release `rust-v1.0.1` shipped without legacy
+appcasts. The macOS `rust-v1.0.2` archive has a valid Ed25519 signature, but its
+app bundle fails macOS code signature verification; Flutter Network Viewer
+`0.1.8` reports a Sparkle validation error. The fix is staged for `1.0.3`.
 
 ## Identity and update compatibility
 
@@ -87,9 +89,12 @@ inspection have **not** run on Windows.
 `package … --identity IDENTITY` provides an inside-out macOS codesign path for
 Sparkle XPC services, Updater.app, Autoupdate, framework and application; existing
 helper entitlements are preserved, followed by deep/strict verification. This
-branch has **not** been exercised: `security find-identity` found zero valid identities.
-Ad-hoc Mach-O linker signatures do not make these bundles Developer ID signed.
-Notarization/stapling and Authenticode signing are pending and not automated here.
+branch requires a Developer ID identity. Without an identity, the default
+macOS package applies an ad-hoc signature to seal the whole app bundle and
+preserves the vendor signatures on Sparkle. Both paths require
+`codesign --verify --deep --strict` before archiving. Ad-hoc signing is not
+Developer ID signing or notarization. Notarization/stapling and Authenticode
+signing are not automated here.
 
 `tools/release.py feed PLATFORM ARCHIVE --legacy` reads `UPDATE_SIGNING_KEY`
 from the environment and produces `appcast-<platform>.xml`. Omitting `--legacy`

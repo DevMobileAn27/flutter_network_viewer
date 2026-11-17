@@ -2688,5 +2688,16 @@
     "verification": "24 release tests, real macOS signing with ephemeral keys, 385 Rust tests, fmt, Clippy and YAML passed. Production secrets and in-place upgrade not exercised.",
     "evidence": "docs/artifacts/ci-legacy-update-feed-2026-11-17",
     "version_verification": "v1.0.2 build 12, targets a new draft; version gate red on 1.0.1/11; 24 release/packaging tests and 385 Rust tests pass. Evidence: docs/artifacts/ci-v1.0.2."
+  },
+  "ci_macos_bundle_signing_v103": {
+    "feature": "F21",
+    "reference": "The published macOS ZIP signature and the contained app bundle signature are separate requirements.",
+    "tests": [
+      "tools/test_f21_release.py::ReleaseTests::test_macos_package_has_valid_bundle_signature_after_unzip",
+      "tools/test_f21_release.py::ReleaseTests::test_notes_and_outputs_explicit_utf8",
+      "tools/test_f21_signer.py"
+    ],
+    "verification": "Old bundle reproduced strict codesign failure; built 1.0.3 ARM64 ZIP passes extraction and strict verification. 25 release/packaging and 385 Rust tests passed. Hosted in-place upgrade still pending.",
+    "evidence": "docs/artifacts/ci-v1.0.3-macos-signing"
   }
 }

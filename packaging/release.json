@@ -1,6 +1,6 @@
 {
-  "build": 12,
+  "build": 13,
   "identifier": "dev.quocan.flutterNetworkViewer.rust",
-  "notes": "- Bổ sung feed cập nhật có chữ ký cho macOS Apple Silicon, macOS Intel và Windows x64, để Flutter Network Viewer 0.1.8 có thể tìm thấy bản Rust mới.\n- Nếu bản Flutter cũ không cài được bản cập nhật qua ứng dụng, tải và cài gói phù hợp trong mục Bản tải bên dưới.\n",
+  "notes": "- Sửa chữ ký gói ứng dụng macOS khiến Sparkle từ chối cài bản cập nhật từ Flutter Network Viewer 0.1.8.\n- Nội dung trong hộp thoại cập nhật tự xuống dòng.\n",
   "public_key": "TNPdGQZDTuvlcdgdReTFjir/+sfSLq5+o92dT4IolFY="
 }

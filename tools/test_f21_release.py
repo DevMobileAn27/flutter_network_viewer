@@ -70,7 +70,7 @@ class ReleaseTests(unittest.TestCase):
     def test_metadata_and_monotonic_version_build(self):
         meta = release.metadata(ROOT)
         self.assertTrue(release.increased(meta['version'], meta['build'], '0.1.8', 9))
-        self.assertTrue(release.increased(meta['version'], meta['build'], '1.0.1', 11))
+        self.assertTrue(release.increased(meta['version'], meta['build'], '1.0.2', 12))
         self.assertEqual(meta['tag'], f"rust-v{meta['version']}")
         self.assertEqual(meta['identifier'], 'dev.quocan.flutterNetworkViewer.rust')
         self.assertTrue(release.increased('0.1.10', 11, '0.1.9', 10))
@@ -94,7 +94,10 @@ class ReleaseTests(unittest.TestCase):
             xml=release.feed(meta,'windows-x64',release.filename(meta,'windows-x64',installer=True),7,'dsaSignature',base64.b64encode(b'signature').decode())
             item=ET.fromstring(xml).find('channel/item')
             self.assertEqual(item.find('title').text,title)
-            self.assertEqual(html.unescape(item.find('description').text),f'<pre>{body}</pre>')
+            description=item.find('description').text
+            self.assertIn('&lt;script&gt;',description)
+            self.assertIn('Hướng dẫn <script> & ảnh 🖼️',html.unescape(description))
+            self.assertNotIn('<pre>',description)
 
     def test_feed_platform_signatures_and_namespace_fail_closed(self):
         meta=release.metadata(ROOT)
@@ -154,6 +157,27 @@ class ReleaseTests(unittest.TestCase):
             self.assertTrue((app/'Contents/Frameworks/Sparkle.framework/Versions/Current').is_symlink())
             for name in ['AppIcon.icns','LICENSE','THIRD_PARTY_NOTICES.md','fonts/cascadia_mono/CascadiaMono-Variable.ttf']:
                 self.assertTrue((app/'Contents/Resources'/name).is_file(),name)
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'requires macOS codesign and ditto')
+    def test_macos_package_has_valid_bundle_signature_after_unzip(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            platform = 'macos-arm64' if os.uname().machine == 'arm64' else 'macos-x86_64'
+            binary = folder / 'fixture'
+            release.subprocess.run(['clang', '-x', 'c', '-', '-o', str(binary)],
+                                   input=b'int main(void) { return 0; }', check=True)
+            app = release.stage(ROOT, release.metadata(ROOT), platform, binary, folder / 'stage')
+            real_run = release.subprocess.run
+            with patch.object(release, 'stage', return_value=app), \
+                 patch.object(release.subprocess, 'run', side_effect=lambda args, **kwargs:
+                              None if args[0] in ('cargo', 'lipo') else real_run(args, **kwargs)):
+                archive = release.package(platform, folder)
+            extracted = folder / 'unzip'
+            release.subprocess.run(['ditto', '-x', '-k', str(archive), str(extracted)], check=True)
+            release.subprocess.run(['codesign', '--verify', '--deep', '--strict', str(extracted / app.name)], check=True)
+            flags = (folder / f'{platform}-status.json').read_text(encoding='utf-8')
+            self.assertIn('"code_signed": true', flags)
+            self.assertIn('"signing": "ad-hoc"', flags)
 
     def test_windows_bundle_layout_and_checksums(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'docs/artifacts/f21') as folder:
