@@ -2822,5 +2822,13 @@
       "tests/desktop_ui.rs::header_rows_align_last_actions_to_the_same_eight_point_inset"
     ],
     "evidence": "docs/artifacts/ui-header-align-2026-11-18"
+  },
+  "ci_f20_about_pane": {
+    "reference": "Native Sparkle update action stays visible in the narrow About pane and performs a manual feed check.",
+    "tests": [
+      "examples/f20_native_smoke.rs",
+      "tools/f20_native_smoke.py"
+    ],
+    "evidence": "docs/artifacts/ci-f20-about-2026-11-18"
   }
 }

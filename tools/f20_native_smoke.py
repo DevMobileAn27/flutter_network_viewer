@@ -52,6 +52,7 @@ try:
     env['CFFIXED_USER_HOME']=str(output/'home')
     (output/'home').mkdir(exist_ok=True)
     subprocess.run([str(bundle/'MacOS/f20_native_smoke'),str(output),f'http://127.0.0.1:{server.server_port}/feed.xml'],cwd=root,env=env,check=True,timeout=70)
+    assert len(requests) >= 3, 'Expected malformed feed, retry, and manual check from About'
     high=(root/'tests/fixtures/f20_current.xml').read_text(encoding='utf-8').replace('<sparkle:version>1</sparkle:version>','<sparkle:version>999999</sparkle:version>').replace('<sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>','<sparkle:shortVersionString>99.0.0</sparkle:shortVersionString>')
     (output/'feed.xml').write_text(high,encoding='utf-8')
     requests_before_available=len(requests)

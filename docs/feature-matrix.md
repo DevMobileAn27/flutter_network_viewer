@@ -1501,3 +1501,16 @@ keeping horizontal scrolling available if the controls do not fit.
 the offset and now checks Network, Console and JSON in English and Vietnamese
 at multiple widths and font sizes. 396 Rust tests, fmt and Clippy pass.
 Verified macOS ARM64 bundle replaces `dist/latest`. Evidence: `docs/artifacts/ui-header-align-2026-11-18`.
+
+### F20 — native update smoke follows the About pane
+
+GitHub run 44234020080: Windows passed, both macOS jobs failed at the native F20
+step and draft release was skipped. The Intel log confirmed the
+`support_scroll > 0` assertion; the same failure reproduced locally on ARM64.
+About is now a separate pane. The smoke checks that its update button is fully
+visible in the resized Vietnamese dark window, and the loopback fixture requires
+three requests for malformed feed, retry and manual check. The real native
+current and available paths both exit cleanly without an installer request.
+macOS ARM64 F20, 396 Rust regression tests, fmt, Clippy and 3 updater
+integrity/signing tests passed locally. Hosted rerun pending.
+Evidence: `docs/artifacts/ci-f20-about-2026-11-18`.

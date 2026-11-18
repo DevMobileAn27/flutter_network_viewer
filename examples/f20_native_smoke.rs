@@ -207,24 +207,21 @@ impl eframe::App for Smoke {
                     assert!(self.app.ui.probe.widgets.contains_key("notification"));
                     self.localized_result_verified = true;
                 }
-                if !ctx
-                    .content_rect()
-                    .contains_rect(self.app.ui.probe.widgets["check-app-updates"])
-                {
-                    // On a narrow window the updates section is below the fold.
-                    let pos = self.app.ui.probe.widgets["settings-scroll"].center();
-                    self.events.push_back(vec![Event::PointerMoved(pos)]);
-                    self.events.push_back(vec![Event::MouseWheel {
-                        unit: egui::MouseWheelUnit::Point,
-                        delta: egui::vec2(0., -10000.),
-                        modifiers: Modifiers::NONE,
-                    }]);
-                    for _ in 0..12 {
-                        self.events.push_back(vec![]);
-                    }
-                    return;
-                }
-                assert!(self.app.ui.probe.support_scroll > 0.);
+                // About now has its own pane; the action must fit without scrolling.
+                let widgets = &self.app.ui.probe.widgets;
+                let viewport = ctx.content_rect();
+                assert!(
+                    viewport.width() <= 481. && viewport.height() <= 361.,
+                    "expected the resized viewport, got {viewport:?}"
+                );
+                let about = widgets["settings-updates"];
+                let action = widgets["check-app-updates"];
+                assert!(
+                    about.contains_rect(action)
+                        && widgets["settings-scroll"].contains_rect(action)
+                        && viewport.contains_rect(action),
+                    "update action {action:?} is clipped in the narrow About pane {about:?}"
+                );
                 self.shot(ctx, "settings-current-vi-narrow.png");
                 self.stage = Instant::now();
             }
