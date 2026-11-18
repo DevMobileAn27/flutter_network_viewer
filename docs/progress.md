@@ -4290,3 +4290,25 @@ Both native modes passed locally, along with the slow-frame example test,
 `coordinator_socket` but omits the failing case/panic; all six cases passed
 locally on macOS. Windows diagnosis and hosted rerun are pending.
 Evidence: `docs/artifacts/ci-f19-resume-flush-2026-11-18`.
+
+### F20/F21 — repair the missing Rust updater channel
+
+Installed Rust 1.0.1–1.0.4 requests
+`rust-updates/rust-appcast-{platform}.xml`, which returned HTTP 404 even
+though stable `rust-v1.0.4` contains signed `appcast-*` assets. Prepared
+byte-identical compatibility feeds after validating the published checksums.
+New builds now use the original `releases/latest/download/appcast-*` URLs;
+the exact-URL test failed before this fix and passes afterward.
+Added a stable-release publication workflow checked out from the default
+branch, with version/checksum/package/signature checks, downgrade rejection,
+and verification of public feed bytes after upload. The compatibility
+release is prerelease and never latest.
+
+Validation: 7 channel Python tests, 25 existing release Python tests,
+396 Rust tests, fmt, Clippy, and native macOS F20 current/available/manual
+paths pass. Native fixture runs do not perform an in-place installation.
+The user explicitly approved publishing the three compatibility feeds.
+Publication remains incomplete: Chrome's new-release page stayed blank and
+the browser control tool became unavailable before any release was created.
+Local workflow changes are not active on GitHub until pushed.
+Evidence: `docs/artifacts/update-channel-1.0.4`.

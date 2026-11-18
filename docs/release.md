@@ -13,18 +13,27 @@ Tags use `rust-v<version>`; bundle/installer ID `dev.quocan.flutterNetworkViewer
 Windows WinSparkle application name and executable version resource identify Rust.
 Settings already use a separate `flutter-network-viewer-rust` directory.
 
-Runtime feeds:
+Runtime feeds for new builds:
+`https://github.com/DevMobileAn27/flutter_network_viewer/releases/latest/download/appcast-{platform}.xml`.
+
+Compatibility endpoint for installed Rust 1.0.1–1.0.4 clients:
 `https://github.com/DevMobileAn27/flutter_network_viewer/releases/download/rust-updates/rust-appcast-{platform}.xml`.
 Supported platforms: `macos-arm64`, `macos-x86_64`, `windows-x64`.
-The dedicated `rust-updates` channel is **not provisioned/published**. A missing
-feed reports the real native error and offers retry. There is no fallback to the
-Flutter latest release or its `appcast-*` assets.
+Installed Rust versions 1.0.3 and 1.0.4 read this dedicated channel.
+The current release pipeline only attached `appcast-*` to versioned releases;
+without `rust-updates/rust-appcast-*`, those installed clients receive HTTP 404.
+The new `update-channel.yml` workflow copies the three published, signed feeds
+to that channel on a stable release publication (or explicit manual dispatch).
+It checks version, package identity, feed checksum, signature presence and
+prevents version downgrades. The channel is marked prerelease and never latest.
+It does not upload installers or change versioned release assets.
+The user approved initial channel publication; remote publication and endpoint verification remain pending.
 
 Archives: `flutter-network-viewer-rust-<version>-{platform}.zip`.
 Windows updater accepts only the corresponding `-windows-x64-setup.exe`, never
 the portable zip. Feed enclosures use `/releases/download/rust-v<version>/…`.
-A future authorized release must provision the Rust channel separately, after
-all gates pass. The workflow runs on pull requests, pushes to `main`, and manual
+The compatibility synchronization workflow must be present on the default branch
+before the next stable publication. New binaries use the original stable URL. The workflow runs on pull requests, pushes to `main`, and manual
 dispatch. It uploads versioned workflow artifacts for macOS ARM64, macOS Intel,
 and Windows x64. Main runs sign the update packages before upload using the
 existing `MACOS_UPDATE_PRIVATE_KEY` and `WINDOWS_UPDATE_PRIVATE_KEY` secrets.
@@ -174,3 +183,23 @@ fixed before final cross-target clippy. No coordinator bootstrap failure was
 observed in the final full regression; no claim that its earlier cause is fixed.
 
 F21 stays partial. There is no F22 or automatic successor chat.
+
+## Repair installed 1.0.3 clients
+
+Prepared feeds for the published 1.0.4 release are in
+`docs/artifacts/update-channel-1.0.4/feeds`. Their signed XML contents are
+unchanged; only filenames become `rust-appcast-{platform}.xml`.
+No binary rebuild or new version can repair the URL embedded in an already
+installed app. The channel must exist at that URL.
+
+Preparation has no remote side effects:
+
+```sh
+python -B tools/update_channel.py rust-v1.0.4 --source channel-source --output channel-feeds
+```
+
+Only after approval, use `--publish` with GitHub authentication, or manually
+dispatch `Sync published Rust update feeds` for `rust-v1.0.4` after the workflow
+is merged. Before any writes the tool requires the source release to be public,
+stable, and present in the repository. Keep the channel public and retain all
+three feed filenames for older installed clients.

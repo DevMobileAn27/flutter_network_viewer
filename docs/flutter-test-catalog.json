@@ -2838,5 +2838,15 @@
       "tools/f19_native_smoke.py (default and --slow-input)"
     ],
     "evidence": "docs/artifacts/ci-f19-resume-flush-2026-11-18"
+  },
+  "rust_update_channel": {
+    "reference": "Provide the missing stable compatibility channel used by already-installed Rust clients; preserve signed appcasts and avoid latest-release changes.",
+    "tests": [
+      "tools/test_update_channel.py (7 tests)",
+      "tests/f20_updater.rs::feeds_are_exact_and_unsupported_makes_no_native_calls",
+      "tools/f20_native_smoke.py (macOS current/available/manual)"
+    ],
+    "evidence": "docs/artifacts/update-channel-1.0.4",
+    "limitation": "Publication approved but not completed; browser new-release page blank and browser tool unavailable. Local workflow not pushed; installed-client upgrade not verified."
   }
 }

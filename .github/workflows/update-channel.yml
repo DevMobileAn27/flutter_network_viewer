@@ -1,0 +1,35 @@
+name: Sync published Rust update feeds
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published stable Rust release (for example rust-v1.0.4)
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: rust-update-channel
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'rust-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test compatibility feed validation
+        run: python -B tools/test_update_channel.py
+      - name: Download and validate published feeds, then update compatibility channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern 'appcast-*.xml' --pattern SHA256SUMS.txt --dir channel-source
+          python -B tools/update_channel.py "$RELEASE_TAG" --source channel-source --output channel-feeds --repository "$GITHUB_REPOSITORY" --publish

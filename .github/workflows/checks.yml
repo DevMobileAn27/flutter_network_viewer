@@ -43,6 +43,7 @@ jobs:
         run: cargo test --locked --offline --example f19_native_smoke
       - run: python -B tools/test_f21_release.py
       - run: python -B tools/test_draft_release.py
+      - run: python -B tools/test_update_channel.py
       - run: python -B tools/verify_updater_vendor.py
       - if: runner.os == 'macOS'
         run: |

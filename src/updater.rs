@@ -36,7 +36,7 @@ pub fn feed_for(os: &str, cpu: &str) -> Option<String> {
         _ => return None,
     };
     Some(format!(
-        "https://github.com/DevMobileAn27/flutter_network_viewer/releases/download/rust-updates/rust-appcast-{platform}.xml"
+        "https://github.com/DevMobileAn27/flutter_network_viewer/releases/latest/download/appcast-{platform}.xml"
     ))
 }
 pub trait Backend {

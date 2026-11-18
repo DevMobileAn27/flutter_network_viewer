@@ -57,7 +57,7 @@ fn feeds_are_exact_and_unsupported_makes_no_native_calls() {
         assert_eq!(
             feed_for(os, cpu).unwrap(),
             format!(
-                "https://github.com/DevMobileAn27/flutter_network_viewer/releases/download/rust-updates/rust-appcast-{suffix}.xml"
+                "https://github.com/DevMobileAn27/flutter_network_viewer/releases/latest/download/appcast-{suffix}.xml"
             )
         );
     }
