@@ -24,7 +24,7 @@ def prepare(source, output, tag):
         raise ValueError('Require a numeric Rust release tag')
     version = tag.removeprefix('rust-v')
     manifest = {}
-    for line in (source / 'SHA256SUMS.txt').read_text().splitlines():
+    for line in (source / 'SHA256SUMS.txt').read_text(encoding='utf-8').splitlines():
         digest, name = line.split('  ', 1)
         if not re.fullmatch(r'[a-f0-9]{64}', digest) or name in manifest:
             raise ValueError('Invalid checksum manifest')

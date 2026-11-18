@@ -1,6 +1,7 @@
 """Verify compatibility feed preparation without publishing or installing."""
 import base64
 import json
+import io
 import tempfile
 from pathlib import Path
 import unittest
@@ -17,6 +18,7 @@ class UpdateChannelTests(unittest.TestCase):
         self.source = self.root / 'source'
         self.source.mkdir()
         self.meta = release.metadata(release.ROOT)
+        self.meta['notes'] += '\nKiểm thử “cập nhật” tiếng Việt.\n'
         self.feeds = []
         for platform in release.PLATFORMS:
             installer = platform == 'windows-x64'
@@ -67,7 +69,7 @@ class UpdateChannelTests(unittest.TestCase):
             create = next(c.args for c in gh.call_args_list if c.args[:2] == ('release', 'create'))
             self.assertIn('--prerelease', create)
             self.assertIn('--latest=false', create)
-        newer = self.feeds[0].read_text().replace(self.meta['version'], '9999.0.0')
+        newer = self.feeds[0].read_text(encoding='utf-8').replace(self.meta['version'], '9999.0.0')
         with patch.object(update_channel, 'gh', return_value=newer):
             with self.assertRaisesRegex(ValueError, 'downgrade'):
                 update_channel.ensure_not_older(paths[0], newer)
@@ -90,7 +92,7 @@ class UpdateChannelTests(unittest.TestCase):
             if args[1].startswith('repos/'):
                 return json.dumps([[source, channel]])
             if args[0] == 'api':
-                return paths[int(args[1].split('-')[1])].read_text()
+                return paths[int(args[1].split('-')[1])].read_text(encoding='utf-8')
             return ''
         with patch.object(update_channel, 'gh', side_effect=response) as gh:
             update_channel.publish(paths, 'owner/repo', self.meta['tag'])
@@ -99,6 +101,20 @@ class UpdateChannelTests(unittest.TestCase):
             self.assertEqual(upload[:3], ('release', 'upload', 'rust-updates'))
             self.assertEqual(upload[-3:], tuple(map(str, paths)))
             self.assertFalse(any(call[:2] == ('release', 'create') for call in calls))
+
+    def test_channel_flows_with_windows_cp1252_default_encoding(self):
+        # Emulate Windows without UTF-8 mode; explicit encodings still win.
+        original_open = Path.open
+        def windows_open(path, mode='r', buffering=-1, encoding=None,
+                         errors=None, newline=None):
+            if 'b' not in mode and encoding is None:
+                encoding = 'cp1252'
+            return original_open(path, mode, buffering, encoding, errors, newline)
+        with patch.object(Path, 'open', windows_open), patch.object(
+                io, 'text_encoding', lambda encoding, *args: encoding or 'cp1252'):
+            self.test_prepares_all_old_client_urls_without_changing_signed_feed_bytes()
+            self.test_publish_never_promotes_channel_to_latest_and_rejects_downgrade()
+            self.test_existing_public_channel_uploads_only_feeds_after_version_check()
 
     def test_public_feed_verification_checks_the_installed_client_urls_and_bytes(self):
         paths = update_channel.prepare(self.source, self.root / 'output', self.meta['tag'])

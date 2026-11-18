@@ -1564,3 +1564,16 @@ this metadata bump. Evidence: `docs/artifacts/release-1.0.5` and
 No remote release or compatibility feed has been published by this operation;
 installed 1.0.1–1.0.4 update acceptance is still pending. No release package
 was built; hosted Windows/Intel validation remains pending.
+
+### F21 — Windows compatibility-feed test encoding — 2026-11-18
+
+Windows Python 3.12 used CP1252 for two implicit Path.read_text calls in the
+channel tests; UTF-8 Vietnamese release notes raised UnicodeDecodeError at
+byte 0x9d. Added a regression that emulates CP1252 as the default for pathlib
+text I/O and includes Vietnamese notes with curly quotes. It reproduced the
+same decode error before the fix. Both test XML reads and the production
+checksum-manifest read now specify UTF-8; signed XML copying stays byte-based.
+All 8 channel tests (including the emulation), 25 release/draft tests,
+396 Rust tests, fmt and Clippy pass locally on macOS ARM64. A hosted Windows
+rerun remains pending. No workflow flags hide the locale-dependent bug.
+Evidence: `docs/artifacts/ci-channel-encoding-2026-11-18` (red/green logs).
