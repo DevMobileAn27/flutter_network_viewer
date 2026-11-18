@@ -1,5 +1,9 @@
 # Rust build/release — F21
 
+Current source: **1.0.5 (build 15)**. This version restores the original stable
+appcast URLs and adds compatibility-feed synchronization on stable publication.
+Local commits do not publish a release or repair the public compatibility URLs.
+
 The build workflow creates a GitHub draft after all platform jobs pass.
 Publishing remains manual. Release `rust-v1.0.1` shipped without legacy
 appcasts. The macOS `rust-v1.0.2` archive has a valid Ed25519 signature, but its

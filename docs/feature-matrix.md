@@ -1549,3 +1549,18 @@ Publication remains incomplete: Chrome's new-release page stayed blank and
 the browser control tool became unavailable before any release was created.
 Local workflow changes are not active on GitHub until pushed.
 Evidence: `docs/artifacts/update-channel-1.0.4`.
+
+### Release 1.0.5 — 2026-11-18
+
+Prepared version 1.0.5 (build 15) after committing the updater repair as
+`78037a5`. Cargo.toml/Cargo.lock, Windows version resources and release notes
+are synchronized; identifiers and signing keys are unchanged.
+Validation: 396 Rust tests, fmt, Clippy, 15 release tests, 10 draft tests,
+7 compatibility-channel tests, and metadata monotonicity pass locally on macOS
+ARM64. Existing updater integrity/signing tests (3) also pass. Native F20
+current/available/manual paths passed for the unchanged updater fix before
+this metadata bump. Evidence: `docs/artifacts/release-1.0.5` and
+`docs/artifacts/update-channel-1.0.4/native`.
+No remote release or compatibility feed has been published by this operation;
+installed 1.0.1–1.0.4 update acceptance is still pending. No release package
+was built; hosted Windows/Intel validation remains pending.
