@@ -43,10 +43,31 @@ impl Harness {
         )
     }
     fn click(&mut self, key: &str) -> egui::FullOutput {
+        if self.ui.support.settings_open && !key.starts_with("settings-menu:") {
+            let page = if key.starts_with("mcp-") || key == "settings-mcp" {
+                Some("mcp")
+            } else if key == "check-app-updates" || key == "settings-updates" {
+                Some("about")
+            } else if key == "theme" || key == "language" || key == "font-size" {
+                Some("interface")
+            } else {
+                None
+            };
+            if let Some(page) = page
+                && !self.ui.probe.widgets.contains_key(key)
+            {
+                self.click(&format!("settings-menu:{page}"));
+            }
+        }
+
         for _ in 0..4 {
             self.frame(vec![]);
         }
-        if self.ui.support.settings_open && !key.contains(':') && key != "settings-close" {
+        if self.ui.support.settings_open
+            && !key.contains(':')
+            && key != "settings-close"
+            && !key.starts_with("settings-menu:")
+        {
             for _ in 0..20 {
                 let pane = self.ui.probe.widgets["settings-scroll"];
                 let target = self.ui.probe.widgets[key];
@@ -147,6 +168,7 @@ fn mcp_inputs_validate_persist_retry_and_copy() {
     let mut h = Harness::new();
     h.ui.settings = AppSettings::load(&path).unwrap();
     h.click("settings");
+    h.click("settings-menu:mcp");
     bottom(&mut h);
     for removed in ["mcp-save", "mcp-client-menu", "mcp-copy-setup"] {
         assert!(
@@ -234,15 +256,16 @@ fn mcp_narrow_locales_themes_scroll() {
                 })
                 .unwrap();
             h.click("settings");
+            h.click("settings-menu:mcp");
             h.size = egui::vec2(360., 300.);
             for _ in 0..5 {
                 h.frame(vec![]);
             }
             bottom(&mut h);
             for key in [
-                "settings-appearance",
+                "settings-sidebar",
                 "settings-mcp",
-                "settings-updates",
+                "settings-content",
                 "mcp-enabled",
             ] {
                 let r = h.ui.probe.widgets[key];
@@ -254,6 +277,10 @@ fn mcp_narrow_locales_themes_scroll() {
             assert!(h.ui.probe.support_scroll > 0.);
             for key in ["mcp-copy-codex", "mcp-copy-claude"] {
                 let r = h.ui.probe.widgets[key];
+                assert!(
+                    r.width() >= 100. && r.height() < 160.,
+                    "copy actions must wrap as words, not a column of characters: {key} {r:?}"
+                );
                 assert!(r.left() >= 0. && r.right() <= 360., "{key}: {r:?}");
                 let o = h.click(key);
                 assert!(o.platform_output.commands.iter().any(
@@ -274,6 +301,7 @@ fn mcp_narrow_locales_themes_scroll() {
 fn opening_settings_keeps_language_controls_visible_and_clickable() {
     let mut h = Harness::new();
     h.click("settings");
+    h.click("settings-menu:interface");
     let r = h.ui.probe.widgets["language"];
     assert!(
         Rect::from_min_size(Pos2::ZERO, h.size).contains_rect(r),
@@ -286,9 +314,71 @@ fn opening_settings_keeps_language_controls_visible_and_clickable() {
 }
 
 #[test]
+fn mcp_switch_uses_macos_capsules_in_both_themes_and_keeps_save_behavior() {
+    for theme in [ThemeMode::Light, ThemeMode::Dark] {
+        let mut h = Harness::new();
+        h.ui.settings.set_theme_mode(theme).unwrap();
+        h.click("settings");
+        h.click("settings-menu:mcp");
+        for enabled in [false, true, false] {
+            if h.ui.settings.values().mcp_enabled != enabled {
+                h.click("mcp-enabled");
+            }
+            for _ in 0..12 {
+                h.time += 0.02;
+                h.frame(vec![]);
+            }
+            let output = h.frame(vec![]);
+            let rect = h.ui.probe.widgets["mcp-enabled"];
+            assert_eq!(rect.size(), egui::vec2(44., 22.));
+            let track = output
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Rect(r)
+                        if r.rect == rect && r.corner_radius == egui::CornerRadius::same(11) =>
+                    {
+                        Some(r)
+                    }
+                    _ => None,
+                })
+                .expect("rounded track in production Settings");
+            assert!(track.stroke.is_empty());
+            let palette = flutter_network_viewer::desktop_style::Palette::of(&h.ctx);
+            if enabled {
+                assert_eq!(track.fill, palette.accent);
+            }
+            let thumb = output
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Rect(r)
+                        if rect.contains_rect(r.rect)
+                            && r.fill == egui::Color32::WHITE
+                            && r.rect.size() == egui::vec2(26., 18.) =>
+                    {
+                        Some(r)
+                    }
+                    _ => None,
+                })
+                .expect("white capsule thumb");
+            assert_eq!(thumb.corner_radius, egui::CornerRadius::same(9));
+            assert!((thumb.rect.center().y - rect.center().y).abs() < 0.1);
+            if enabled {
+                assert!(thumb.rect.center().x > rect.center().x);
+            } else {
+                assert!(thumb.rect.center().x < rect.center().x);
+            }
+            assert_eq!(h.ui.settings.values().mcp_enabled, enabled);
+        }
+    }
+}
+
+#[test]
 fn mcp_display_and_input_share_field_style_and_copy_buttons_include_icon_and_label() {
     let mut h = Harness::new();
     h.click("settings");
+    h.click("settings-menu:mcp");
     h.size = egui::vec2(1200., 1800.);
     for size in [14., 24.] {
         h.ui.settings.set_font_size(size).unwrap();
@@ -356,15 +446,19 @@ fn settings_dropdown_widths_are_bounded_and_endpoint_hugs_its_text() {
         h.size = egui::vec2(width, 1800.);
         h.ui.settings.set_language(lang).unwrap();
         h.click("settings");
+        h.click("settings-menu:mcp");
         h.ui.settings.set_font_size(size).unwrap();
         for _ in 0..4 {
             h.frame(vec![]);
         }
-        let out = h.frame(vec![Event::PointerMoved(egui::pos2(width - 1., 1700.))]);
+        h.frame(vec![Event::PointerMoved(egui::pos2(width - 1., 1700.))]);
+        h.click("settings-menu:interface");
         let theme = h.ui.probe.widgets["theme"];
         let language = h.ui.probe.widgets["language"];
-        assert!((theme.width() - language.width()).abs() < 1.);
-        assert!((theme.width() - 220.).abs() < 1., "{theme:?}");
+        assert!((theme.right() - language.right()).abs() < 1.);
+        assert!(theme.width() < 220. && language.width() < 220.);
+        h.click("settings-menu:mcp");
+        let out = h.frame(vec![]);
         let field = h.ui.probe.widgets["mcp-endpoint"];
         let text = out
             .shapes
@@ -375,7 +469,11 @@ fn settings_dropdown_widths_are_bounded_and_endpoint_hugs_its_text() {
             })
             .unwrap();
         assert!(
-            (field.width() - (text.galley.size().x + 24.).min(width - 34. - 42.)).abs() < 1.,
+            (field.width()
+                - (text.galley.size().x + 24.)
+                    .min(h.ui.probe.widgets["settings-content"].width() - 34. - 42.))
+            .abs()
+                < 1.,
             "field={field:?} text={:?}",
             text.galley.size()
         );
@@ -397,21 +495,19 @@ fn settings_dropdown_widths_are_bounded_and_endpoint_hugs_its_text() {
 }
 
 #[test]
-fn font_size_and_mcp_endpoint_use_matching_display_text_style() {
+fn mcp_endpoint_retains_display_text_style() {
     for size in [14., 24.] {
         let mut h = Harness::new();
         h.size = egui::vec2(1360., 1800.);
         h.click("settings");
+        h.click("settings-menu:mcp");
         h.ui.settings.set_font_size(size).unwrap();
         for _ in 0..4 {
             h.frame(vec![]);
         }
         let out = h.frame(vec![Event::PointerMoved(egui::pos2(1300., 1700.))]);
-        let mut styles = Vec::new();
-        for (key, value) in [
-            ("font-size", format!("{size:.0}")),
-            ("mcp-endpoint", "http://127.0.0.1:38943/mcp".into()),
-        ] {
+        let (key, value) = ("mcp-endpoint", "http://127.0.0.1:38943/mcp");
+        {
             let rect = *h.ui.probe.widgets.get(key).unwrap_or_else(|| {
                 panic!(
                     "missing {key} size={size} keys={:?}",
@@ -442,9 +538,8 @@ fn font_size_and_mcp_endpoint_use_matching_display_text_style() {
                 .unwrap();
             assert!((rect.width() - text.galley.size().x - 24.).abs() < 1.);
             assert!((text.pos.y - rect.top() - 12.).abs() < 1.);
-            styles.push((rect.height(), fill));
+            assert_eq!(fill, flutter_network_viewer::app_colors::LIGHT.background);
         }
-        assert_eq!(styles[0], styles[1]);
     }
 }
 
@@ -452,6 +547,7 @@ fn font_size_and_mcp_endpoint_use_matching_display_text_style() {
 fn mcp_endpoint_copy_action_copies_only_the_endpoint_and_is_square() {
     let mut h = Harness::new();
     h.click("settings");
+    h.click("settings-menu:mcp");
     let out = h.click("mcp-endpoint-copy");
     assert!(out.platform_output.commands.iter().any(
         |c| matches!(c,egui::OutputCommand::CopyText(t) if t == "http://127.0.0.1:38943/mcp")
@@ -470,11 +566,19 @@ fn settings_sections_have_equal_top_and_bottom_content_padding() {
         h.size = egui::vec2(width, 2000.);
         h.ui.settings.set_font_size(size).unwrap();
         h.click("settings");
+        h.click("settings-menu:mcp");
         for _ in 0..5 {
             h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
         }
-        let out = h.frame(vec![]);
-        for key in ["settings-appearance", "settings-mcp", "settings-updates"] {
+        h.frame(vec![]);
+        for (key, page) in [
+            ("settings-appearance", "interface"),
+            ("settings-mcp", "mcp"),
+            ("settings-updates", "about"),
+        ] {
+            h.click(&format!("settings-menu:{page}"));
+            h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
+            let out = h.frame(vec![]);
             let section = h.ui.probe.widgets[key];
             // Measure real painted content, not just the declared Frame margin.
             let content = out
@@ -483,12 +587,31 @@ fn settings_sections_have_equal_top_and_bottom_content_padding() {
                 .filter_map(|shape| {
                     let rect = match &shape.shape {
                         egui::Shape::Text(t) => Rect::from_min_size(t.pos, t.galley.size()),
-                        egui::Shape::Rect(r) if r.stroke.width > 0. && r.rect != section => r.rect,
+                        egui::Shape::Rect(r)
+                            if r.rect != section
+                                && (r.stroke.width > 0.
+                                    || h.ui.probe.widgets.get("mcp-enabled") == Some(&r.rect)) =>
+                        {
+                            r.rect
+                        }
                         _ => return None,
                     };
                     section.contains_rect(rect).then_some(rect)
                 })
                 .fold(Rect::NOTHING, |bounds, rect| bounds.union(rect));
+            // Include transparent control rows; their layout also reserves inner padding.
+            let content = ["theme", "language", "font-size", "mcp-status-row"]
+                .iter()
+                .fold(content, |bounds, key| {
+                    let Some(rect) = h.ui.probe.widgets.get(*key).copied() else {
+                        return bounds;
+                    };
+                    if section.contains_rect(rect) {
+                        bounds.union(rect)
+                    } else {
+                        bounds
+                    }
+                });
             let top = content.top() - section.top();
             let bottom = section.bottom() - content.bottom();
             assert!(
@@ -500,48 +623,40 @@ fn settings_sections_have_equal_top_and_bottom_content_padding() {
 }
 
 #[test]
-fn settings_heading_icons_match_title_height_and_vertical_center() {
+fn settings_sidebar_icons_use_eighty_percent_of_centered_square_tiles() {
     for size in [14., 24.] {
         let mut h = Harness::new();
-        h.size = egui::vec2(1200., 2000.);
+        h.size = egui::vec2(1200., 900.);
         h.ui.settings.set_font_size(size).unwrap();
         h.click("settings");
-        for _ in 0..4 {
-            h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
-        }
         let out = h.frame(vec![]);
-        for (key, title, code) in [
-            ("settings-appearance", "Interface", '\u{e683}'),
-            ("settings-mcp", "MCP", '\u{f0616}'),
-            ("settings-updates", "App updates", '\u{e637}'),
-        ] {
-            let section = h.ui.probe.widgets[key];
-            let text = |value: &str| {
-                out.shapes
-                    .iter()
-                    .find_map(|s| match &s.shape {
-                        egui::Shape::Text(t)
-                            if section.contains(t.pos) && t.galley.text() == value =>
-                        {
-                            Some(t)
-                        }
-                        _ => None,
-                    })
-                    .unwrap()
-            };
-            let title = text(title);
-            let icon = text(&code.to_string());
+        for page in ["interface", "mcp", "about"] {
+            let tile = h.ui.probe.widgets[&format!("settings-menu:{page}-tile")];
+            let icon = h.ui.probe.widgets[&format!("settings-menu:{page}-icon")];
+            assert_eq!(tile.width(), tile.height());
+            assert_eq!(tile.center(), icon.center());
+            assert!((icon.width() / tile.width() - 0.8).abs() < 0.001);
+            let painted = out
+                .shapes
+                .iter()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Text(t)
+                        if t.galley.job.sections[0].format.font_id.family
+                            == egui::FontFamily::Name("MaterialIcons".into())
+                            && tile.contains(t.pos + t.galley.mesh_bounds.center().to_vec2()) =>
+                    {
+                        Some(t)
+                    }
+                    _ => None,
+                })
+                .unwrap();
             assert!(
-                (icon.galley.size().y - title.galley.size().y).abs() < 0.6,
-                "{key} at {size}: icon height {}, title height {}",
-                icon.galley.size().y,
-                title.galley.size().y
+                (painted.galley.job.sections[0].format.font_id.size - icon.height()).abs() < 0.01
             );
-            let icon_y = icon.pos.y + icon.galley.size().y / 2.;
-            let title_y = title.pos.y + title.galley.size().y / 2.;
             assert!(
-                (icon_y - title_y).abs() < 0.6,
-                "{key}: icon/title vertical centers differ"
+                (painted.pos + painted.galley.mesh_bounds.center().to_vec2() - tile.center())
+                    .length()
+                    < 0.6
             );
         }
     }

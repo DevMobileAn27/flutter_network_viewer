@@ -44,10 +44,31 @@ impl Harness {
         )
     }
     fn click(&mut self, key: &str) -> egui::FullOutput {
+        if self.ui.support.settings_open && !key.starts_with("settings-menu:") {
+            let page = if key.starts_with("mcp-") || key == "settings-mcp" {
+                Some("mcp")
+            } else if key == "check-app-updates" || key == "settings-updates" {
+                Some("about")
+            } else if key == "theme" || key == "language" || key == "font-size" {
+                Some("interface")
+            } else {
+                None
+            };
+            if let Some(page) = page
+                && !self.ui.probe.widgets.contains_key(key)
+            {
+                self.click(&format!("settings-menu:{page}"));
+            }
+        }
+
         for _ in 0..4 {
             self.frame(vec![]);
         }
-        if self.ui.support.settings_open && !key.contains(':') && key != "settings-close" {
+        if self.ui.support.settings_open
+            && !key.contains(':')
+            && key != "settings-close"
+            && !key.starts_with("settings-menu:")
+        {
             for _ in 0..20 {
                 let pane = self.ui.probe.widgets["settings-scroll"];
                 let target = self.ui.probe.widgets[key];
@@ -107,6 +128,7 @@ fn updates_version_progress_retry_and_input_in_both_languages() {
             busy: false,
         };
         h.click("settings");
+        h.click("settings-menu:about");
         assert!(h.ui.probe.support_text.contains(env!("CARGO_PKG_VERSION")));
         h.click("check-app-updates");
         assert_eq!(h.actions, vec![Action::CheckUpdates]);
@@ -225,6 +247,7 @@ fn startup_update_failure_is_silent_but_manual_retry_reports_errors() {
                 "startup {failure}, windows={windows}"
             );
             h.click("settings");
+            h.click("settings-menu:about");
             assert!(!h.ui.probe.widgets.contains_key("notification"));
             h.click("check-app-updates");
             assert_eq!(h.actions, [Action::CheckUpdates]);
@@ -252,6 +275,7 @@ fn updates_hide_duplicate_status_and_offer_latest_version_in_both_languages() {
         h.ui.settings.set_language(lang).unwrap();
         h.ui.support.updates.supported = true;
         h.click("settings");
+        h.click("settings-menu:about");
         for status in [Status::Idle, Status::Current, Status::Available] {
             h.ui.support.updates.status = status;
             h.ui.support.updates.busy = false;

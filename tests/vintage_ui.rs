@@ -105,7 +105,26 @@ fn gallery_has_square_widgets_shared_font_and_complete_inventory() {
             let output = h.frame(vec![]);
             for clipped in &output.shapes {
                 match &clipped.shape {
-                    egui::Shape::Rect(r) => assert_eq!(r.corner_radius, egui::CornerRadius::ZERO),
+                    egui::Shape::Rect(r) => {
+                        if h.ui
+                            .probe
+                            .widgets
+                            .get("vintage-switch")
+                            .is_some_and(|switch| switch.expand(3.).contains_rect(r.rect))
+                        {
+                            continue;
+                        }
+                        assert!(
+                            [
+                                r.corner_radius.nw,
+                                r.corner_radius.ne,
+                                r.corner_radius.sw,
+                                r.corner_radius.se
+                            ]
+                            .into_iter()
+                            .all(|radius| radius == 0 || radius == 4)
+                        );
+                    }
                     egui::Shape::Text(t) => {
                         for section in &t.galley.job.sections {
                             if section.format.font_id.family
@@ -136,9 +155,11 @@ fn gallery_has_square_widgets_shared_font_and_complete_inventory() {
 fn gallery_controls_modals_and_json_are_interactive() {
     let mut h = Harness::new();
     h.click("vintage-nav:Controls");
-    h.click("vintage-font-plus");
+    h.click("vintage-font-value");
+    h.click("vintage-font-value:15");
     assert_eq!(h.ui.settings.values().font_size, 15.);
-    h.click("vintage-font-minus");
+    h.click("vintage-font-value");
+    h.click("vintage-font-value:14");
     assert_eq!(h.ui.settings.values().font_size, 14.);
     h.click("vintage-switch");
     assert!(h.ui.vintage.enabled);
@@ -289,7 +310,11 @@ fn selected_popup_options_use_paper_text_and_focused_inputs_keep_ink_borders() {
     for key in ["vintage-input", "vintage-search", "vintage-multiline"] {
         h.reveal(key);
         let out = h.frame(vec![]);
-        let rect = h.ui.probe.widgets[key];
+        let rect = h.ui.probe.widgets[if key == "vintage-search" {
+            "vintage-search-frame"
+        } else {
+            key
+        }];
         assert!(
             out.shapes
                 .iter()
@@ -300,7 +325,11 @@ fn selected_popup_options_use_paper_text_and_focused_inputs_keep_ink_borders() {
         );
         h.click(key);
         let out = h.frame(vec![]);
-        let rect = h.ui.probe.widgets[key];
+        let rect = h.ui.probe.widgets[if key == "vintage-search" {
+            "vintage-search-frame"
+        } else {
+            key
+        }];
         assert!(out.shapes.iter().any(|s|matches!(&s.shape,egui::Shape::Rect(r) if (r.rect.min-rect.min).length()<1. && (r.rect.max-rect.max).length()<1. && r.stroke.width>=1. && r.stroke.color==LIGHT.accent && s.clip_rect.contains_rect(rect))),"missing focused border {key}");
     }
 }
@@ -913,7 +942,6 @@ fn action_controls_have_solid_backgrounds_at_rest_and_hover() {
         "vintage-quiet",
         "vintage-disabled",
         "vintage-copy",
-        "vintage-dropdown",
         "vintage-checkbox",
         "vintage-radio:1",
     ] {
@@ -949,7 +977,11 @@ fn hovered_dropdown_stays_opaque_without_overlapping_neighbor_labels() {
     h.frame(vec![Event::PointerMoved(base.center())]);
     let out = h.frame(vec![]);
     let rect = h.ui.probe.widgets["vintage-dropdown"];
-    let neighbor = out.shapes.iter().position(|s|matches!(&s.shape,egui::Shape::Text(t) if t.galley.text().starts_with("Dropdown state demo"))).unwrap();
+    let neighbor = out
+        .shapes
+        .iter()
+        .position(|s| matches!(&s.shape,egui::Shape::Text(t) if t.galley.text() == "Theme"))
+        .unwrap();
     let backing = out
         .shapes
         .iter()
@@ -1117,7 +1149,7 @@ fn disabled_text_and_resize_widgets_keep_appropriate_cursors() {
     for (key, cursor) in [
         ("vintage-disabled", egui::CursorIcon::Default),
         ("vintage-input", egui::CursorIcon::Text),
-        ("vintage-font-value", egui::CursorIcon::Default),
+        ("vintage-font-value", egui::CursorIcon::PointingHand),
     ] {
         h.reveal(key);
         h.frame(vec![Event::PointerMoved(egui::pos2(0., 0.))]);
@@ -1150,7 +1182,7 @@ fn disabled_text_and_resize_widgets_keep_appropriate_cursors() {
 }
 
 #[test]
-fn dropdown_list_has_no_outer_padding_and_options_keep_internal_padding() {
+fn dropdown_lists_keep_style_specific_insets_and_option_padding() {
     use flutter_network_viewer::vintage::LINE;
     for font in [14., 24.] {
         let mut h = Harness::new();
@@ -1205,12 +1237,22 @@ fn dropdown_list_has_no_outer_padding_and_options_keep_internal_padding() {
                     bounds.left() - row.left() >= 11.5 && row.right() - bounds.right() >= 11.5,
                     "option horizontal padding"
                 );
+                let vertical_padding = if key == "vintage-dropdown" { 3.5 } else { 7.5 };
                 assert!(
-                    bounds.top() - row.top() >= 7.5 && row.bottom() - bounds.bottom() >= 7.5,
+                    bounds.top() - row.top() >= vertical_padding
+                        && row.bottom() - bounds.bottom() >= vertical_padding,
                     "option vertical padding"
                 );
             }
-            // Only the popup's 1px border surrounds the rows; no container margin.
+            if key == "vintage-dropdown" {
+                let popup = h.ui.probe.widgets["vintage-dropdown-popup"];
+                assert!((list.left() - popup.left() - 7.).abs() < 0.5);
+                assert!((popup.right() - list.right() - 7.).abs() < 0.5);
+                assert!(h.ui.probe.widgets.contains_key("vintage-dropdown-check"));
+                h.click(&format!("{prefix}:1"));
+                continue;
+            }
+            // Table filter retains its compact zero-margin list.
             assert!(out.shapes.iter().any(|s|matches!(&s.shape,egui::Shape::Rect(r) if r.fill==flutter_network_viewer::app_colors::LIGHT.surface && r.stroke.color==LINE && (r.rect.min-list.expand(1.).min).length()<1. && (r.rect.max-list.expand(1.).max).length()<1.)), "popup border flush with options at font{font}");
             h.click(&format!("{prefix}:1"));
         }
@@ -1300,10 +1342,39 @@ fn production_uses_vintage_surfaces_and_square_components() {
             );
             for shape in output.shapes {
                 if let egui::Shape::Rect(r) = shape.shape {
-                    assert_eq!(
-                        r.corner_radius,
-                        egui::CornerRadius::ZERO,
-                        "rounded component on {key}"
+                    if h.ui
+                        .probe
+                        .widgets
+                        .get("mcp-enabled")
+                        .is_some_and(|switch| switch.expand(3.).contains_rect(r.rect))
+                    {
+                        continue;
+                    }
+                    if ["settings-appearance", "settings-mcp", "settings-updates"]
+                        .iter()
+                        .any(|key| h.ui.probe.widgets.get(*key) == Some(&r.rect))
+                    {
+                        assert_eq!(r.corner_radius, egui::CornerRadius::same(4));
+                        continue;
+                    }
+                    if h.ui.probe.widgets.iter().any(|(key, rect)| {
+                        key.starts_with("settings-menu:")
+                            && key.ends_with("-tile")
+                            && *rect == r.rect
+                    }) {
+                        assert_eq!(r.corner_radius, egui::CornerRadius::same(4));
+                        continue;
+                    }
+                    assert!(
+                        [
+                            r.corner_radius.nw,
+                            r.corner_radius.ne,
+                            r.corner_radius.sw,
+                            r.corner_radius.se
+                        ]
+                        .into_iter()
+                        .all(|radius| radius == 0 || radius == 4),
+                        "unexpected corner radius on {key}"
                     );
                 }
             }
@@ -1312,22 +1383,23 @@ fn production_uses_vintage_surfaces_and_square_components() {
 }
 
 #[test]
-fn gallery_font_stepper_matches_production_square_display_only_control() {
+fn gallery_font_dropdown_matches_production_options() {
     let mut h = Harness::new();
     h.click("vintage-nav:Controls");
-    h.reveal("vintage-font-value");
-    for key in ["vintage-font-minus", "vintage-font-plus"] {
-        let rect = h.ui.probe.widgets[key];
-        assert!((rect.width() - rect.height()).abs() < 0.5, "{key} {rect:?}");
-    }
     h.click("vintage-font-value");
-    let out = h.frame(vec![]);
-    assert_eq!(out.platform_output.cursor_icon, egui::CursorIcon::Default);
-    assert_eq!(h.ui.settings.values().font_size, 14.);
+    for size in 10..=22 {
+        assert!(
+            h.ui.probe
+                .widgets
+                .contains_key(&format!("vintage-font-value:{size}"))
+        );
+    }
+    h.click("vintage-font-value:16");
+    assert_eq!(h.ui.settings.values().font_size, 16.);
 }
 
 #[test]
-fn gallery_switch_previews_the_production_track_and_square_knob() {
+fn gallery_switch_previews_macos_capsule_track_and_white_thumb() {
     let mut h = Harness::new();
     h.click("vintage-nav:Controls");
     h.reveal("vintage-switch");
@@ -1337,8 +1409,22 @@ fn gallery_switch_previews_the_production_track_and_square_knob() {
     }
     let out = h.frame(vec![]);
     let rect = h.ui.probe.widgets["vintage-switch"];
-    assert!((rect.width() - 52.).abs() < 0.5 && (rect.height() - 32.).abs() < 0.5);
-    assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if rect.contains_rect(r.rect) && (r.rect.width() - 20.).abs() < 0.5 && (r.rect.height() - 20.).abs() < 0.5)));
+    assert!((rect.width() - 44.).abs() < 0.5 && (rect.height() - 22.).abs() < 0.5);
+    assert!(
+        out.shapes
+            .iter()
+            .any(|s| matches!(&s.shape, egui::Shape::Rect(r)
+        if r.rect == rect && r.corner_radius == egui::CornerRadius::same(11)
+        && r.stroke.is_empty()))
+    );
+    assert!(
+        out.shapes
+            .iter()
+            .any(|s| matches!(&s.shape, egui::Shape::Rect(r)
+        if rect.contains_rect(r.rect) && r.fill == egui::Color32::WHITE
+        && (r.rect.width() - 26.).abs() < 0.5 && (r.rect.height() - 18.).abs() < 0.5
+        && r.corner_radius == egui::CornerRadius::same(9)))
+    );
     h.frame(vec![Event::PointerMoved(rect.center())]);
     for _ in 0..6 {
         h.frame(vec![]);
@@ -1530,6 +1616,41 @@ fn key_value_tables_wrap_full_values_inside_fixed_title_columns_without_horizont
                         |c| matches!(c,egui::OutputCommand::CopyText(text) if text==&long_value)
                     ));
                 }
+            }
+        }
+    }
+}
+
+#[test]
+fn shared_text_and_icon_buttons_have_four_point_corners_including_disabled() {
+    let mut h = Harness::new();
+    h.click("vintage-nav:Controls");
+    for key in [
+        "vintage-primary",
+        "vintage-quiet",
+        "vintage-copy",
+        "vintage-disabled",
+    ] {
+        h.reveal(key);
+        let rect = h.ui.probe.widgets[key];
+        for pos in [Pos2::ZERO, rect.center()] {
+            h.frame(vec![Event::PointerMoved(pos)]);
+            let out = h.frame(vec![]);
+            let shapes: Vec<_> = out
+                .shapes
+                .iter()
+                .filter_map(|s| match &s.shape {
+                    egui::Shape::Rect(r)
+                        if r.rect == rect && (r.fill.a() > 0 || !r.stroke.is_empty()) =>
+                    {
+                        Some(r)
+                    }
+                    _ => None,
+                })
+                .collect();
+            assert!(!shapes.is_empty(), "painted button {key}");
+            for shape in shapes {
+                assert_eq!(shape.corner_radius, egui::CornerRadius::same(4), "{key}");
             }
         }
     }

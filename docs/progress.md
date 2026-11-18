@@ -4053,3 +4053,214 @@ unchanged. Restored the deleted temporary Rust 1.100.0 toolchain and locked
 dependencies to execute verification. Local execution is macOS ARM64; Windows
 hosted verification remains pending. No version bump, commit or push performed.
 Evidence: `docs/artifacts/ci-cancellation-startup-2026-11-18`.
+
+## UI — Shared macOS-style switch (2026-11-18)
+
+Replaced the square toggle with one cross-platform vector widget: 44 x 22 pt
+capsule track, 26 x 18 pt white thumb, blue on/gray off, a 120 ms slide, keyboard
+focus outline and disabled appearance. Colors are in app_colors.rs. Gallery
+and Settings use the same widget; it avoids the square action backing and
+keeps a fixed size on hover. MCP header row height now fits the smaller switch
+while keeping equal section padding. Other controls keep their square style.
+
+The gallery geometry assertion reproduced the old switch before implementation.
+UI tests cover production MCP off/on/off in both themes, gallery geometry and
+hover layout, keyboard activation, disabled input and 1x/2x DPI. Existing MCP
+save/restart, section padding and narrow UI tests pass. 388 Rust tests including
+F19 example, fmt and Clippy pass. Native F17 smoke passes; the actual dark
+Settings screenshot was inspected. Native execution was macOS ARM64; Windows
+execution remains pending, while its rendering path is the same shared code.
+Evidence: `docs/artifacts/ui-macos-switch-2026-11-18`.
+No version bump, commit, push or release mutation performed.
+
+## Settings dropdown kiểu macOS — 2026-11-18
+
+Đổi Theme, Language và Font size sang `vintage::dropdown_row` dùng chung với
+widget gallery: title bên trái, spacer, selected option sát phải, gap 8 pt và
+hai chevron vẽ vector. Chỉ vùng selected option + arrow nhận click/hover;
+hover tô nền, không scale hay thay đổi kích thước. Popup không padding ngoài,
+option giữ padding và pointer. Font size là dropdown 10–22, mặc định 14;
+chọn lưu ngay và dùng cùng cỡ chữ toàn app. Giữ Geist và Cascadia cho JSON/Tree.
+
+TDD: test row/probe thất bại trước implementation (red.log). Bản cuối có
+386 test Rust + 1 regression F19 pass, 0 failed/ignored; fmt và Clippy pass.
+Native F17 pass trên macOS ARM64; đã xem ảnh Settings thực. Chưa chạy Windows.
+Bằng chứng: `docs/artifacts/ui-macos-dropdown-2026-11-18`.
+Build macOS ARM64 1.0.3 tại `dist/dropdown-macos-20261118`, ký ad-hoc thành công;
+chưa commit/push/publish. Không mở chat port mới vì Windows acceptance còn pending.
+
+## Dropdown hover contrast — 2026-11-18
+
+Fixed invisible light hover: the old `control` token was white like the section
+surface. Dedicated shared tokens now use #E7E7E7 (sampled from the supplied
+macOS screenshot) and #454545 for dark mode. Only the trailing selected value
+and arrows highlight; layout and pointer stay unchanged. The idle arrow circle
+uses the same visible neutral color. UI regression first reproduced white hover,
+then verifies exact colors, light/dark contrast, opaque fill, stable geometry,
+hand cursor and no title hover highlight.
+
+387 Rust regression tests + 1 F19 example test pass; fmt, Clippy and native F17
+pass on macOS ARM64. Actual dark Settings screenshot inspected. Windows native
+verification remains pending. Evidence: `docs/artifacts/ui-dropdown-hover-2026-11-18`.
+Built signed ad-hoc app: `dist/dropdown-hover-macos-20261118` (1.0.3).
+No commit/push/publish; no next port chat while hosted acceptance is pending.
+
+## Settings sidebar — 2026-11-18
+
+Settings now uses a full-height left navigation pane (350pt at desktop widths)
+and a remaining-width content pane with 8pt outer padding and white light-mode
+surface; dark mode keeps its matching dark surface. Root layout has no inset.
+Menu rows use icon + 4pt gap + localized title, pointer cursor and blue selected
+state: Interface, MCP, About us (renamed App updates). Only the selected section
+is mounted. Existing controls, persistence, MCP lifecycle and update actions stay
+in their respective sections. The sidebar compacts only for very narrow windows
+to keep controls accessible. Narrow MCP copy actions stack rather than collapsing
+into columns of single characters.
+
+TDD: sidebar test failed before implementation. A second geometry test reproduced
+the narrow copy-button problem; both regressions now pass. Updated existing UI
+checks and native acceptance navigation for individually selected sections.
+388 Rust tests + 1 F19 example test pass, no failures/ignored; fmt and Clippy pass.
+Native F17 and F18 pass on macOS ARM64, including all three sidebar pages,
+screenshots, narrow scrolling, OS clipboard, MCP restart/retry and persistence.
+Inspected actual light Interface/MCP/About screenshots. Windows execution pending.
+Evidence: `docs/artifacts/ui-settings-sidebar-2026-11-18`.
+Final macOS ARM64 1.0.3 bundle: `dist/settings-sidebar-final-20261118`, ad-hoc signed.
+No commit/push/publish. No next port chat while Windows acceptance remains pending.
+
+## macOS dropdown popup — 2026-11-18
+
+Replaced the Settings/gallery dropdown menu with a rounded neutral popup,
+6pt outer inset, compact rows, blue rounded selection and a vector checkmark.
+The selected row's center aligns vertically with the displayed value; popup
+right edge is 20pt beyond the displayed text's right edge. Popup placement is
+computed from selected index, font metrics and screen bounds. Long lists use
+an initial scroll offset at the top screen boundary to retain selected-row
+alignment; users can scroll to choose other sizes. Theme, language, font size
+share this widget; table filter menus keep their existing compact list style.
+
+TDD: geometry/tick test failed before implementation. Now covers light/dark,
+10/14/22pt, selected-row alignment, exact 20pt offset, rounded blue fill, tick,
+screen bounds and Escape. Persistence test scrolls from 22 back to 10 using
+pointer/wheel events. Updated gallery inset expectations for the new reference.
+389 Rust tests +1 F19 example regression pass, 0 failed/ignored; fmt and Clippy
+pass. Native F17 measures the popup and captures both themes after opening
+animation; screenshots inspected on macOS ARM64. Windows native pending.
+Evidence: `docs/artifacts/ui-macos-popup-2026-11-18`.
+Built signed ad-hoc macOS ARM64 app in `dist/settings-popup-macos-20261118`.
+No version bump, commit, push or release publication. No next port chat while
+hosted acceptance remains pending.
+
+## Settings group surfaces and sidebar icon tiles — 2026-11-18
+
+Removed redundant Interface/MCP/About section title rows from right content.
+Kept the MCP status and switch. Shared group fill is #F8F8F8 sampled from the
+supplied reference; dark groups use #303030. Existing border geometry remains;
+no row dividers added. Each sidebar category has a distinct tile/ink pair
+(blue, green, gray tiles), square with 4pt corner radius. Icon is centered at
+90% tile size, with 4pt tile-to-label gap. No changes to global text size.
+
+TDD: title-absence/tile test failed before implementation. UI checks inspect
+actual fill, radius, centered glyph font size, 90% ratio and distinct colors.
+Updated previous right-heading icon tests to check the sidebar tiles and kept
+field/action, spacing and section-padding coverage; transparent MCP status-row
+bounds are included when measuring layout padding after removing its title.
+390 Rust tests +1 F19 example regression pass, 0 failed/ignored; fmt/Clippy pass.
+Native F17 pass and actual Interface/MCP/About screenshots inspected on macOS
+ARM64. Windows native verification pending. Evidence:
+`docs/artifacts/ui-settings-tiles-2026-11-18`.
+Final signed ad-hoc build: `dist/settings-tiles-macos-20261118` (1.0.3).
+No commit, push or publication; no new port chat while acceptance is pending.
+
+## Settings icon ratio, rounded groups and contextual buttons — 2026-11-18
+
+Sidebar glyph ratio is now 80% of its centered square tile. Settings groups use
+4pt corners. About content places localized “Current version {version} - Author
+Nguyễn Quốc An” on the left, with the update action vertically centered at the
+right in the same row; VI is “Phiên bản hiện tại 1.0.3 - Tác giả Nguyễn Quốc An”.
+Text wraps inside its reserved width in narrow windows. Status/progress and
+update behavior remain covered by existing tests.
+
+Shared neutral-button styling inherits the containing UI's fill: Settings header
+on white uses #F0F0F0; controls in gray groups use #E7E7E7. Dark equivalents are
+#3A3A3A/#505050. Settings buttons, MCP copy actions and square copy icons use the
+same inherited token. Input backgrounds and primary selections retain their
+own colors. Existing outer strokes remain; no dividers added.
+
+TDD: About-row probe test failed before implementation; final assertions check
+VI text, shared vertical center, left/right placement, group radius, 80% icon
+geometry and contrasting enabled button fills in both themes. 391 Rust tests
++1 F19 example regression pass, no failed/ignored; fmt and Clippy pass.
+Native F17 passes on macOS ARM64; actual About and MCP screenshots inspected.
+Windows native verification remains pending. Evidence:
+`docs/artifacts/ui-settings-controls-2026-11-18`.
+Signed ad-hoc macOS build: `dist/settings-controls-macos-20261118` (1.0.3).
+No commit/push/publish; no next port chat while hosted acceptance is pending.
+
+## Button corners — 2026-11-18
+
+Icon, icon/text and text buttons share 4pt corners for fills and outlines.
+Segmented actions use the radius on the outside edges and retain their divider.
+Button and glyph dimensions stay unchanged. UI tests first reproduced square
+Settings buttons, then verified 4pt painted corners in production and gallery,
+including hover and disabled states. 174 renderer/UI tests plus fmt and Clippy
+pass. Evidence: `docs/artifacts/ui-button-radius-2026-11-18`. Full socket
+regression, native smoke and packaging remain pending: automatic approval review
+could not run because its usage limit was reached.
+
+## JSON Format button outline — 2026-11-18
+
+Removed only the Format outline; the blue fill and 4pt corners remain. The
+existing JSON toolbar test reproduced the outline first and now verifies the
+painted button at rest and on hover, along with format, find, copy and export.
+393 Rust tests, fmt and Clippy pass. Evidence: `docs/artifacts/ui-format-border-2026-11-18`. Verified
+the macOS ARM64 package signature and checksum; refreshed `dist/latest`.
+
+## Shared search bar — 2026-11-18
+
+Network, Console, JSON workspace/inspectors and widget gallery use one
+`desktop_style::search_bar` component. The outer field has a gray idle border,
+white light-theme fill, 4pt padding, a search icon matching the input height,
+4pt icon/text gap and no TextEdit padding. Clear is overlaid at right 4pt and
+vertically centered; text reserves its space. Each caller owns the width.
+Dark mode retains its contrasting control fill and focus keeps the blue border.
+Capture reset retains its existing filter-reset behavior.
+
+TDD reproduced old 8/3pt padding before implementation. UI regressions exercise
+10/14/22pt geometry, typing, clear, focus borders, Network/Console/JSON workspace
+and inspector placement; the gallery uses the same component. Toolbar height
+fits the field, avoiding clipped borders. 394 Rust tests pass, no failures
+or ignored tests; fmt and Clippy pass. Verified macOS ARM64 checksum/signature
+and replaced `dist/latest`. Windows native verification remains pending.
+Evidence: `docs/artifacts/ui-shared-search-2026-11-18`.
+
+### Search bar corners and clear visibility — 2026-11-18
+
+The shared search bar uses a 4pt radius for both fill and border, including
+focus. The clear icon and its hit target only exist when the input has text.
+The capture X still clears active filters when used. Regression
+`shared_search_geometry_and_clear_work_on_capture_and_json_at_all_font_sizes`
+failed on the old always-visible X and now verifies both states and the
+painted radius. 394 Rust tests, fmt and Clippy pass. The verified macOS ARM64
+package replaces `dist/latest`. Evidence: `docs/artifacts/ui-search-corners-2026-11-18`.
+
+### JSON workspace search before Format — 2026-11-18
+
+The viewer keeps the search text before a formatted document exists and
+applies it when formatting succeeds. The UI regression
+`json_workspace_keeps_search_typed_before_formatting` reproduced the first
+character disappearing on redraw, then verified successive characters,
+Clear, and matching on Format. 395 Rust tests, fmt and Clippy pass.
+The verified macOS ARM64 package replaces `dist/latest`.
+Evidence: `docs/artifacts/ui-json-query-before-format-2026-11-18`.
+
+### Header toolbar right alignment — 2026-11-18
+
+Both rows retain 8pt horizontal padding (vertical padding is 2pt on row 1
+and 4pt on row 2). Compact connection controls and capture actions reserve
+their actual widths. JSON Beautify aligns using the measured control width,
+keeping horizontal scrolling available if the controls do not fit.
+`header_rows_align_last_actions_to_the_same_eight_point_inset` reproduced
+the offset and now checks Network, Console and JSON in English and Vietnamese
+at multiple widths and font sizes. 396 Rust tests, fmt and Clippy pass.
+Verified macOS ARM64 bundle replaces `dist/latest`. Evidence: `docs/artifacts/ui-header-align-2026-11-18`.

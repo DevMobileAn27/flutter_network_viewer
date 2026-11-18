@@ -274,6 +274,7 @@ impl eframe::App for Smoke {
                 if ctx.content_rect().width() > 400. {
                     return;
                 }
+                self.click("settings-menu:mcp");
                 self.scroll("settings-scroll");
             }
             33 => {
@@ -285,6 +286,101 @@ impl eframe::App for Smoke {
                     return;
                 }
                 assert_eq!(self.receipt.take().unwrap().result(), Some(true));
+                ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(egui::vec2(1200., 800.)));
+                self.app.ui.settings.set_language("en").unwrap();
+                self.app
+                    .ui
+                    .settings
+                    .set_theme_mode(flutter_network_viewer::settings::ThemeMode::Light)
+                    .unwrap();
+                self.app.ui.notifications.dismiss(false);
+                self.click("settings-menu:interface");
+            }
+            35 => {
+                if ctx.content_rect().width() < 1000. {
+                    return;
+                }
+                assert!(self.app.ui.probe.widgets.contains_key("theme"));
+                assert!(!self.app.ui.probe.widgets.contains_key("mcp-enabled"));
+                self.screenshot(ctx, "settings-interface-light.png");
+            }
+            36 => {
+                if !self.output.join("settings-interface-light.png").exists() {
+                    return;
+                }
+                self.click("settings-menu:mcp");
+            }
+            37 => {
+                assert!(self.app.ui.probe.widgets.contains_key("mcp-enabled"));
+                assert!(!self.app.ui.probe.widgets.contains_key("theme"));
+                self.screenshot(ctx, "settings-mcp-light.png");
+            }
+            38 => {
+                if !self.output.join("settings-mcp-light.png").exists() {
+                    return;
+                }
+                self.click("settings-menu:about");
+            }
+            39 => {
+                assert!(self.app.ui.probe.widgets.contains_key("check-app-updates"));
+                assert!(!self.app.ui.probe.widgets.contains_key("mcp-enabled"));
+                self.screenshot(ctx, "settings-about-light.png");
+            }
+            40 => {
+                if !self.output.join("settings-about-light.png").exists() {
+                    return;
+                }
+                self.click("settings-menu:interface");
+            }
+            41 => {
+                self.click("language");
+                self.stage = Instant::now();
+            }
+            42 => {
+                if self.stage.elapsed() < Duration::from_millis(350) {
+                    return;
+                }
+                let selected = self.app.ui.probe.widgets["language:en"];
+                let value = self.app.ui.probe.widgets["language-value"];
+                assert!((selected.center().y - value.center().y).abs() < 1.);
+                assert!(
+                    (self.app.ui.probe.widgets["language-popup"].right() - value.right() - 20.)
+                        .abs()
+                        < 1.
+                );
+                self.screenshot(ctx, "settings-dropdown-light.png");
+            }
+            43 => {
+                if !self.output.join("settings-dropdown-light.png").exists() {
+                    return;
+                }
+                egui::Popup::close_all(ctx);
+                self.app
+                    .ui
+                    .settings
+                    .set_theme_mode(flutter_network_viewer::settings::ThemeMode::Dark)
+                    .unwrap();
+            }
+            44 => {
+                self.click("font-size");
+                self.stage = Instant::now();
+            }
+            45 => {
+                if self.stage.elapsed() < Duration::from_millis(350) {
+                    return;
+                }
+                let selected = self.app.ui.probe.widgets["font-size:14"];
+                assert!(
+                    (selected.center().y - self.app.ui.probe.widgets["font-size-value"].center().y)
+                        .abs()
+                        < 1.
+                );
+                self.screenshot(ctx, "settings-dropdown-dark.png");
+            }
+            46 => {
+                if !self.output.join("settings-dropdown-dark.png").exists() {
+                    return;
+                }
                 std::fs::write(self.output.join("native-result.json"),serde_json::to_vec_pretty(&serde_json::json!({"result":"pass","native_host":"DesktopApp","discussion_button":true,"manual_connection":true,"settings_reload":true,"narrow_scroll":true,"timers_wall_clock":true,"frames":self.frames})).unwrap()).unwrap();
                 println!(
                     "PASS native F17: production DesktopApp, discussion button, settings reload VI/dark, help/settings/toast narrow scrolling, wall-clock deadlines/confirm/cancel, fresh VM manual connection"
@@ -311,6 +407,11 @@ fn main() -> eframe::Result {
         "help-narrow.png",
         "notification-narrow.png",
         "settings-narrow.png",
+        "settings-interface-light.png",
+        "settings-mcp-light.png",
+        "settings-about-light.png",
+        "settings-dropdown-light.png",
+        "settings-dropdown-dark.png",
         "native-result.json",
     ] {
         let _ = std::fs::remove_file(output.join(name));

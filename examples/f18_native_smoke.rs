@@ -117,9 +117,10 @@ impl eframe::App for Smoke {
         match self.step {
             0 => {
                 assert!(!self.app.mcp.running());
+                self.app.ui.support.settings_page = 1;
                 self.click("settings");
             }
-            1 => self.scroll("settings-scroll"),
+            1 => self.click("settings-menu:mcp"),
             2 => self.click("mcp-enabled"),
             3 => {
                 assert!(!self.app.mcp.running());
@@ -212,6 +213,7 @@ impl eframe::App for Smoke {
                 }
                 let data = self.rpc.take().unwrap().join().unwrap();
                 assert_eq!(data["result"]["structuredContent"]["request_count"], 3);
+                self.app.ui.support.settings_page = 0;
                 self.click("settings");
             }
             13 => self.click("language"),
@@ -220,7 +222,7 @@ impl eframe::App for Smoke {
             16 => self.click("theme:dark"),
             17 => {
                 self.app.ui.notifications.dismiss(false);
-                self.scroll("settings-scroll");
+                self.click("settings-menu:mcp");
             }
             18 => {
                 assert!(ctx.style().visuals.dark_mode);

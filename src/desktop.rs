@@ -568,7 +568,8 @@ impl DesktopUi {
                                     crate::vintage::hover_action(ui, |ui, factor| {
                                         ui.add_sized(
                                             [ui.available_width().min(480. * factor), 40. * factor],
-                                            egui::Button::new(&target.name),
+                                            egui::Button::new(&target.name)
+                                                .corner_radius(crate::desktop_style::BUTTON_RADIUS),
                                         )
                                     })
                                     .on_hover_text(&target.uri),
@@ -1075,8 +1076,12 @@ impl DesktopUi {
             tr(ui.ctx(), "Filter Message by tags"),
         );
         if !self.message_tags.is_empty() {
-            ui.painter()
-                .rect_stroke(button.rect, 0, (1., p.accent), egui::StrokeKind::Inside);
+            ui.painter().rect_stroke(
+                button.rect,
+                crate::desktop_style::BUTTON_RADIUS,
+                (1., p.accent),
+                egui::StrokeKind::Inside,
+            );
         }
         let popup = egui::Popup::menu(&button)
             .align(egui::RectAlign::BOTTOM_END)

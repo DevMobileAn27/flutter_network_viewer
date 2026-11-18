@@ -119,6 +119,7 @@ impl eframe::App for Smoke {
             }
             if self.step == 0 {
                 self.shot(ctx, "native-available.png");
+                self.app.ui.support.settings_page = 2;
                 self.click("settings");
                 self.stage = Instant::now();
                 self.step = 1;
@@ -160,6 +161,7 @@ impl eframe::App for Smoke {
                     return;
                 }
                 assert!(self.stage.elapsed() < Duration::from_secs(20));
+                self.app.ui.support.settings_page = 2;
                 self.click("settings");
             }
             2 => {

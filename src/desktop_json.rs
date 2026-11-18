@@ -30,6 +30,7 @@ pub struct JsonViewer {
     source: String,
     loaded: bool,
     find: Option<JsonFindController>,
+    find_query: String,
     tree: bool,
     code_folds: HashSet<usize>,
     tree_folds: HashSet<usize>,
@@ -103,7 +104,11 @@ impl JsonViewer {
         if let Some(find) = &mut self.find {
             find.set_document(document);
         } else {
-            self.find = Some(JsonFindController::new(document));
+            let mut find = JsonFindController::new(document);
+            if !self.find_query.is_empty() {
+                find.set_query(&self.find_query);
+            }
+            self.find = Some(find);
         }
         self.code_folds.clear();
         self.tree_folds.clear();
@@ -156,10 +161,6 @@ impl JsonViewer {
             i.consume_key(egui::Modifiers::COMMAND, egui::Key::F)
                 || i.consume_key(egui::Modifiers::CTRL, egui::Key::F)
         });
-        let mut query = self
-            .find
-            .as_ref()
-            .map_or_else(String::new, |find| find.query().into());
         let mut options = self
             .find
             .as_ref()
@@ -167,33 +168,32 @@ impl JsonViewer {
         let active = self.find.as_ref().and_then(|find| find.index());
         let matches = self.find.as_ref().map_or(0, |find| find.matches().len());
         let side = json_text_control_side(ui.ctx());
-        let font = FontId::proportional(crate::desktop_style::font_size(ui.ctx()));
-        let line_height = ui.fonts_mut(|f| f.row_height(&font));
-        let find_margin_y = ((side - line_height) / 2.).clamp(0., 4.).floor() as i8;
         let group = ui.horizontal(|ui| {
-            let search = probe.record(
+            let key = if workspace {
+                "json-workspace-find"
+            } else {
+                "json-find"
+            };
+            let hint = tr(
+                ui.ctx(),
                 if workspace {
-                    "json-workspace-find"
+                    "Find in JSON…"
                 } else {
-                    "json-find"
+                    "Find in JSON"
                 },
-                crate::desktop_style::framed_text_edit(
-                    ui,
-                    egui::TextEdit::singleline(&mut query)
-                        .vertical_align(egui::Align::Center)
-                        .id_salt("json-find-input")
-                        .hint_text(tr(
-                            ui.ctx(),
-                            if workspace {
-                                "Find in JSON…"
-                            } else {
-                                "Find in JSON"
-                            },
-                        ))
-                        .margin(egui::Margin::symmetric(6, find_margin_y)),
-                    Some(egui::vec2(search_width, side)),
-                ),
             );
+            let (search, cleared) = crate::desktop_style::search_bar(
+                ui,
+                probe,
+                key,
+                "json-clear",
+                &mut self.find_query,
+                &hint,
+                search_width,
+            );
+            if cleared {
+                self.find_query.clear();
+            }
             if workspace && self.find.is_some() {
                 probe.widgets.insert("json-find".into(), search.rect);
             }
@@ -240,15 +240,6 @@ impl JsonViewer {
                 move_by = direction;
             }
         }
-        if probe
-            .record(
-                "json-clear",
-                find_icon_button(ui, 0xe16a, &tr(ui.ctx(), "Clear"), self.find.is_some()),
-            )
-            .clicked()
-        {
-            query.clear();
-        }
         if wrapped_width.is_some_and(|width| width < 320.) {
             ui.end_row();
         } else {
@@ -281,8 +272,8 @@ impl JsonViewer {
                 find.set_options(options);
                 self.reveal = true;
             }
-            if find.query() != query {
-                find.set_query(&query);
+            if find.query() != self.find_query {
+                find.set_query(&self.find_query);
                 self.reveal = true;
             }
             if ui.input(|i| i.key_pressed(egui::Key::F3)) {
@@ -977,7 +968,7 @@ impl JsonWorkspace {
         if probe
             .record(
                 "json-format",
-                crate::vintage::button(ui, &tr(ui.ctx(), "Format"), true),
+                crate::vintage::borderless_primary_button(ui, &tr(ui.ctx(), "Format")),
             )
             .clicked()
         {

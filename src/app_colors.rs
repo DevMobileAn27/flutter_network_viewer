@@ -51,3 +51,29 @@ pub const FIND_ACTIVE: Color32 = rgb(0xFF9500);
 pub const FIND_OTHER: Color32 = rgb(0xFFE29A);
 pub const FIND_TEXT: Color32 = Color32::BLACK;
 pub const PREVIEW_BACKGROUND: Color32 = rgb(0xD2D2D7);
+pub const SWITCH_OFF_LIGHT: Color32 = rgb(0xD2D2D7);
+pub const SWITCH_OFF_DARK: Color32 = rgb(0x5B5B60);
+pub const SWITCH_THUMB: Color32 = Color32::WHITE;
+pub const SWITCH_SHADOW: Color32 = Color32::from_black_alpha(35);
+
+// Neutral dropdown hover fills stay visible against Settings surfaces.
+pub const DROPDOWN_HOVER_LIGHT: Color32 = rgb(0xE7E7E7);
+pub const DROPDOWN_HOVER_DARK: Color32 = rgb(0x454545);
+
+// macOS-style popup surfaces are opaque and distinct from the Settings pane.
+pub const DROPDOWN_MENU_LIGHT: Color32 = rgb(0xF6F6F6);
+pub const DROPDOWN_MENU_DARK: Color32 = rgb(0x303030);
+
+// Settings group surfaces and per-category icon tile/ink pairs.
+pub const SETTINGS_GROUP_LIGHT: Color32 = rgb(0xF8F8F8);
+pub const SETTINGS_GROUP_DARK: Color32 = rgb(0x303030);
+pub const SETTINGS_MENU_ICONS: [(Color32, Color32); 3] = [
+    (rgb(0x007AFF), Color32::WHITE),
+    (rgb(0x34C759), rgb(0xF0FFF4)),
+    (rgb(0x8E8E93), rgb(0xE6F0FF)),
+];
+
+pub const BUTTON_ON_WHITE_LIGHT: Color32 = rgb(0xF0F0F0);
+pub const BUTTON_ON_GRAY_LIGHT: Color32 = rgb(0xE7E7E7);
+pub const BUTTON_ON_WHITE_DARK: Color32 = rgb(0x3A3A3A);
+pub const BUTTON_ON_GRAY_DARK: Color32 = rgb(0x505050);

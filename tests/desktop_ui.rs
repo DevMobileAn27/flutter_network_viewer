@@ -48,6 +48,23 @@ impl Harness {
         (output, actions)
     }
     fn click(&mut self, key: &str) -> (egui::FullOutput, Vec<Action>) {
+        if self.ui.support.settings_open && !key.starts_with("settings-menu:") {
+            let page = if key.starts_with("mcp-") || key == "settings-mcp" {
+                Some("mcp")
+            } else if key == "check-app-updates" || key == "settings-updates" {
+                Some("about")
+            } else if key == "theme" || key == "language" || key == "font-size" {
+                Some("interface")
+            } else {
+                None
+            };
+            if let Some(page) = page
+                && !self.ui.probe.widgets.contains_key(key)
+            {
+                self.click(&format!("settings-menu:{page}"));
+            }
+        }
+
         self.frame(vec![]);
         if key == "vm-uri" && !self.ui.probe.widgets.contains_key(key) {
             self.click("manual-url");
@@ -519,7 +536,11 @@ fn console_source_level_search_and_app_filters_combine() {
     assert!(h.ui.probe.logs.is_empty());
     h.click("app:all");
     assert_eq!(h.ui.probe.logs.len(), 1);
-    h.click("reset");
+    assert!(!h.ui.probe.widgets.contains_key("reset"));
+    h.click("source");
+    h.click("source:All log sources");
+    h.click("level");
+    h.click("level:All levels");
     assert_eq!(h.ui.probe.logs.len(), 3);
 }
 #[test]
@@ -683,7 +704,8 @@ fn console_warn_level_from_vm_is_filterable_and_raw_tracks_live_group_completion
     h.click("level");
     h.click("level:warn");
     assert_eq!(h.ui.probe.logs.len(), 1);
-    h.click("reset");
+    h.click("level");
+    h.click("level:All levels");
     let id = h.ui.probe.logs[2];
     h.click(&format!("log:{id}"));
     h.click("console-raw");
@@ -1758,11 +1780,7 @@ fn json_find_clear_uses_same_material_icon_size_as_navigation() {
     h.click("json-find");
     h.frame(vec![Event::Text("needle".into())]);
     let (out, _) = h.frame(vec![]);
-    for (key, code) in [
-        ("json-prev", '\u{e0a0}'),
-        ("json-next", '\u{e097}'),
-        ("json-clear", '\u{e16a}'),
-    ] {
+    for (key, code) in [("json-prev", '\u{e0a0}'), ("json-next", '\u{e097}')] {
         let rect = h.ui.probe.widgets[key];
         assert_eq!(rect.size(), Vec2::splat(24.));
         assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Text(t)
@@ -1811,14 +1829,16 @@ fn network_filters_live_in_header_and_search_has_compact_padding() {
         let cell = h.ui.probe.widgets[header];
         assert!(cell.contains_rect(rect));
         assert!((cell.right() - rect.right() - 4.).abs() < 1.);
-        assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect==rect && r.corner_radius==egui::CornerRadius::ZERO && r.fill==flutter_network_viewer::vintage::CONTROL && r.stroke.width==1.)));
+        assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect==rect && r.corner_radius==egui::CornerRadius::same(4) && r.fill==flutter_network_viewer::vintage::CONTROL && r.stroke.width==1.)));
     }
     let frame = h.ui.probe.widgets["search-frame"];
     let icon = h.ui.probe.widgets["search-icon"];
     let input = h.ui.probe.widgets["search"];
-    assert!((icon.left() - frame.left() - 8.).abs() < 1.);
+    assert!((icon.left() - frame.left() - 4.).abs() < 1.);
     assert!((input.left() - icon.right() - 4.).abs() < 1.);
-    assert!((input.top() - frame.top() - 3.).abs() < 1.);
+    assert!((icon.height() - input.height()).abs() < 0.1);
+    assert!(!h.ui.probe.widgets.contains_key("reset"));
+    assert!((input.top() - frame.top() - 4.).abs() < 1.);
     assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Text(t)
         if t.galley.text()=="Filter URL, method, status…" && t.galley.job.sections[0].format.font_id.size==14.
             && t.galley.job.sections[0].format.color==flutter_network_viewer::app_colors::LIGHT.muted)));
@@ -2059,7 +2079,10 @@ fn compact_header_manual_popup_and_console_header_filters_work() {
     let mut h = Harness::new(1360.);
     let header = h.ui.probe.widgets["header"];
     assert_eq!(header.height(), 32.);
-    assert_eq!(h.ui.probe.widgets["nav-toolbar"].height(), 32.);
+    assert_eq!(
+        h.ui.probe.widgets["nav-toolbar"].height(),
+        flutter_network_viewer::desktop_style::search_bar_height(&h.ctx) + 8.
+    );
     for key in [
         "Network",
         "Console",
@@ -2138,12 +2161,24 @@ fn assert_input_border(out: &egui::FullOutput, rect: Rect, color: egui::Color32)
 #[test]
 fn text_inputs_keep_vintage_default_and_focused_borders() {
     fn check_find(h: &mut Harness, key: &str, p: flutter_network_viewer::desktop_style::Palette) {
-        assert_input_border(&h.frame(vec![]).0, h.ui.probe.widgets[key], p.line);
+        assert_input_border(
+            &h.frame(vec![]).0,
+            h.ui.probe.widgets[&format!("{key}-frame")],
+            p.line,
+        );
         h.text(key, "created");
         assert_eq!(h.ui.probe.json.query, "created");
-        assert_input_border(&h.frame(vec![]).0, h.ui.probe.widgets[key], p.accent);
+        assert_input_border(
+            &h.frame(vec![]).0,
+            h.ui.probe.widgets[&format!("{key}-frame")],
+            p.accent,
+        );
         h.click("json-tree");
-        assert_input_border(&h.frame(vec![]).0, h.ui.probe.widgets[key], p.line);
+        assert_input_border(
+            &h.frame(vec![]).0,
+            h.ui.probe.widgets[&format!("{key}-frame")],
+            p.line,
+        );
     }
     fn tab_away(h: &mut Harness) -> egui::FullOutput {
         h.frame(vec![Event::Key {
@@ -2242,6 +2277,26 @@ fn workspace_header_formats_finds_copies_and_downloads_json() {
         "json-download",
     ] {
         assert!(nav.contains_rect(h.ui.probe.widgets[key]), "{key}");
+    }
+    let format = h.ui.probe.widgets["json-format"];
+    for pointer in [Pos2::ZERO, format.center()] {
+        let (out, _) = h.frame(vec![Event::PointerMoved(pointer)]);
+        let frames: Vec<_> = out
+            .shapes
+            .iter()
+            .filter_map(|s| match &s.shape {
+                egui::Shape::Rect(r) if r.rect == format => Some(r),
+                _ => None,
+            })
+            .collect();
+        assert!(frames.iter().any(
+            |r| r.fill == flutter_network_viewer::app_colors::LIGHT.accent
+                && r.corner_radius == egui::CornerRadius::same(4)
+        ));
+        assert!(
+            frames.iter().all(|r| r.stroke.is_empty()),
+            "Format must have no outline"
+        );
     }
     h.text("json-input", r#"{"needle": 1, "other": 2}"#);
     h.click("json-format");
@@ -2441,13 +2496,15 @@ fn unified_font_setting_updates_all_painted_text_and_plain_network_grid() {
         h.frame(vec![]);
     }
     check(&h.frame(vec![]).0, 14.);
-    h.click("font-size-increase");
+    h.click("font-size");
+    h.click("font-size:15");
     h.frame(vec![Event::PointerMoved(Pos2::new(0., 799.))]);
     for _ in 0..3 {
         h.frame(vec![]);
     }
     check(&h.frame(vec![]).0, 15.);
-    h.click("font-size-decrease");
+    h.click("font-size");
+    h.click("font-size:14");
     h.frame(vec![Event::PointerMoved(Pos2::new(0., 799.))]);
     for _ in 0..3 {
         h.frame(vec![]);
@@ -2876,14 +2933,13 @@ fn json_toolbar_has_uniform_square_actions_padded_tabs_and_no_group_border() {
                 h.frame(vec![]);
             }
             let (out, _) = h.frame(vec![]);
-            let reference = h.ui.probe.widgets["json-clear"];
+            let reference = h.ui.probe.widgets["json-prev"];
             for key in [
                 "json-case",
                 "json-word",
                 "json-regex",
                 "json-prev",
                 "json-next",
-                "json-clear",
                 "json-copy",
             ] {
                 let rect = h.ui.probe.widgets[key];
@@ -3178,11 +3234,17 @@ fn light_theme_uses_ventura_content_and_control_backgrounds() {
     fill(&out, &h, &swatches[1], egui::Color32::WHITE);
 
     h.click("settings");
+    h.click("settings-menu:mcp");
     for _ in 0..4 {
         h.frame(vec![]);
     }
     let (out, _) = h.frame(vec![]);
-    fill(&out, &h, "settings-appearance", surface);
+    fill(
+        &out,
+        &h,
+        "settings-mcp",
+        egui::Color32::from_rgb(248, 248, 248),
+    );
     fill(&out, &h, "mcp-port", control);
     fill(
         &out,
@@ -3203,6 +3265,7 @@ fn json_workspace_puts_all_find_controls_and_view_tabs_in_the_header() {
         for _ in 0..4 {
             h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
         }
+        h.text("json-find", "needle");
         let widgets = &h.ui.probe.widgets;
         let nav = widgets["nav-toolbar"];
         let find = widgets["json-find"];
@@ -3229,7 +3292,6 @@ fn json_workspace_puts_all_find_controls_and_view_tabs_in_the_header() {
                 "{key} at {width}/{size}: {rect:?} is not aligned with search {find:?}"
             );
         }
-        h.text("json-find", "needle");
         assert_eq!(h.ui.probe.json.matches, 3);
         h.click("json-case");
         assert_eq!(h.ui.probe.json.matches, 2);
@@ -3268,7 +3330,6 @@ fn both_header_rows_keep_complete_action_borders_with_and_without_json() {
                         "json-regex",
                         "json-prev",
                         "json-next",
-                        "json-clear",
                         "json-workspace-copy",
                         "json-download",
                     ][..],
@@ -3362,6 +3423,7 @@ fn icon_text_gaps_are_four_pixels_in_header_search_and_settings() {
         let input = h.ui.probe.widgets["search"];
         assert!((input.left() - icon.right() - 4.).abs() < 0.6);
         h.click("settings");
+        h.click("settings-menu:mcp");
         h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
         let (out, _) = h.frame(vec![]);
         for key in ["mcp-copy-codex", "mcp-copy-claude"] {
@@ -3373,12 +3435,28 @@ fn icon_text_gaps_are_four_pixels_in_header_search_and_settings() {
             job_gap(&hover, h.ui.probe.widgets[key]);
             h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
         }
-        for (key, title, code) in [
+        for (key, title, _code) in [
             ("settings-appearance", "Interface", '\u{e683}'),
             ("settings-mcp", "MCP", '\u{f0616}'),
-            ("settings-updates", "App updates", '\u{e637}'),
+            ("settings-updates", "About us", '\u{e637}'),
         ] {
-            let section = h.ui.probe.widgets[key];
+            h.click(if key == "settings-appearance" {
+                "settings-menu:interface"
+            } else if key == "settings-mcp" {
+                "settings-menu:mcp"
+            } else {
+                "settings-menu:about"
+            });
+            let (out, _) = h.frame(vec![]);
+            let page = if key == "settings-appearance" {
+                "interface"
+            } else if key == "settings-mcp" {
+                "mcp"
+            } else {
+                "about"
+            };
+            let section = h.ui.probe.widgets[&format!("settings-menu:{page}")];
+            let tile = h.ui.probe.widgets[&format!("settings-menu:{page}-tile")];
             let bounds = |value: &str| {
                 out.shapes
                     .iter()
@@ -3393,7 +3471,7 @@ fn icon_text_gaps_are_four_pixels_in_header_search_and_settings() {
                     .unwrap()
             };
             assert!(
-                (bounds(title).left() - bounds(&code.to_string()).right() - 4.).abs() < 0.6,
+                (bounds(title).left() - tile.right() - 4.).abs() < 0.6,
                 "{key} icon/title gap"
             );
         }
@@ -3859,6 +3937,7 @@ fn inspector_ventura_scrollbar_is_overlay_and_drags_to_hidden_tabs() {
                 && r.fill.a() > 0
                 && r.rect.width() > 30.
                 && r.rect.height() > thumb.height()
+                && r.rect.height() <= 12.
                 && viewport.expand(1.).contains_rect(r.rect)
             {
                 has_expanded_bar = true;
@@ -3921,6 +4000,7 @@ fn standalone_icon_buttons_use_24_point_frames_and_14_point_glyphs() {
         for &(key, code) in buttons {
             let rect = h.ui.probe.widgets[key];
             assert_eq!(rect.size(), Vec2::splat(24.), "{key}");
+            assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect == rect && r.corner_radius == egui::CornerRadius::same(4))), "{key} radius");
             assert!(
                 out.shapes
                     .iter()
@@ -3958,7 +4038,6 @@ fn standalone_icon_buttons_use_24_point_frames_and_14_point_glyphs() {
         check(
             &mut h,
             &[
-                ("json-clear", '\u{e16a}'),
                 ("json-workspace-copy", '\u{ef7f}'),
                 ("json-download", '\u{f05b}'),
             ],
@@ -4134,6 +4213,8 @@ fn console_message_filter_tags_add_remove_and_match_only_message_text() {
     h.click("source");
     h.click("source:dart.stderr");
     assert!(h.ui.probe.logs.is_empty());
+    assert!(!h.ui.probe.widgets.contains_key("reset"));
+    h.text("search", "auth");
     h.click("reset");
     assert_eq!(h.ui.probe.logs, baseline);
 
@@ -4271,7 +4352,6 @@ fn console_and_network_inspectors_share_tabs_spacing_and_json_controls() {
                 "json-case",
                 "json-prev",
                 "json-next",
-                "json-clear",
                 "json-code",
                 "json-tree",
                 "json-copy",
@@ -4335,5 +4415,152 @@ fn console_and_network_inspectors_share_tabs_spacing_and_json_controls() {
         assert!(h.ui.probe.json.matches > 0);
         h.click("console-detail");
         assert!(!h.ui.probe.widgets.contains_key("json-toolbar"));
+    }
+}
+
+#[test]
+fn shared_search_geometry_and_clear_work_on_capture_and_json_at_all_font_sizes() {
+    fn check(h: &mut Harness, key: &str, clear_key: &str, visible: bool) {
+        let out = h.frame(vec![]).0;
+        let frame = h.ui.probe.widgets[&format!("{key}-frame")];
+        let icon = h.ui.probe.widgets[&format!("{key}-icon")];
+        let input = h.ui.probe.widgets[key];
+        let clear = h.ui.probe.widgets.get(clear_key);
+        assert_eq!(clear.is_some(), visible, "{key}: clear visibility");
+        let glyph = out.shapes.iter().any(|s| {
+            matches!(&s.shape, egui::Shape::Text(t)
+            if frame.contains(t.pos) && t.galley.text() == "\u{e16a}")
+        });
+        assert_eq!(glyph, visible, "{key}: painted clear icon");
+        for distance in [
+            icon.left() - frame.left(),
+            input.top() - frame.top(),
+            frame.bottom() - input.bottom(),
+            input.left() - icon.right(),
+        ] {
+            assert!(
+                (distance - 4.).abs() < 0.1,
+                "{key}: {distance}, frame {frame:?}, input {input:?}, icon {icon:?}"
+            );
+        }
+        assert!((icon.height() - input.height()).abs() < 0.1);
+        assert!((icon.width() - icon.height()).abs() < 0.1);
+        if let Some(clear) = clear {
+            assert!((frame.right() - clear.right() - 4.).abs() < 0.1);
+            assert!((clear.center().y - frame.center().y).abs() < 0.1);
+            assert!(input.right() <= clear.left() - 4. + 0.1);
+        }
+        let palette = flutter_network_viewer::app_colors::LIGHT;
+        assert_input_border(
+            &out,
+            frame,
+            if visible {
+                palette.accent
+            } else {
+                palette.line
+            },
+        );
+        assert!(
+            out.shapes
+                .iter()
+                .any(|s| matches!(&s.shape, egui::Shape::Rect(r)
+            if r.rect == frame && r.fill == egui::Color32::WHITE
+                && r.corner_radius == egui::CornerRadius::same(4)))
+        );
+        assert!(
+            out.shapes
+                .iter()
+                .any(|s| matches!(&s.shape, egui::Shape::Rect(r)
+            if r.rect == frame && r.stroke.width == 1.
+                && r.corner_radius == egui::CornerRadius::same(4)))
+        );
+    }
+    for size in [10., 14., 22.] {
+        let mut h = Harness::new(1440.);
+        h.ui.settings.set_font_size(size).unwrap();
+        h.frame(vec![]);
+        check(&mut h, "search", "reset", false);
+        h.text("search", "orders");
+        check(&mut h, "search", "reset", true);
+        h.click("reset");
+        check(&mut h, "search", "reset", false);
+        assert_eq!(h.ui.probe.requests.len(), 3);
+        h.click("Console");
+        check(&mut h, "search", "reset", false);
+        h.click("JSON");
+        check(&mut h, "json-workspace-find", "json-clear", false);
+        h.text("json-input", r#"{"value":"needle"}"#);
+        h.click("json-format");
+        h.text("json-find", "needle");
+        assert_eq!(h.ui.probe.json.matches, 1);
+        assert!(h.ui.probe.widgets.contains_key("json-clear"));
+        h.click("json-clear");
+        check(&mut h, "json-workspace-find", "json-clear", false);
+        assert_eq!(h.ui.probe.json.query, "");
+        h.click("Network");
+        h.click("request:ios-session-1:fetch-1");
+        h.click("tab:4");
+        check(&mut h, "json-find", "json-clear", false);
+    }
+}
+
+#[test]
+fn json_workspace_keeps_search_typed_before_formatting() {
+    let mut h = Harness::new(1360.);
+    h.click("JSON");
+    h.click("json-workspace-find");
+    for (character, expected) in [("n", "n"), ("e", "ne"), ("e", "nee")] {
+        h.frame(vec![Event::Text(character.into())]);
+        let (out, _) = h.frame(vec![]);
+        let input = h.ui.probe.widgets["json-workspace-find"];
+        assert!(
+            out.shapes
+                .iter()
+                .any(|s| matches!(&s.shape, egui::Shape::Text(t)
+            if input.contains(t.pos) && t.galley.text() == expected)),
+            "missing {expected:?} after redraw"
+        );
+        assert!(h.ui.probe.widgets.contains_key("json-clear"));
+    }
+    h.click("json-clear");
+    assert!(!h.ui.probe.widgets.contains_key("json-clear"));
+    h.text("json-workspace-find", "needle");
+    h.text("json-input", r#"{"needle": 1, "other": 2}"#);
+    h.click("json-format");
+    assert_eq!(h.ui.probe.json.query, "needle");
+    assert_eq!(h.ui.probe.json.matches, 1);
+}
+
+#[test]
+fn header_rows_align_last_actions_to_the_same_eight_point_inset() {
+    for (width, size, language) in [(700., 14., "en"), (1360., 14., "en"), (1360., 22., "vi")] {
+        let mut h = Harness::new(width);
+        h.ui.settings.set_font_size(size).unwrap();
+        h.ui.settings.set_language(language).unwrap();
+        for (page, action) in [
+            ("Network", "export"),
+            ("Console", "export"),
+            ("JSON", "json-download"),
+        ] {
+            h.click(page);
+            for _ in 0..3 {
+                h.frame(vec![]);
+            }
+            let widgets = &h.ui.probe.widgets;
+            let top = widgets["header-content"];
+            let tools = widgets["nav-content"];
+            assert_eq!(top.x_range(), tools.x_range());
+            assert!(
+                (top.right() - widgets["help"].right()).abs() <= 0.5,
+                "{page}, {width}/{size}/{language}: row 1 right offset {}",
+                top.right() - widgets["help"].right()
+            );
+            assert!(
+                (tools.right() - widgets[action].right()).abs() <= 0.5,
+                "{page}, {width}/{size}/{language}: expected right edge {}, got {}",
+                tools.right(),
+                widgets[action].right()
+            );
+        }
     }
 }

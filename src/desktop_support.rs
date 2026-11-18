@@ -400,6 +400,7 @@ pub struct SupportUi {
     pub updates: crate::updater::View,
     pub help_open: bool,
     pub settings_open: bool,
+    pub settings_page: usize,
     mcp_port: String,
     pub mcp_status: crate::mcp::McpStatus,
     initialized: bool,
@@ -407,8 +408,12 @@ pub struct SupportUi {
 impl SupportUi {
     fn show_updates(&self, ui: &mut egui::Ui, probe: &mut UiProbe, actions: &mut Vec<Action>) {
         use crate::updater::Status;
-        let version = format!("Version {} - Nguyễn Quốc An", env!("CARGO_PKG_VERSION"));
-        ui.colored_label(crate::desktop_style::Palette::of(ui.ctx()).muted, &version);
+        let version = format!(
+            "{} {} - {} Nguyễn Quốc An",
+            tr(ui.ctx(), "Current version"),
+            env!("CARGO_PKG_VERSION"),
+            tr(ui.ctx(), "Author")
+        );
         probe.support_text.push_str(&version);
         let status = if !self.updates.supported {
             Some("Updates are not supported on this platform.")
@@ -436,22 +441,53 @@ impl SupportUi {
                 "Check for updates"
             },
         );
-        ui.add_space(16.);
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if probe
-                .record(
-                    "check-app-updates",
-                    ui.add_enabled_ui(self.updates.supported && !self.updates.busy, |ui| {
-                        settings_button(ui, &label, false)
-                    })
-                    .inner,
-                )
-                .clicked()
-            {
-                actions.push(Action::CheckUpdates);
-            }
+        let font_size = crate::desktop_style::font_size(ui.ctx());
+        let action_width = ui
+            .painter()
+            .layout_no_wrap(
+                label.clone(),
+                egui::FontId::proportional(font_size),
+                crate::desktop_style::Palette::of(ui.ctx()).text,
+            )
+            .size()
+            .x
+            + 2. * ui.spacing().button_padding.x;
+        ui.horizontal(|ui| {
+            let text_width =
+                (ui.available_width() - action_width - ui.spacing().item_spacing.x).max(1.);
+            ui.allocate_ui_with_layout(
+                egui::vec2(text_width, 44.),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    probe.record(
+                        "about-version",
+                        ui.add(
+                            egui::Label::new(
+                                egui::RichText::new(&version)
+                                    .color(crate::desktop_style::Palette::of(ui.ctx()).muted),
+                            )
+                            .wrap(),
+                        ),
+                    );
+                },
+            );
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if probe
+                    .record(
+                        "check-app-updates",
+                        ui.add_enabled_ui(self.updates.supported && !self.updates.busy, |ui| {
+                            settings_button(ui, &label, false)
+                        })
+                        .inner,
+                    )
+                    .clicked()
+                {
+                    actions.push(Action::CheckUpdates);
+                }
+            });
         });
     }
+
     pub fn show(
         &mut self,
         ctx: &egui::Context,
@@ -660,6 +696,7 @@ impl SupportUi {
             egui::TopBottomPanel::top("settings-appbar")
                 .frame(egui::Frame::NONE.fill(palette.surface).inner_margin(8))
                 .show(ctx, |ui| {
+                    crate::desktop_style::style_neutral_buttons(ui, false);
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 0.;
                         let start = ui.cursor().min.x;
@@ -697,12 +734,73 @@ impl SupportUi {
                             .insert("settings-header-spacer".into(), spacer);
                     });
                 });
-            egui::CentralPanel::default()
+            let sidebar_width = 350_f32.min((ctx.available_rect().width() - 320.).max(120.));
+            egui::SidePanel::left("settings-navigation")
+                .exact_width(sidebar_width)
+                .resizable(false)
+                .show_separator_line(false)
                 .frame(egui::Frame::NONE.fill(palette.background))
                 .show(ctx, |ui| {
+                    probe
+                        .widgets
+                        .insert("settings-sidebar".into(), ui.max_rect());
+                    egui::ScrollArea::vertical()
+                        .id_salt("settings-menu-scroll")
+                        .show(ui, |ui| {
+                            egui::Frame::NONE.inner_margin(8).show(ui, |ui| {
+                                for (index, (key, title, icon)) in [
+                                    ("interface", "Interface", 0xe683),
+                                    ("mcp", "MCP", 0xf0616),
+                                    ("about", "About us", 0xe637),
+                                ]
+                                .into_iter()
+                                .enumerate()
+                                {
+                                    let response = settings_menu_item(
+                                        ui,
+                                        &tr(ctx, title),
+                                        icon,
+                                        index,
+                                        self.settings_page == index,
+                                    );
+                                    let tile = response.rect;
+                                    let tile_size = crate::desktop_style::font_size(ctx).max(20.);
+                                    let tile = egui::Rect::from_center_size(
+                                        egui::pos2(
+                                            tile.left() + 8. + tile_size / 2.,
+                                            tile.center().y,
+                                        ),
+                                        egui::Vec2::splat(tile_size),
+                                    );
+                                    probe
+                                        .widgets
+                                        .insert(format!("settings-menu:{key}-tile"), tile);
+                                    probe.widgets.insert(
+                                        format!("settings-menu:{key}-icon"),
+                                        egui::Rect::from_center_size(
+                                            tile.center(),
+                                            tile.size() * 0.8,
+                                        ),
+                                    );
+                                    if probe
+                                        .record(format!("settings-menu:{key}"), response)
+                                        .clicked()
+                                    {
+                                        self.settings_page = index;
+                                    }
+                                }
+                            });
+                        });
+                });
+            egui::CentralPanel::default()
+                .frame(egui::Frame::NONE.fill(palette.surface))
+                .show(ctx, |ui| {
+                    probe
+                        .widgets
+                        .insert("settings-content".into(), ui.max_rect());
                     let scroll = egui::ScrollArea::vertical()
                         .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
-                        .id_salt("settings-scroll")
+                        .id_salt(("settings-scroll", self.settings_page))
                         .auto_shrink([false, false])
                         .show(ui, |ui| {
                             let width = ui.available_width();
@@ -718,109 +816,62 @@ impl SupportUi {
                                     ui.set_width(width - 2. * padding);
                                     ui.spacing_mut().item_spacing.y = 0.;
                                     ui.spacing_mut().interact_size.y = 44.;
-                                    let appearance =
-                                        settings_section(ui, &tr(ctx, "Interface"), |ui| {
-                                            field_label(ui, &tr(ctx, "Theme"));
-                                            let response = egui::ComboBox::from_id_salt("theme")
-                                                .width(220_f32.min(ui.available_width()))
-                                                .selected_text(dropdown_text(
-                                                    ctx,
-                                                    tr(
-                                                        ctx,
-                                                        if settings.values().theme_mode
-                                                            == ThemeMode::Dark
-                                                        {
-                                                            "Dark"
-                                                        } else {
-                                                            "Light"
-                                                        },
+                                    if self.settings_page == 0 {
+                                        let appearance = settings_section(ui, |ui| {
+                                            let theme_options = [
+                                                ("theme:light", tr(ctx, "Light")),
+                                                ("theme:dark", tr(ctx, "Dark")),
+                                            ];
+                                            let options: Vec<_> = theme_options
+                                                .iter()
+                                                .map(|(k, v)| (*k, v.as_str()))
+                                                .collect();
+                                            if let Some(index) = crate::vintage::dropdown_row(
+                                                ui,
+                                                probe,
+                                                "theme",
+                                                &tr(ctx, "Theme"),
+                                                &options,
+                                                usize::from(
+                                                    settings.values().theme_mode == ThemeMode::Dark,
+                                                ),
+                                            ) {
+                                                save_result(
+                                                    settings.set_theme_mode(
+                                                        [ThemeMode::Light, ThemeMode::Dark][index],
                                                     ),
-                                                ))
-                                                .popup_style(egui::style::StyleModifier::from(
-                                                    |s: &mut egui::Style| {
-                                                        s.spacing.menu_margin = egui::Margin::ZERO;
-                                                    },
-                                                ))
-                                                .show_ui(ui, |ui| {
-                                                    for (key, mode, label) in [
-                                                        ("light", ThemeMode::Light, "Light"),
-                                                        ("dark", ThemeMode::Dark, "Dark"),
-                                                    ] {
-                                                        if probe
-                                                            .record(
-                                                                format!("theme:{key}"),
-                                                                crate::desktop_style::option(
-                                                                    ui,
-                                                                    settings.values().theme_mode
-                                                                        == mode,
-                                                                    tr(ctx, label),
-                                                                ),
-                                                            )
-                                                            .clicked()
-                                                        {
-                                                            save_result(
-                                                                settings.set_theme_mode(mode),
-                                                                ctx,
-                                                                notices,
-                                                            );
-                                                        }
-                                                    }
-                                                });
-                                            probe.record("theme", response.response);
-                                            ui.add_space(12.);
-                                            field_label(ui, &tr(ctx, "Language"));
-                                            let response = egui::ComboBox::from_id_salt("language")
-                                                .width(220_f32.min(ui.available_width()))
-                                                .selected_text(dropdown_text(
                                                     ctx,
-                                                    if settings.values().language_code == "vi" {
-                                                        "Tiếng Việt"
-                                                    } else {
-                                                        "English"
-                                                    },
-                                                ))
-                                                .popup_style(egui::style::StyleModifier::from(
-                                                    |s: &mut egui::Style| {
-                                                        s.spacing.menu_margin = egui::Margin::ZERO;
-                                                    },
-                                                ))
-                                                .show_ui(ui, |ui| {
-                                                    for (code, label) in
-                                                        [("en", "English"), ("vi", "Tiếng Việt")]
-                                                    {
-                                                        if probe
-                                                            .record(
-                                                                format!("language:{code}"),
-                                                                crate::desktop_style::option(
-                                                                    ui,
-                                                                    settings.values().language_code
-                                                                        == code,
-                                                                    label,
-                                                                ),
-                                                            )
-                                                            .clicked()
-                                                        {
-                                                            save_result(
-                                                                settings.set_language(code),
-                                                                ctx,
-                                                                notices,
-                                                            );
-                                                        }
-                                                    }
-                                                });
-                                            probe.record("language", response.response);
+                                                    notices,
+                                                );
+                                            }
                                             ui.add_space(12.);
-                                            field_label(ui, &tr(ctx, "Font size"));
+                                            if let Some(index) = crate::vintage::dropdown_row(
+                                                ui,
+                                                probe,
+                                                "language",
+                                                &tr(ctx, "Language"),
+                                                &[
+                                                    ("language:en", "English"),
+                                                    ("language:vi", "Tiếng Việt"),
+                                                ],
+                                                usize::from(
+                                                    settings.values().language_code == "vi",
+                                                ),
+                                            ) {
+                                                save_result(
+                                                    settings.set_language(["en", "vi"][index]),
+                                                    ctx,
+                                                    notices,
+                                                );
+                                            }
+                                            ui.add_space(12.);
                                             let mut size = settings.values().font_size;
-                                            crate::vintage::font_size_stepper(
+                                            crate::vintage::font_size_dropdown(
                                                 ui,
                                                 &mut size,
                                                 probe,
-                                                [
-                                                    "font-size-decrease",
-                                                    "font-size",
-                                                    "font-size-increase",
-                                                ],
+                                                "font-size",
+                                                &tr(ctx, "Font size"),
                                             );
                                             if size != settings.values().font_size {
                                                 save_result(
@@ -831,51 +882,55 @@ impl SupportUi {
                                             }
                                             ui.add_space(0.);
                                         });
-                                    ui.add_space(12.);
-                                    probe.record("settings-appearance", appearance);
-                                    let mcp = settings_section(ui, "MCP", |ui| {
-                                        ui.scope(|ui| {
-                                            ui.spacing_mut().interact_size.y = 32.;
-                                            ui.horizontal(|ui| {
-                                                section_heading(ui, "MCP");
-                                                ui.with_layout(
-                                                    egui::Layout::right_to_left(
-                                                        egui::Align::Center,
-                                                    ),
-                                                    |ui| {
-                                                        let mut enabled =
-                                                            settings.values().mcp_enabled;
-                                                        if probe
-                                                            .record(
-                                                                "mcp-enabled",
-                                                                settings_switch(
-                                                                    ui,
-                                                                    &mut enabled,
-                                                                    None,
-                                                                ),
-                                                            )
-                                                            .changed()
-                                                        {
-                                                            apply_mcp(
-                                                                settings,
-                                                                &self.mcp_port,
-                                                                enabled,
+                                        ui.add_space(12.);
+                                        probe.record("settings-appearance", appearance);
+                                    }
+                                    if self.settings_page == 1 {
+                                        let mcp = settings_section(ui, |ui| {
+                                            ui.scope(|ui| {
+                                                ui.spacing_mut().interact_size.y =
+                                                    crate::vintage::SWITCH_SIZE
+                                                        .y
+                                                        .max(crate::desktop_style::font_size(ctx));
+                                                let row = ui.horizontal(|ui| {
+                                                    ui.with_layout(
+                                                        egui::Layout::right_to_left(
+                                                            egui::Align::Center,
+                                                        ),
+                                                        |ui| {
+                                                            let mut enabled =
+                                                                settings.values().mcp_enabled;
+                                                            if probe
+                                                                .record(
+                                                                    "mcp-enabled",
+                                                                    settings_switch(
+                                                                        ui,
+                                                                        &mut enabled,
+                                                                        None,
+                                                                    ),
+                                                                )
+                                                                .changed()
+                                                            {
+                                                                apply_mcp(
+                                                                    settings,
+                                                                    &self.mcp_port,
+                                                                    enabled,
+                                                                    ctx,
+                                                                    notices,
+                                                                    actions,
+                                                                );
+                                                            }
+                                                            let status = tr(
                                                                 ctx,
-                                                                notices,
-                                                                actions,
+                                                                if !settings.values().mcp_enabled {
+                                                                    "MCP disabled"
+                                                                } else if self.mcp_status.running {
+                                                                    "MCP listening"
+                                                                } else {
+                                                                    "Server stopped"
+                                                                },
                                                             );
-                                                        }
-                                                        let status = tr(
-                                                            ctx,
-                                                            if !settings.values().mcp_enabled {
-                                                                "MCP disabled"
-                                                            } else if self.mcp_status.running {
-                                                                "MCP listening"
-                                                            } else {
-                                                                "Server stopped"
-                                                            },
-                                                        );
-                                                        ui.label(
+                                                            ui.label(
                                                             egui::RichText::new(&status)
                                                                 .size(
                                                                     crate::desktop_style::font_size(
@@ -884,143 +939,156 @@ impl SupportUi {
                                                                 )
                                                                 .color(palette.muted),
                                                         );
-                                                        probe.support_text.push_str(&status);
-                                                    },
+                                                            probe.support_text.push_str(&status);
+                                                        },
+                                                    );
+                                                });
+                                                probe.widgets.insert(
+                                                    "mcp-status-row".into(),
+                                                    row.response.rect,
                                                 );
                                             });
-                                        });
-                                        ui.add_space(12.);
-                                        if ui.available_width() >= 680. {
-                                            ui.horizontal_top(|ui| {
-                                                ui.spacing_mut().item_spacing.x = 12.;
-                                                ui.allocate_ui_with_layout(
-                                                    egui::vec2(160., 76.),
-                                                    egui::Layout::top_down(egui::Align::Min),
-                                                    |ui| {
-                                                        field_label(ui, &tr(ctx, "MCP port"));
-                                                        let response = probe.record(
-                                                            "mcp-port",
-                                                            outlined_input(
-                                                                ui,
-                                                                &mut self.mcp_port,
-                                                                134.,
-                                                            ),
-                                                        );
-                                                        if response.lost_focus()
-                                                            && ui.input(|i| {
-                                                                i.key_pressed(egui::Key::Enter)
-                                                            })
-                                                        {
-                                                            apply_mcp(
-                                                                settings,
-                                                                &self.mcp_port,
-                                                                settings.values().mcp_enabled,
-                                                                ctx,
-                                                                notices,
-                                                                actions,
+                                            ui.add_space(12.);
+                                            if ui.available_width() >= 680. {
+                                                ui.horizontal_top(|ui| {
+                                                    ui.spacing_mut().item_spacing.x = 12.;
+                                                    ui.allocate_ui_with_layout(
+                                                        egui::vec2(160., 76.),
+                                                        egui::Layout::top_down(egui::Align::Min),
+                                                        |ui| {
+                                                            field_label(ui, &tr(ctx, "MCP port"));
+                                                            let response = probe.record(
+                                                                "mcp-port",
+                                                                outlined_input(
+                                                                    ui,
+                                                                    &mut self.mcp_port,
+                                                                    134.,
+                                                                ),
                                                             );
-                                                        }
-                                                    },
+                                                            if response.lost_focus()
+                                                                && ui.input(|i| {
+                                                                    i.key_pressed(egui::Key::Enter)
+                                                                })
+                                                            {
+                                                                apply_mcp(
+                                                                    settings,
+                                                                    &self.mcp_port,
+                                                                    settings.values().mcp_enabled,
+                                                                    ctx,
+                                                                    notices,
+                                                                    actions,
+                                                                );
+                                                            }
+                                                        },
+                                                    );
+                                                    ui.allocate_ui_with_layout(
+                                                        egui::vec2(ui.available_width(), 76.),
+                                                        egui::Layout::top_down(egui::Align::Min),
+                                                        |ui| {
+                                                            endpoint_field(
+                                                                ui,
+                                                                settings.values().mcp_port as u16,
+                                                                probe,
+                                                            )
+                                                        },
+                                                    );
+                                                });
+                                            } else {
+                                                field_label(ui, &tr(ctx, "MCP port"));
+                                                let response = probe.record(
+                                                    "mcp-port",
+                                                    outlined_input(
+                                                        ui,
+                                                        &mut self.mcp_port,
+                                                        ui.available_width() - 26.,
+                                                    ),
                                                 );
-                                                ui.allocate_ui_with_layout(
-                                                    egui::vec2(ui.available_width(), 76.),
-                                                    egui::Layout::top_down(egui::Align::Min),
-                                                    |ui| {
-                                                        endpoint_field(
-                                                            ui,
-                                                            settings.values().mcp_port as u16,
-                                                            probe,
-                                                        )
-                                                    },
-                                                );
-                                            });
-                                        } else {
-                                            field_label(ui, &tr(ctx, "MCP port"));
-                                            let response = probe.record(
-                                                "mcp-port",
-                                                outlined_input(
+                                                if response.lost_focus()
+                                                    && ui.input(|i| i.key_pressed(egui::Key::Enter))
+                                                {
+                                                    apply_mcp(
+                                                        settings,
+                                                        &self.mcp_port,
+                                                        settings.values().mcp_enabled,
+                                                        ctx,
+                                                        notices,
+                                                        actions,
+                                                    );
+                                                }
+                                                ui.add_space(8.);
+                                                endpoint_field(
                                                     ui,
-                                                    &mut self.mcp_port,
-                                                    ui.available_width() - 26.,
-                                                ),
-                                            );
-                                            if response.lost_focus()
-                                                && ui.input(|i| i.key_pressed(egui::Key::Enter))
-                                            {
-                                                apply_mcp(
-                                                    settings,
-                                                    &self.mcp_port,
-                                                    settings.values().mcp_enabled,
-                                                    ctx,
-                                                    notices,
-                                                    actions,
+                                                    settings.values().mcp_port as u16,
+                                                    probe,
                                                 );
                                             }
-                                            ui.add_space(8.);
-                                            endpoint_field(
-                                                ui,
-                                                settings.values().mcp_port as u16,
-                                                probe,
-                                            );
-                                        }
-                                        ui.add_space(12.);
-                                        ui.with_layout(
-                                            egui::Layout::right_to_left(egui::Align::Center)
-                                                .with_main_wrap(true),
-                                            |ui| {
-                                                ui.spacing_mut().item_spacing =
-                                                    egui::vec2(12., 12.);
-                                                for (key, label, claude) in [
-                                                    (
-                                                        "mcp-copy-codex",
-                                                        "Copy manual MCP for Codex",
-                                                        false,
-                                                    ),
-                                                    (
-                                                        "mcp-copy-claude",
-                                                        "Copy manual MCP for Claude",
-                                                        true,
-                                                    ),
-                                                ] {
-                                                    if probe
-                                                        .record(
-                                                            key,
-                                                            mcp_copy_button(ui, &tr(ctx, label)),
-                                                        )
-                                                        .clicked()
-                                                    {
-                                                        copy(
-                                                            ctx,
-                                                            crate::mcp::setup(
-                                                                settings.values().mcp_port as u16,
-                                                                claude,
-                                                            ),
-                                                        );
+                                            ui.add_space(12.);
+                                            ui.with_layout(
+                                                if ui.available_width() < 600. {
+                                                    egui::Layout::top_down(egui::Align::Max)
+                                                } else {
+                                                    egui::Layout::right_to_left(egui::Align::Center)
+                                                },
+                                                |ui| {
+                                                    ui.spacing_mut().item_spacing =
+                                                        egui::vec2(12., 12.);
+                                                    for (key, label, claude) in [
+                                                        (
+                                                            "mcp-copy-codex",
+                                                            "Copy manual MCP for Codex",
+                                                            false,
+                                                        ),
+                                                        (
+                                                            "mcp-copy-claude",
+                                                            "Copy manual MCP for Claude",
+                                                            true,
+                                                        ),
+                                                    ] {
+                                                        if probe
+                                                            .record(
+                                                                key,
+                                                                mcp_copy_button(
+                                                                    ui,
+                                                                    &tr(ctx, label),
+                                                                ),
+                                                            )
+                                                            .clicked()
+                                                        {
+                                                            copy(
+                                                                ctx,
+                                                                crate::mcp::setup(
+                                                                    settings.values().mcp_port
+                                                                        as u16,
+                                                                    claude,
+                                                                ),
+                                                            );
+                                                        }
                                                     }
-                                                }
-                                                if self.mcp_status.error.is_some()
-                                                    && probe
-                                                        .record(
-                                                            "mcp-retry",
-                                                            crate::desktop_style::button(
-                                                                ui,
-                                                                tr(ctx, "Retry"),
-                                                            ),
-                                                        )
-                                                        .clicked()
-                                                {
-                                                    actions.push(Action::RetryMcp);
-                                                }
-                                            },
-                                        );
-                                    });
-                                    probe.record("settings-mcp", mcp);
-                                    ui.add_space(12.);
-                                    let updates =
-                                        settings_section(ui, &tr(ctx, "App updates"), |ui| {
+                                                    if self.mcp_status.error.is_some()
+                                                        && probe
+                                                            .record(
+                                                                "mcp-retry",
+                                                                crate::desktop_style::button(
+                                                                    ui,
+                                                                    tr(ctx, "Retry"),
+                                                                ),
+                                                            )
+                                                            .clicked()
+                                                    {
+                                                        actions.push(Action::RetryMcp);
+                                                    }
+                                                },
+                                            );
+                                        });
+                                        probe.record("settings-mcp", mcp);
+                                        ui.add_space(12.);
+                                    }
+                                    if self.settings_page == 2 {
+                                        let updates = settings_section(ui, |ui| {
                                             self.show_updates(ui, probe, actions)
                                         });
-                                    probe.record("settings-updates", updates);
+                                        probe.record("settings-updates", updates);
+                                    }
                                 },
                             );
                             ui.advance_cursor_after_rect(
@@ -1081,23 +1149,20 @@ fn field_label(ui: &mut egui::Ui, text: &str) {
     );
     ui.add_space(8.);
 }
-fn settings_section(
-    ui: &mut egui::Ui,
-    title: &str,
-    body: impl FnOnce(&mut egui::Ui),
-) -> egui::Response {
+fn settings_section(ui: &mut egui::Ui, body: impl FnOnce(&mut egui::Ui)) -> egui::Response {
     let p = crate::desktop_style::Palette::of(ui.ctx());
     egui::Frame::NONE
-        .fill(p.surface)
+        .fill(if ui.visuals().dark_mode {
+            crate::app_colors::SETTINGS_GROUP_DARK
+        } else {
+            crate::app_colors::SETTINGS_GROUP_LIGHT
+        })
         .stroke(egui::Stroke::new(1.0_f32, p.line))
-        .corner_radius(0)
+        .corner_radius(4)
         .inner_margin(8)
         .show(ui, |ui| {
+            crate::desktop_style::style_neutral_buttons(ui, true);
             ui.set_min_width(ui.available_width());
-            if title != "MCP" {
-                section_heading(ui, title);
-                ui.add_space(12.);
-            }
             body(ui);
         })
         .response
@@ -1185,16 +1250,20 @@ fn settings_button(ui: &mut egui::Ui, label: &str, filled: bool) -> egui::Respon
             } else {
                 p.text
             }))
-            .fill(if filled { p.accent } else { p.control })
+            .fill(if filled {
+                p.accent
+            } else {
+                crate::desktop_style::neutral_button_fill(ui)
+            })
             .min_size(egui::vec2(0., 44.))
-            .corner_radius(0),
+            .corner_radius(crate::desktop_style::BUTTON_RADIUS),
         )
     })
 }
 fn settings_switch(ui: &mut egui::Ui, value: &mut bool, label: Option<&str>) -> egui::Response {
     ui.horizontal(|ui| {
         if label.is_none() {
-            ui.set_width(52.);
+            ui.set_width(crate::vintage::SWITCH_SIZE.x);
         }
         if let Some(label) = label {
             ui.allocate_ui_with_layout(
@@ -1270,8 +1339,9 @@ fn mcp_copy_button(ui: &mut egui::Ui, label: &str) -> egui::Response {
         );
         ui.add(
             egui::Button::new(job)
+                .corner_radius(crate::desktop_style::BUTTON_RADIUS)
                 .wrap()
-                .fill(crate::desktop_style::Palette::of(ui.ctx()).control)
+                .fill(crate::desktop_style::neutral_button_fill(ui))
                 .min_size(egui::vec2(0., 44.)),
         )
     })
@@ -1319,30 +1389,53 @@ fn endpoint_field(ui: &mut egui::Ui, port: u16, probe: &mut UiProbe) {
     );
 }
 
-fn section_heading(ui: &mut egui::Ui, title: &str) {
+/// Shared full-width navigation row for Settings categories.
+fn settings_menu_item(
+    ui: &mut egui::Ui,
+    title: &str,
+    icon: u32,
+    index: usize,
+    selected: bool,
+) -> egui::Response {
     let p = crate::desktop_style::Palette::of(ui.ctx());
-    ui.scope(|ui| {
-        let font = crate::desktop_style::semibold(crate::desktop_style::font_size(ui.ctx()));
-        let height = ui
-            .painter()
-            .layout_no_wrap(title.into(), font, p.text)
-            .size()
-            .y;
-        ui.spacing_mut().interact_size.y = height;
-        ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = crate::desktop_style::ICON_TEXT_GAP;
-            let icon = match title {
-                "MCP" => 0xf0616,
-                "Connection" | "Kết nối" => 0xf062c,
-                "App updates" | "Cập nhật ứng dụng" => 0xe637,
-                _ => 0xe683,
-            };
-            ui.label(crate::desktop_style::glyph(icon, height, p.accent));
-            ui.label(
-                egui::RichText::new(title).font(crate::desktop_style::semibold(
-                    crate::desktop_style::font_size(ui.ctx()),
-                )),
-            );
-        });
-    });
+    let size = crate::desktop_style::font_size(ui.ctx());
+    let font = crate::desktop_style::medium(size);
+    let text = ui.painter().layout_no_wrap(
+        title.into(),
+        font,
+        if selected { p.on_accent } else { p.text },
+    );
+    let tile_size = size.max(20.);
+    let height = text.size().y.max(tile_size) + 12.;
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(ui.available_width(), height),
+        egui::Sense::click(),
+    );
+    let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
+    if selected || response.hovered() || response.has_focus() {
+        ui.painter().rect_filled(
+            rect,
+            0,
+            if selected {
+                p.accent
+            } else if ui.visuals().dark_mode {
+                crate::app_colors::DROPDOWN_HOVER_DARK
+            } else {
+                crate::app_colors::DROPDOWN_HOVER_LIGHT
+            },
+        );
+    }
+    let icon_rect = egui::Rect::from_center_size(
+        egui::pos2(rect.left() + 8. + tile_size / 2., rect.center().y),
+        egui::Vec2::splat(tile_size),
+    );
+    let (fill, ink) = crate::app_colors::SETTINGS_MENU_ICONS[index];
+    ui.painter().rect_filled(icon_rect, 4, fill);
+    crate::desktop_style::paint_icon(ui.painter(), icon_rect.center(), icon, tile_size * 0.8, ink);
+    ui.painter().galley(
+        egui::pos2(icon_rect.right() + 4., rect.center().y - text.size().y / 2.),
+        text,
+        if selected { p.on_accent } else { p.text },
+    );
+    response
 }

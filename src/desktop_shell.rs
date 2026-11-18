@@ -103,16 +103,18 @@ impl DesktopUi {
                             "Find & connect"
                         },
                     );
-                    let scan_job = header_action_job(
-                        ui,
-                        if state.searching { 0xf3e9 } else { 0xe501 },
-                        if compact { None } else { Some(&label) },
-                    );
-                    let scan_width = ui.fonts_mut(|f| f.layout_job(scan_job)).size().x + 12.;
+                    let scan_code = if state.searching { 0xf3e9 } else { 0xe501 };
                     let manual = tr(ctx, "Manual URL");
-                    let manual_job =
-                        header_action_job(ui, 0xe380, if compact { None } else { Some(&manual) });
-                    let manual_width = ui.fonts_mut(|f| f.layout_job(manual_job)).size().x + 12.;
+                    let action_width = |code, label| {
+                        if compact {
+                            ICON_BUTTON_SIDE
+                        } else {
+                            let job = header_action_job(ui, code, Some(label));
+                            ui.fonts_mut(|f| f.layout_job(job)).size().x + 12.
+                        }
+                    };
+                    let scan_width = action_width(scan_code, &label);
+                    let manual_width = action_width(0xe380, &manual);
                     let app_width = (ui.available_width()
                         - 26.
                         - scan_width.max(24.)
@@ -126,12 +128,8 @@ impl DesktopUi {
                         .probe
                         .record(
                             if state.searching { "stop-scan" } else { "scan" },
-                            header_action(
-                                ui,
-                                if state.searching { 0xf3e9 } else { 0xe501 },
-                                if compact { None } else { Some(&label) },
-                            )
-                            .on_hover_text(&label),
+                            header_action(ui, scan_code, if compact { None } else { Some(&label) })
+                                .on_hover_text(&label),
                         )
                         .clicked()
                     {
@@ -185,17 +183,14 @@ impl DesktopUi {
         }
         let json_page = self.page == 2;
         let text_control_side = crate::desktop_json::json_text_control_side(ctx);
-        let row_height = if json_page {
+        let row_height = (if json_page {
             text_control_side + 4.
         } else {
             24.
-        };
+        })
+        .max(crate::desktop_style::search_bar_height(ctx));
         egui::TopBottomPanel::top("flutter-navigation")
-            .exact_height(if json_page {
-                row_height + 8.
-            } else {
-                32. + extra
-            })
+            .exact_height(row_height + 8.)
             .frame(
                 egui::Frame::NONE
                     .fill(p.background)
@@ -211,19 +206,24 @@ impl DesktopUi {
                     .insert("nav-content".into(), ui.max_rect());
                 ui.spacing_mut().item_spacing = egui::vec2(6., 0.);
                 ui.spacing_mut().interact_size.y = 24.;
-                // Reserve space for square controls, match count, labels and spacing
-                // before giving the search field any extra room.
-                let json_fixed_width = 3. * text_control_side
-                    + 5. * ICON_BUTTON_SIDE
-                    + 9. * crate::desktop_style::font_size(ctx)
-                    + 202.;
+                // Keep the measured width of the JSON controls, excluding the
+                // search field whose width can change as the window resizes.
+                let json_width_id = ui
+                    .id()
+                    .with(("json-tools-width", text_control_side.to_bits()));
+                let previous_width = ctx.data(|d| d.get_temp::<f32>(json_width_id));
+                let json_fixed_width = previous_width.unwrap_or_else(|| {
+                    3. * text_control_side
+                        + 5. * ICON_BUTTON_SIDE
+                        + 9. * crate::desktop_style::font_size(ctx)
+                        + 202.
+                });
                 let search_width = (ui.available_width() - json_fixed_width).clamp(160., 350.);
                 let tools_width = if json_page {
                     json_fixed_width + search_width
                 } else {
-                    465.
+                    350. + 13. + 3. * ICON_BUTTON_SIDE + 4. * ui.spacing().item_spacing.x
                 };
-                ui.add_space(0.);
                 egui::ScrollArea::horizontal()
                     .id_salt("capture-toolbar-scroll")
                     .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
@@ -233,6 +233,7 @@ impl DesktopUi {
                         ui.horizontal_centered(|ui| {
                             ui.add_space((ui.available_width() - tools_width).max(0.));
                             if self.page == 2 {
+                                let start = ui.next_widget_position().x;
                                 if self
                                     .json_workspace
                                     .toolbar(ui, &mut self.probe, search_width)
@@ -240,6 +241,13 @@ impl DesktopUi {
                                     self.export_open = true;
                                     self.export_json = true;
                                     self.export_path = "formatted.json".into();
+                                }
+                                let width = self.probe.widgets["json-download"].right()
+                                    - start
+                                    - search_width;
+                                if previous_width.is_none_or(|old| (old - width).abs() > 0.1) {
+                                    ctx.data_mut(|d| d.insert_temp(json_width_id, width));
+                                    ctx.request_repaint();
                                 }
                             } else {
                                 self.capture_search(ui);
@@ -335,74 +343,28 @@ impl DesktopUi {
             });
     }
     fn capture_search(&mut self, ui: &mut egui::Ui) {
-        let p = Palette::of(ui.ctx());
-        let extra = (crate::desktop_style::font_size(ui.ctx()) - 14.).max(0.);
-        let (rect, _) = ui.allocate_exact_size(egui::vec2(350., 24. + extra), egui::Sense::hover());
-        ui.painter().rect_filled(rect, 0, p.control);
-        let icon = Rect::from_min_size(rect.min + egui::vec2(8., 3.), egui::vec2(14., 18.));
-        paint_icon(ui.painter(), icon.center(), 0xe567, 14., p.muted);
-        self.probe.widgets.insert("search-icon".into(), icon);
-        let field = Rect::from_min_size(
-            rect.min + egui::vec2(26., 3.),
-            egui::vec2(289., 18. + extra),
+        let hint = tr(
+            ui.ctx(),
+            if self.page == 0 {
+                "Filter URL, method, status…"
+            } else {
+                "Search message, logger, error, stack, args"
+            },
         );
-        let input = self.probe.record(
+        let (_, cleared) = crate::desktop_style::search_bar(
+            ui,
+            &mut self.probe,
             "search",
-            ui.new_child(
-                egui::UiBuilder::new()
-                    .id_salt("capture-search-area")
-                    .max_rect(field),
-            )
-            .add_sized(
-                field.size(),
-                egui::TextEdit::singleline(&mut self.query)
-                    .id_salt("capture-search")
-                    .frame(false)
-                    .font(egui::FontId::proportional(crate::desktop_style::font_size(
-                        ui.ctx(),
-                    )))
-                    .margin(egui::Margin::ZERO)
-                    .vertical_align(egui::Align::Center)
-                    .hint_text(
-                        egui::RichText::new(tr(
-                            ui.ctx(),
-                            if self.page == 0 {
-                                "Filter URL, method, status…"
-                            } else {
-                                "Search message, logger, error, stack, args"
-                            },
-                        ))
-                        .size(crate::desktop_style::font_size(ui.ctx()))
-                        .color(p.muted),
-                    ),
-            ),
+            "reset",
+            &mut self.query,
+            &hint,
+            350.,
         );
-        let active = !self.query.is_empty()
-            || self.method != "All methods"
-            || self.status != "All statuses"
-            || self.log_source != "All log sources"
-            || self.log_level != "All levels"
-            || (self.page == 1 && !self.message_tags.is_empty());
-        let reset = Rect::from_center_size(
-            rect.right_center() - egui::vec2(15., 0.),
-            egui::Vec2::splat(ICON_BUTTON_SIDE),
-        );
-        let response = ui.interact(reset, ui.id().with("reset-search"), egui::Sense::click());
-        if active {
-            paint_icon(
-                ui.painter(),
-                reset.center(),
-                0xe16a,
-                ICON_BUTTON_GLYPH_SIZE,
-                p.muted,
-            );
-        }
-        if self.probe.record("reset", response).clicked() {
+        if cleared {
             self.reset_capture_filters();
         }
-        crate::desktop_style::input_border(ui, rect, input.has_focus());
-        self.probe.widgets.insert("search-frame".into(), rect);
     }
+
     fn status_banner(
         &mut self,
         ctx: &egui::Context,
@@ -580,7 +542,7 @@ fn header_action(ui: &mut egui::Ui, code: u32, label: Option<&str>) -> egui::Res
                 egui::Button::new(job)
                     .fill(p.control)
                     .stroke(egui::Stroke::new(1.0_f32, p.line))
-                    .corner_radius(0)
+                    .corner_radius(crate::desktop_style::BUTTON_RADIUS)
                     .min_size(size),
             )
         })
@@ -641,7 +603,8 @@ fn project_chip(ui: &mut egui::Ui, label: &str, selected: bool, max_width: f32) 
             egui::Sense::click(),
         );
         if selected {
-            ui.painter().rect_filled(rect, 0, p.accent);
+            ui.painter()
+                .rect_filled(rect, crate::desktop_style::BUTTON_RADIUS, p.accent);
         }
         let color = if selected { p.on_accent } else { p.muted };
         ui.painter()
@@ -699,7 +662,8 @@ fn compact_tab(
         );
         if width < 44. {
             if selected {
-                ui.painter().rect_filled(r, 0, p.accent);
+                ui.painter()
+                    .rect_filled(r, crate::desktop_style::BUTTON_RADIUS, p.accent);
             }
             paint_icon(
                 ui.painter(),
@@ -711,7 +675,8 @@ fn compact_tab(
             return response.on_hover_text(label);
         }
         if selected {
-            ui.painter().rect_filled(r, 0, p.accent);
+            ui.painter()
+                .rect_filled(r, crate::desktop_style::BUTTON_RADIUS, p.accent);
         }
         let color = if selected { p.on_accent } else { p.muted };
         let font = if selected {

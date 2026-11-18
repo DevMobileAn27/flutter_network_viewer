@@ -1,6 +1,7 @@
 //! Visual tokens and bundled Google Material Icons (https://fonts.google.com/icons).
 use eframe::egui::{self, Color32, FontId, Response};
 pub const ICON_TEXT_GAP: f32 = 4.;
+pub const BUTTON_RADIUS: u8 = 4;
 pub(crate) const ICON_BUTTON_SIDE: f32 = 24.;
 pub(crate) const ICON_BUTTON_GLYPH_SIZE: f32 = 14.;
 
@@ -78,7 +79,7 @@ pub fn pill_with_size(
             egui::Sense::click(),
         );
         if selected {
-            ui.painter().rect_filled(rect, 0, p.accent);
+            ui.painter().rect_filled(rect, BUTTON_RADIUS, p.accent);
         }
         let color = if selected { p.on_accent } else { p.text };
         let center = rect.center();
@@ -190,9 +191,94 @@ pub fn input_border(ui: &egui::Ui, rect: egui::Rect, focused: bool) {
     );
 }
 
+/// One composite search field; callers own the width and clear behavior.
+pub fn search_bar(
+    ui: &mut egui::Ui,
+    probe: &mut crate::desktop::UiProbe,
+    key: &str,
+    clear_key: &str,
+    query: &mut String,
+    hint: &str,
+    width: f32,
+) -> (Response, bool) {
+    let p = Palette::of(ui.ctx());
+    let font = FontId::proportional(font_size(ui.ctx()));
+    let height = ui.fonts_mut(|f| f.row_height(&font).ceil());
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(width, height + 8.), egui::Sense::hover());
+    ui.painter().rect_filled(rect, BUTTON_RADIUS, p.control);
+    let icon = egui::Rect::from_min_size(rect.min + egui::vec2(4., 4.), egui::Vec2::splat(height));
+    paint_icon(ui.painter(), icon.center(), 0xe567, height, p.muted);
+    let clear_rect = egui::Rect::from_center_size(
+        rect.right_center() - egui::vec2(4. + height / 2., 0.),
+        egui::Vec2::splat(height),
+    );
+    let field = egui::Rect::from_min_max(
+        egui::pos2(icon.right() + 4., rect.top() + 4.),
+        egui::pos2(clear_rect.left() - 4., rect.bottom() - 4.),
+    );
+    let input = ui
+        .new_child(egui::UiBuilder::new().id_salt(key).max_rect(field))
+        .add_sized(
+            field.size(),
+            egui::TextEdit::singleline(query)
+                .id_salt(key)
+                .font(font)
+                .frame(false)
+                .margin(egui::Margin::ZERO)
+                .vertical_align(egui::Align::Center)
+                .hint_text(egui::RichText::new(hint).color(p.muted)),
+        );
+    let cleared = if query.is_empty() {
+        false
+    } else {
+        let clear = ui
+            .interact(clear_rect, ui.id().with(clear_key), egui::Sense::click())
+            .on_hover_cursor(egui::CursorIcon::PointingHand);
+        paint_icon(ui.painter(), clear_rect.center(), 0xe16a, height, p.muted);
+        probe.record(clear_key, clear).clicked()
+    };
+    ui.painter().rect_stroke(
+        rect,
+        BUTTON_RADIUS,
+        input_stroke(p, input.has_focus()),
+        egui::StrokeKind::Inside,
+    );
+    probe.widgets.insert(format!("{key}-frame"), rect);
+    probe.widgets.insert(format!("{key}-icon"), icon);
+    (probe.record(key, input), cleared)
+}
+
+pub fn search_bar_height(ctx: &egui::Context) -> f32 {
+    let font = FontId::proportional(font_size(ctx));
+    ctx.fonts_mut(|f| f.row_height(&font).ceil()) + 8.
+}
+
 /// Single source for every text style, including painter-based tables/editors.
 pub fn font_size(ctx: &egui::Context) -> f32 {
     ctx.style().text_styles[&egui::TextStyle::Body].size
+}
+
+/// Neutral buttons inherit a fill appropriate to their containing surface.
+pub fn neutral_button_fill(ui: &egui::Ui) -> Color32 {
+    ui.visuals().widgets.inactive.weak_bg_fill
+}
+pub fn style_neutral_buttons(ui: &mut egui::Ui, on_gray: bool) {
+    let fill = match (ui.visuals().dark_mode, on_gray) {
+        (false, false) => crate::app_colors::BUTTON_ON_WHITE_LIGHT,
+        (false, true) => crate::app_colors::BUTTON_ON_GRAY_LIGHT,
+        (true, false) => crate::app_colors::BUTTON_ON_WHITE_DARK,
+        (true, true) => crate::app_colors::BUTTON_ON_GRAY_DARK,
+    };
+    let widgets = &mut ui.visuals_mut().widgets;
+    for state in [
+        &mut widgets.inactive,
+        &mut widgets.hovered,
+        &mut widgets.active,
+        &mut widgets.open,
+    ] {
+        state.bg_fill = fill;
+        state.weak_bg_fill = fill;
+    }
 }
 
 /// Action widgets keep their normal dimensions and font size on hover.
@@ -211,7 +297,7 @@ pub fn button(ui: &mut egui::Ui, text: impl Into<egui::WidgetText>) -> Response 
             }
             other => other,
         };
-        ui.button(text)
+        ui.add(egui::Button::new(text).corner_radius(BUTTON_RADIUS))
     })
 }
 /// Menu options have no hover growth, occupy the full row, and own their padding.
@@ -276,7 +362,7 @@ fn square_action(
                 border.set_opacity(1.);
                 border.rect_stroke(
                     response.rect,
-                    0,
+                    BUTTON_RADIUS,
                     egui::Stroke::new(1.0_f32, Palette::of(ui.ctx()).line),
                     egui::StrokeKind::Inside,
                 );
@@ -291,7 +377,7 @@ pub(crate) fn icon_control(ui: &mut egui::Ui, code: u32) -> Response {
     square_action(ui, ICON_BUTTON_SIDE, |ui, factor, size| {
         let p = Palette::of(ui.ctx());
         ui.spacing_mut().button_padding = egui::Vec2::ZERO;
-        let response = square_surface(ui, size, p.control);
+        let response = square_surface(ui, size, neutral_button_fill(ui));
         paint_icon(
             ui.painter(),
             response.rect.center(),
@@ -307,7 +393,7 @@ fn square_surface(ui: &mut egui::Ui, size: egui::Vec2, fill: Color32) -> Respons
     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
     ui.painter().rect(
         rect,
-        0,
+        BUTTON_RADIUS,
         fill,
         egui::Stroke::new(1.0_f32, Palette::of(ui.ctx()).line),
         egui::StrokeKind::Inside,
@@ -329,7 +415,7 @@ pub(crate) fn table_filter_button(
     let p = Palette::of(ui.ctx());
     ui.painter().rect(
         rect,
-        0,
+        BUTTON_RADIUS,
         p.control,
         egui::Stroke::new(1.0_f32, p.line),
         egui::StrokeKind::Inside,
@@ -402,9 +488,22 @@ pub fn segmented_pair(ui: &mut egui::Ui, labels: [&str; 2], selected: &mut bool)
                 labels[i].text(),
             )
         });
+        let radius = if i == 0 {
+            egui::CornerRadius {
+                nw: BUTTON_RADIUS,
+                sw: BUTTON_RADIUS,
+                ..egui::CornerRadius::ZERO
+            }
+        } else {
+            egui::CornerRadius {
+                ne: BUTTON_RADIUS,
+                se: BUTTON_RADIUS,
+                ..egui::CornerRadius::ZERO
+            }
+        };
         ui.painter().rect_filled(
             segment,
-            0,
+            radius,
             if active {
                 palette.accent
             } else {
@@ -422,7 +521,7 @@ pub fn segmented_pair(ui: &mut egui::Ui, labels: [&str; 2], selected: &mut bool)
         );
     }
     ui.painter()
-        .rect_stroke(rect, 0, stroke, egui::StrokeKind::Inside);
+        .rect_stroke(rect, BUTTON_RADIUS, stroke, egui::StrokeKind::Inside);
     ui.painter().line_segment(
         [
             egui::pos2(divider, rect.top()),

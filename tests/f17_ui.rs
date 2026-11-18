@@ -43,8 +43,49 @@ impl Harness {
         )
     }
     fn click(&mut self, key: &str) -> egui::FullOutput {
+        if self.ui.support.settings_open && !key.starts_with("settings-menu:") {
+            let page = if key.starts_with("mcp-") || key == "settings-mcp" {
+                Some("mcp")
+            } else if key == "check-app-updates" || key == "settings-updates" {
+                Some("about")
+            } else if key == "theme" || key == "language" || key == "font-size" {
+                Some("interface")
+            } else {
+                None
+            };
+            if let Some(page) = page
+                && !self.ui.probe.widgets.contains_key(key)
+            {
+                self.click(&format!("settings-menu:{page}"));
+            }
+        }
+
         for _ in 0..4 {
             self.frame(vec![]);
+        }
+        if key.starts_with("font-size:") {
+            for _ in 0..20 {
+                let pane = self.ui.probe.widgets["font-size-popup"];
+                let target = self.ui.probe.widgets[key];
+                if pane.shrink(7.).contains_rect(target) {
+                    break;
+                }
+                self.frame(vec![
+                    Event::PointerMoved(pane.center()),
+                    Event::MouseWheel {
+                        unit: egui::MouseWheelUnit::Point,
+                        delta: egui::vec2(
+                            0.,
+                            (pane.center().y - target.center().y).clamp(-350., 350.),
+                        ),
+                        modifiers: Modifiers::NONE,
+                    },
+                ]);
+                for _ in 0..8 {
+                    self.time += 0.03;
+                    self.frame(vec![]);
+                }
+            }
         }
         if self.ui.support.settings_open
             && ["mcp-port", "language", "theme", "auto-detect"].contains(&key)
@@ -475,13 +516,14 @@ fn language_switch_keeps_capture_filters_and_connection_draft_during_scan_update
 fn settings_header_stays_fixed_while_narrow_content_scrolls() {
     let mut h = Harness::new();
     h.click("settings");
+    h.click("settings-menu:mcp");
     h.size = egui::vec2(360., 300.);
     for _ in 0..6 {
         h.frame(vec![]);
     }
     let before = h.ui.probe.widgets["settings-close"];
     let rect = h.ui.probe.widgets["settings-scroll"];
-    assert!((rect.width() - 360.).abs() < 1.);
+    assert!((rect.width() - (360. - h.ui.probe.widgets["settings-sidebar"].width())).abs() < 1.);
     let back = h.ui.probe.widgets["settings-close"];
     assert!((back.top() - 8.).abs() < 1.);
     assert!((rect.top() - back.bottom() - 8.).abs() < 1.);
@@ -582,6 +624,7 @@ fn bundled_geist_and_cascadia_faces_keep_vietnamese_and_settings_field_styling()
         english.galley.job.sections[0].format.font_id,
         egui::FontId::new(14., egui::FontFamily::Name("Geist".into()))
     );
+    h.click("settings-menu:mcp");
     let uri = h.ui.probe.widgets["mcp-port"];
     assert!(
         uri.height() >= 40.,
@@ -600,17 +643,14 @@ fn settings_is_a_full_page_with_compact_section_order_and_back_navigation() {
         "main shell must leave the Settings route"
     );
     let appearance = h.ui.probe.widgets["settings-appearance"];
-    assert!((appearance.left() - 8.).abs() < 1., "{appearance:?}");
-    assert!((appearance.width() - 1344.).abs() < 1., "{appearance:?}");
+    assert!((appearance.left() - 358.).abs() < 1., "{appearance:?}");
+    assert!((appearance.width() - 994.).abs() < 1., "{appearance:?}");
     assert!(
         (appearance.top() - h.ui.probe.widgets["settings-scroll"].top() - 8.).abs() < 1.,
         "{appearance:?}"
     );
     assert!(h.ui.probe.widgets["theme"].top() < h.ui.probe.widgets["language"].top());
-    assert!(appearance.bottom() < h.ui.probe.widgets["settings-mcp"].top());
-    assert!(
-        h.ui.probe.widgets["settings-mcp"].bottom() < h.ui.probe.widgets["settings-updates"].top()
-    );
+    h.click("settings-menu:mcp");
     let mcp = h.ui.probe.widgets["settings-mcp"];
     assert!(mcp.contains_rect(h.ui.probe.widgets["mcp-enabled"]));
     assert!(h.ui.probe.widgets["mcp-enabled"].top() < h.ui.probe.widgets["mcp-port"].top());
@@ -621,7 +661,8 @@ fn settings_is_a_full_page_with_compact_section_order_and_back_navigation() {
     h.size = egui::vec2(700., 800.);
     h.frame(vec![]);
     h.click("settings");
-    assert!((h.ui.probe.widgets["settings-appearance"].left() - 8.).abs() < 1.);
+    h.click("settings-menu:interface");
+    assert!((h.ui.probe.widgets["settings-appearance"].left() - 358.).abs() < 1.);
     h.frame(vec![Event::Key {
         key: egui::Key::Escape,
         physical_key: None,
@@ -675,9 +716,17 @@ fn settings_compact_header_balances_text_back_and_removes_connection() {
                 text.pos + text.galley.size() / 2.
             );
         }
-        for key in ["settings-appearance", "settings-mcp", "settings-updates"] {
+        for (key, page) in [
+            ("settings-appearance", "interface"),
+            ("settings-mcp", "mcp"),
+            ("settings-updates", "about"),
+        ] {
+            h.click(&format!("settings-menu:{page}"));
             let rect = h.ui.probe.widgets[key];
-            assert!((rect.left() - 8.).abs() < 1., "{rect:?}");
+            assert!(
+                (rect.left() - h.ui.probe.widgets["settings-sidebar"].right() - 8.).abs() < 1.,
+                "{rect:?}"
+            );
             assert!((rect.right() - (width - 8.)).abs() < 1., "{rect:?}");
         }
         h.click("settings-close");
@@ -690,18 +739,35 @@ fn settings_icons_labels_fields_and_actions_follow_requested_layout() {
     let mut h = Harness::new();
     h.size = egui::vec2(1440., 2000.);
     h.click("settings");
-    let out = h.frame(vec![]);
+    h.frame(vec![]);
     for (key, glyph) in [
         ("settings-appearance", '\u{e683}'),
         ("settings-mcp", '\u{f0616}'),
         ("settings-updates", '\u{e637}'),
     ] {
-        let card = h.ui.probe.widgets[key];
+        h.click(if key == "settings-appearance" {
+            "settings-menu:interface"
+        } else if key == "settings-mcp" {
+            "settings-menu:mcp"
+        } else {
+            "settings-menu:about"
+        });
+        let out = h.frame(vec![]);
+        let page = if key == "settings-appearance" {
+            "interface"
+        } else if key == "settings-mcp" {
+            "mcp"
+        } else {
+            "about"
+        };
+        let card = h.ui.probe.widgets[&format!("settings-menu:{page}-tile")];
         assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Text(t)
             if card.contains(t.pos) && t.galley.text() == glyph.to_string()
                 && t.galley.job.sections[0].format.font_id.family == egui::FontFamily::Name("MaterialIcons".into()))), "wrong {key} icon");
     }
     assert!(!h.ui.probe.widgets.contains_key("auto-detect"));
+    h.click("settings-menu:mcp");
+    let out = h.frame(vec![]);
     for (label, key) in [("MCP port", "mcp-port"), ("MCP endpoint", "mcp-endpoint")] {
         let input = h.ui.probe.widgets[key];
         let pos = out
@@ -722,6 +788,11 @@ fn settings_icons_labels_fields_and_actions_follow_requested_layout() {
         ("mcp-copy-codex", "settings-mcp"),
         ("check-app-updates", "settings-updates"),
     ] {
+        h.click(if section == "settings-mcp" {
+            "settings-menu:mcp"
+        } else {
+            "settings-menu:about"
+        });
         assert!(
             (h.ui.probe.widgets[section].right() - 8. - h.ui.probe.widgets[button].right()).abs()
                 < 2.,
@@ -735,6 +806,7 @@ fn mcp_endpoint_and_port_text_are_centered_vertically() {
     let mut h = Harness::new();
     h.size = egui::vec2(1440., 2000.);
     h.click("settings");
+    h.click("settings-menu:mcp");
     let out = h.frame(vec![]);
     for (key, value) in [
         ("mcp-port", "38943"),
@@ -839,8 +911,8 @@ fn settings_back_hover_grows_in_place_without_resizing_header() {
             "settings-title",
             "settings-header-spacer",
             "settings-appearance",
-            "settings-mcp",
-            "settings-updates",
+            "settings-sidebar",
+            "settings-content",
         ];
         let before: Vec<_> = keys.iter().map(|k| h.ui.probe.widgets[*k]).collect();
         for hovered in [true, false, true, false] {
@@ -880,135 +952,331 @@ fn settings_back_hover_grows_in_place_without_resizing_header() {
 }
 
 #[test]
-fn font_size_value_is_display_only_and_buttons_change_and_persist_size() {
+fn settings_dropdown_rows_align_and_font_options_persist() {
     use flutter_network_viewer::settings::AppSettings;
-    let path = std::env::temp_dir().join(format!("fnv-font-display-{}.json", std::process::id()));
+    let path = std::env::temp_dir().join(format!("fnv-font-dropdown-{}.json", std::process::id()));
     let _ = std::fs::remove_file(&path);
     let mut h = Harness::new();
+    h.size = egui::vec2(1200., 1800.);
     h.ui = DesktopUi::new(AppSettings::load(&path).unwrap());
     h.click("settings");
-    h.click("font-size");
-    let rect = h.ui.probe.widgets["font-size"];
-    let out = h.frame(vec![Event::PointerMoved(rect.center())]);
-    assert_eq!(out.platform_output.cursor_icon, egui::CursorIcon::Default);
-    assert!(
-        h.ctx.memory(|m| m.focused()).is_none(),
-        "display must not receive keyboard focus"
-    );
-    h.frame(vec![
-        Event::Text("22".into()),
-        Event::Key {
-            key: egui::Key::ArrowUp,
-            physical_key: None,
-            pressed: true,
-            repeat: false,
-            modifiers: Modifiers::NONE,
-        },
-    ]);
-    h.frame(vec![Event::PointerButton {
-        pos: rect.center(),
-        button: PointerButton::Primary,
-        pressed: true,
-        modifiers: Modifiers::NONE,
-    }]);
-    h.frame(vec![Event::PointerMoved(
-        rect.center() + egui::vec2(80., 0.),
-    )]);
-    h.frame(vec![Event::PointerButton {
-        pos: rect.center() + egui::vec2(80., 0.),
-        button: PointerButton::Primary,
-        pressed: false,
-        modifiers: Modifiers::NONE,
-    }]);
     assert_eq!(h.ui.settings.values().font_size, 14.);
-    assert_eq!(AppSettings::load(&path).unwrap().values().font_size, 14.);
-    for (key, expected) in [("font-size-increase", 15.), ("font-size-decrease", 14.)] {
-        h.click(key);
-        assert_eq!(h.ui.settings.values().font_size, expected);
+    for key in ["theme", "language", "font-size"] {
+        let row = h.ui.probe.widgets[&format!("{key}-row")];
+        let title = h.ui.probe.widgets[&format!("{key}-title")];
+        let value = h.ui.probe.widgets[&format!("{key}-value")];
+        let arrows = h.ui.probe.widgets[&format!("{key}-arrows")];
+        assert!(title.left() == row.left() && value.left() > title.right());
+        assert!((arrows.left() - value.right() - 8.).abs() < 0.1);
+        let button = h.ui.probe.widgets[key];
+        let out = h.frame(vec![Event::PointerMoved(button.center())]);
         assert_eq!(
-            AppSettings::load(&path).unwrap().values().font_size,
-            expected
+            out.platform_output.cursor_icon,
+            egui::CursorIcon::PointingHand
         );
-        h.ui.notifications.dismiss(false);
-        let out = h.frame(vec![]);
-        let rect = h.ui.probe.widgets["font-size"];
-        let text = out
-            .shapes
-            .iter()
-            .find_map(|s| match &s.shape {
-                egui::Shape::Text(t)
-                    if t.galley.text() == format!("{expected:.0}") && rect.contains(t.pos) =>
-                {
-                    Some(t)
-                }
-                _ => None,
-            })
-            .expect("displayed size");
-        assert!((text.pos + text.galley.size() / 2. - rect.center()).length() < 1.);
+        assert_eq!(button, h.ui.probe.widgets[key]);
+        assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect == button && r.fill != egui::Color32::TRANSPARENT)));
+        assert!(!out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect == row && r.fill != egui::Color32::TRANSPARENT)));
     }
-    for (size, key) in [(10., "font-size-decrease"), (24., "font-size-increase")] {
-        h.ui.settings.set_font_size(size).unwrap();
-        h.click(key);
-        assert_eq!(h.ui.settings.values().font_size, size);
+    h.click("font-size");
+    for size in 10..=22 {
+        assert!(
+            h.ui.probe
+                .widgets
+                .contains_key(&format!("font-size:{size}"))
+        );
     }
+    assert!(!h.ui.probe.widgets.contains_key("font-size:23"));
+    h.click("font-size:22");
+    assert_eq!(h.ui.settings.values().font_size, 22.);
+    assert_eq!(AppSettings::load(&path).unwrap().values().font_size, 22.);
+    h.ui.notifications.dismiss(false);
+    h.click("font-size");
+    h.click("font-size:10");
+    assert_eq!(h.ui.settings.values().font_size, 10.);
     std::fs::remove_file(path).unwrap();
 }
 
 #[test]
-fn font_stepper_actions_are_square_at_rest_hover_and_disabled() {
-    for size in [10., 14., 24.] {
+fn dropdown_hover_has_visible_contrast_in_both_themes() {
+    use flutter_network_viewer::{app_colors, settings::ThemeMode};
+    for dark in [false, true] {
         let mut h = Harness::new();
-        h.size = egui::vec2(1360., 1800.);
-        h.click("settings");
-        h.ui.settings.set_font_size(size).unwrap();
-        h.frame(vec![Event::PointerMoved(egui::pos2(1300., 1700.))]);
-        for _ in 0..4 {
-            h.frame(vec![]);
-        }
-        let display = h.ui.probe.widgets["font-size"];
-        let header = h.ui.probe.widgets["settings-scroll"];
-        for key in ["font-size-decrease", "font-size-increase"] {
-            let before = h.ui.probe.widgets[key];
-            assert!(before.size() == egui::Vec2::splat(24.), "{key} {before:?}");
-            h.frame(vec![Event::PointerMoved(before.center())]);
-            for _ in 0..6 {
-                h.frame(vec![]);
-            }
-            let current = h.ui.probe.widgets[key];
-            assert!(
-                (current.width() - current.height()).abs() < 0.5,
-                "hover {key}: {current:?}"
-            );
-            let expected = 1.;
-            assert!((current.width() / before.width() - expected).abs() < 0.02);
-            let out = h.frame(vec![]);
-            let symbol = if key == "font-size-decrease" {
-                "\u{e516}"
+        h.size = egui::vec2(1200., 1800.);
+        h.ui.settings
+            .set_theme_mode(if dark {
+                ThemeMode::Dark
             } else {
-                "\u{e047}"
-            };
-            let text = out
+                ThemeMode::Light
+            })
+            .unwrap();
+        h.click("settings");
+        for key in ["theme", "language", "font-size"] {
+            h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
+            let button = h.ui.probe.widgets[key];
+            let row = h.ui.probe.widgets[&format!("{key}-row")];
+            let out = h.frame(vec![Event::PointerMoved(button.center())]);
+            let fill = out
                 .shapes
                 .iter()
                 .find_map(|s| match &s.shape {
-                    egui::Shape::Text(t)
-                        if t.galley.text() == symbol && current.contains(t.pos) =>
-                    {
-                        Some(t)
-                    }
+                    egui::Shape::Rect(r) if r.rect == button => Some(r.fill),
                     _ => None,
                 })
-                .expect("painted stepper symbol");
-            assert_eq!(text.galley.job.sections[0].format.font_id.size, 14.);
-            assert!(
-                (text.pos + text.galley.mesh_bounds.center().to_vec2() - current.center()).length()
-                    < 1.
+                .expect("hover background");
+            let surface = if dark {
+                app_colors::DARK.surface
+            } else {
+                app_colors::LIGHT.surface
+            };
+            if dark {
+                assert!(
+                    fill.r() >= surface.r() + 24,
+                    "dark hover must be visibly lighter: {fill:?}"
+                );
+            } else {
+                assert!(
+                    u16::from(fill.r()) + 24 <= u16::from(surface.r()),
+                    "light hover must be visibly darker: {fill:?}"
+                );
+            }
+            assert_eq!(
+                fill,
+                if dark {
+                    app_colors::rgb(0x454545)
+                } else {
+                    app_colors::rgb(0xE7E7E7)
+                }
             );
-            assert_eq!(display, h.ui.probe.widgets["font-size"]);
-            assert_eq!(header, h.ui.probe.widgets["settings-scroll"]);
-            h.frame(vec![Event::PointerMoved(egui::pos2(1300., 1700.))]);
-            for _ in 0..6 {
-                h.frame(vec![]);
+            assert_eq!(fill.a(), 255);
+            assert_eq!(button, h.ui.probe.widgets[key]);
+            assert_eq!(
+                out.platform_output.cursor_icon,
+                egui::CursorIcon::PointingHand
+            );
+            let out = h.frame(vec![Event::PointerMoved(row.left_center())]);
+            assert!(
+                !out.shapes
+                    .iter()
+                    .any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect == button)),
+                "title hover must not highlight the dropdown"
+            );
+        }
+    }
+}
+
+#[test]
+fn settings_sidebar_selects_one_section_and_keeps_full_height() {
+    let mut h = Harness::new();
+    h.size = egui::vec2(1200., 800.);
+    h.click("settings");
+    let sidebar = h.ui.probe.widgets["settings-sidebar"];
+    let content = h.ui.probe.widgets["settings-content"];
+    assert_eq!(sidebar.width(), 350.);
+    assert_eq!(sidebar.top(), content.top());
+    assert_eq!(sidebar.bottom(), 800.);
+    assert_eq!(content.left(), sidebar.right());
+    assert_eq!(content.right(), 1200.);
+    let section = h.ui.probe.widgets["settings-appearance"];
+    assert!((section.left() - content.left() - 8.).abs() < 0.1);
+    assert!((section.right() - content.right() + 8.).abs() < 0.1);
+    assert!(!h.ui.probe.widgets.contains_key("mcp-enabled"));
+    h.click("settings-menu:mcp");
+    assert!(h.ui.probe.widgets.contains_key("mcp-enabled"));
+    assert!(!h.ui.probe.widgets.contains_key("theme"));
+    h.click("settings-menu:about");
+    let out = h.frame(vec![]);
+    assert!(h.ui.probe.widgets.contains_key("check-app-updates"));
+    assert!(!h.ui.probe.widgets.contains_key("mcp-enabled"));
+    assert!(
+        out.shapes
+            .iter()
+            .any(|s| matches!(&s.shape, egui::Shape::Text(t) if t.galley.text() == "About us"))
+    );
+    assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect == content && r.fill == egui::Color32::WHITE)));
+    h.click("settings-menu:interface");
+    assert!(h.ui.probe.widgets.contains_key("theme"));
+    assert_eq!(h.ui.probe.widgets["settings-sidebar"], sidebar);
+}
+
+#[test]
+fn macos_dropdown_popup_aligns_selected_row_and_has_checkmark_and_insets() {
+    use flutter_network_viewer::settings::ThemeMode;
+    for dark in [false, true] {
+        for size in [10., 14., 22.] {
+            let mut h = Harness::new();
+            h.size = egui::vec2(1200., 800.);
+            h.ui.settings.set_font_size(size).unwrap();
+            h.ui.settings
+                .set_theme_mode(if dark {
+                    ThemeMode::Dark
+                } else {
+                    ThemeMode::Light
+                })
+                .unwrap();
+            h.click("settings");
+            let value = h.ui.probe.widgets["font-size-value"];
+            h.click("font-size");
+            h.time += 0.5;
+            h.frame(vec![]);
+            let out = h.frame(vec![]);
+            let popup = h.ui.probe.widgets["font-size-popup"];
+            let selected = h.ui.probe.widgets[&format!("font-size:{size:.0}")];
+            assert!(
+                (selected.center().y - value.center().y).abs() < 1.,
+                "selected={selected:?} value={value:?}"
+            );
+            assert!(
+                (popup.right() - value.right() - 20.).abs() < 1.,
+                "popup={popup:?} value={value:?}"
+            );
+            assert!(popup.contains_rect(selected));
+            assert!(selected.left() - popup.left() >= 5.);
+            let check = h.ui.probe.widgets["font-size-check"];
+            assert!(selected.contains_rect(check));
+            assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Path(p) if p.stroke.width > 0. && p.points.len() == 3 && p.points.iter().all(|point| check.contains(*point)))));
+            assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect == selected && r.corner_radius.nw >= 4 && r.fill == if dark { flutter_network_viewer::app_colors::DARK.accent } else { flutter_network_viewer::app_colors::LIGHT.accent })));
+            assert!(popup.top() >= 0. && popup.bottom() <= 800.);
+            h.frame(vec![Event::Key {
+                key: egui::Key::Escape,
+                physical_key: None,
+                pressed: true,
+                repeat: false,
+                modifiers: Modifiers::NONE,
+            }]);
+            h.frame(vec![]);
+            assert!(!h.ui.probe.widgets.contains_key("font-size-popup"));
+        }
+    }
+}
+
+#[test]
+fn settings_cards_have_no_titles_and_sidebar_uses_distinct_icon_tiles() {
+    let mut h = Harness::new();
+    h.size = egui::vec2(1200., 900.);
+    h.click("settings");
+    let mut fills = Vec::new();
+    let mut inks = Vec::new();
+    for (page, section, title) in [
+        ("interface", "settings-appearance", "Interface"),
+        ("mcp", "settings-mcp", "MCP"),
+        ("about", "settings-updates", "About us"),
+    ] {
+        h.click(&format!("settings-menu:{page}"));
+        let out = h.frame(vec![]);
+        let card = h.ui.probe.widgets[section];
+        assert!(!out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Text(t) if card.contains(t.pos) && t.galley.text() == title)));
+        assert!(out.shapes.iter().any(|s| matches!(&s.shape, egui::Shape::Rect(r) if r.rect == card && r.fill == egui::Color32::from_rgb(248,248,248))));
+        let tile = h.ui.probe.widgets[&format!("settings-menu:{page}-tile")];
+        let icon = h.ui.probe.widgets[&format!("settings-menu:{page}-icon")];
+        assert_eq!(tile.width(), tile.height());
+        assert!((icon.width() / tile.width() - 0.8).abs() < 0.001);
+        assert_eq!(icon.center(), tile.center());
+        let fill = out
+            .shapes
+            .iter()
+            .find_map(|s| match &s.shape {
+                egui::Shape::Rect(r)
+                    if r.rect == tile && r.corner_radius == egui::CornerRadius::same(4) =>
+                {
+                    Some(r.fill)
+                }
+                _ => None,
+            })
+            .expect("rounded icon tile");
+        let ink = out
+            .shapes
+            .iter()
+            .find_map(|s| match &s.shape {
+                egui::Shape::Text(t)
+                    if tile.contains(t.pos + t.galley.mesh_bounds.center().to_vec2()) =>
+                {
+                    Some(t.galley.job.sections[0].format.color)
+                }
+                _ => None,
+            })
+            .expect("centered icon");
+        assert!(!fills.contains(&fill) && !inks.contains(&ink));
+        fills.push(fill);
+        inks.push(ink);
+    }
+}
+
+#[test]
+fn settings_rounded_groups_about_row_and_contextual_buttons() {
+    for dark in [false, true] {
+        let mut h = Harness::new();
+        h.size = egui::vec2(1360., 900.);
+        h.ui.support.updates.supported = true;
+        h.ui.settings.set_language("vi").unwrap();
+        h.ui.settings
+            .set_theme_mode(if dark {
+                flutter_network_viewer::settings::ThemeMode::Dark
+            } else {
+                flutter_network_viewer::settings::ThemeMode::Light
+            })
+            .unwrap();
+        h.click("settings");
+        h.click("settings-menu:about");
+        h.frame(vec![Event::PointerMoved(Pos2::ZERO)]);
+        let out = h.frame(vec![]);
+        let version = h.ui.probe.widgets["about-version"];
+        let action = h.ui.probe.widgets["check-app-updates"];
+        assert!((version.center().y - action.center().y).abs() < 1.);
+        assert!(version.right() < action.left());
+        assert!(h.ui.probe.support_text.contains(&format!(
+            "Phiên bản hiện tại {} - Tác giả Nguyễn Quốc An",
+            env!("CARGO_PKG_VERSION")
+        )));
+        let group = h.ui.probe.widgets["settings-updates"];
+        assert!(out.shapes.iter().any(|s| matches!(&s.shape,egui::Shape::Rect(r) if r.rect==group && r.corner_radius==egui::CornerRadius::same(4))));
+        let fill = |key: &str| {
+            let rect = h.ui.probe.widgets[key];
+            out.shapes
+                .iter()
+                .rev()
+                .find_map(|s| match &s.shape {
+                    egui::Shape::Rect(r) if r.rect == rect => Some(r.fill),
+                    _ => None,
+                })
+                .unwrap()
+        };
+        let white_button = fill("settings-close");
+        let gray_button = fill("check-app-updates");
+        assert_ne!(white_button, gray_button);
+        if dark {
+            assert!(
+                gray_button.r() > white_button.r(),
+                "back={white_button:?} group={gray_button:?}"
+            );
+        } else {
+            assert!(gray_button.r() < white_button.r() && white_button.r() < 255);
+        }
+    }
+}
+
+#[test]
+fn settings_text_icon_text_and_icon_buttons_share_four_point_corners() {
+    let mut h = Harness::new();
+    h.size = egui::vec2(1200., 900.);
+    h.click("settings");
+    h.click("settings-menu:mcp");
+    for key in ["settings-close", "mcp-copy-codex", "mcp-endpoint-copy"] {
+        let rect = h.ui.probe.widgets[key];
+        for pos in [Pos2::ZERO, rect.center()] {
+            h.frame(vec![Event::PointerMoved(pos)]);
+            let out = h.frame(vec![]);
+            let shapes: Vec<_> = out
+                .shapes
+                .iter()
+                .filter_map(|s| match &s.shape {
+                    egui::Shape::Rect(r) if r.rect == rect => Some(r),
+                    _ => None,
+                })
+                .collect();
+            assert!(!shapes.is_empty());
+            for shape in shapes {
+                assert_eq!(shape.corner_radius, egui::CornerRadius::same(4), "{key}");
             }
         }
     }

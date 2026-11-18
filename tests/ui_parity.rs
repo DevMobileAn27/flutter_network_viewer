@@ -55,7 +55,7 @@ fn ventura_palette_and_cascadia_typography_are_used_in_both_themes() {
 }
 #[test]
 fn original_header_horizontal_pills_filters_footer_and_empty_split_geometry() {
-    let (_, ui) = render(1360., false);
+    let (ctx, ui) = render(1360., false);
     let p = &ui.probe;
     assert_eq!(
         p.sidebar_width, 0.,
@@ -68,7 +68,11 @@ fn original_header_horizontal_pills_filters_footer_and_empty_split_geometry() {
         assert!(nav.contains_rect(p.widgets[key]), "{key}");
     }
     assert!(!p.widgets.contains_key("filters"));
-    assert!((nav.bottom() - 64.).abs() < 2.);
+    assert_eq!(nav.top(), p.widgets["header"].bottom());
+    assert_eq!(
+        nav.height(),
+        flutter_network_viewer::desktop_style::search_bar_height(&ctx) + 8.
+    );
     assert!(nav.contains_rect(p.widgets["search-frame"]));
     let right = p.widgets["empty-inspector"];
     assert!((right.left() - 684.).abs() < 6., "{right:?}");

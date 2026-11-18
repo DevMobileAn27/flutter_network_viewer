@@ -2710,5 +2710,117 @@
     "verification": "Delayed-readiness regression red before fix; 6 final socket tests and 386 Rust tests incl. F19 example pass on macOS ARM64; fmt/Clippy pass.",
     "platform_limit": "Windows hosted execution pending; failure diagnosis based on supplied Windows log.",
     "evidence": "docs/artifacts/ci-cancellation-startup-2026-11-18"
+  },
+  "ui_shared_macos_switch": {
+    "reference": "Use the macOS switch appearance consistently on Windows and macOS.",
+    "tests": [
+      "tests/vintage_ui.rs::gallery_switch_previews_macos_capsule_track_and_white_thumb",
+      "tests/f18_ui.rs::mcp_switch_uses_macos_capsules_in_both_themes_and_keeps_save_behavior",
+      "tests/switch_ui.rs::switch_keyboard_focus_disabled_and_dpi_use_the_same_vector_control"
+    ],
+    "verification": "Geometry assertion red before change; 388 Rust tests, fmt and Clippy pass. Native F17 and screenshot validation pass on macOS ARM64. Windows runtime not exercised.",
+    "evidence": "docs/artifacts/ui-macos-switch-2026-11-18"
+  },
+  "ui_shared_macos_dropdown": {
+    "reference": "Settings dropdown row: title, spacer, selected value, 8pt gap, double chevrons; trailing hover only. Font options 10–22, default 14.",
+    "tests": [
+      "tests/f17_ui.rs::settings_dropdown_rows_align_and_font_options_persist",
+      "tests/f18_ui.rs::settings_dropdown_widths_are_bounded_and_endpoint_hugs_its_text",
+      "tests/vintage_ui.rs::gallery_font_dropdown_matches_production_options"
+    ],
+    "evidence": "docs/artifacts/ui-macos-dropdown-2026-11-18",
+    "platform_limit": "Shared vector renderer; native execution verified on macOS ARM64 only."
+  },
+  "ui_dropdown_hover_contrast": {
+    "reference": "Use the supplied macOS light hover swatch #E7E7E7; dark uses #454545. Highlight only selected value and chevrons.",
+    "tests": [
+      "tests/f17_ui.rs::dropdown_hover_has_visible_contrast_in_both_themes"
+    ],
+    "evidence": "docs/artifacts/ui-dropdown-hover-2026-11-18"
+  },
+  "ui_settings_sidebar": {
+    "reference": "Settings sidebar: Interface, MCP, About us; full remaining height, 350pt desktop width; right pane with 8pt padding and white light-mode background.",
+    "tests": [
+      "tests/f17_ui.rs::settings_sidebar_selects_one_section_and_keeps_full_height",
+      "tests/f17_ui.rs::settings_compact_header_balances_text_back_and_removes_connection",
+      "tests/f18_ui.rs::mcp_narrow_locales_themes_scroll",
+      "tests/f18_ui.rs::settings_sections_have_equal_top_and_bottom_content_padding",
+      "tests/f20_ui.rs::updates_version_progress_retry_and_input_in_both_languages"
+    ],
+    "evidence": "docs/artifacts/ui-settings-sidebar-2026-11-18",
+    "platform_limit": "Native macOS ARM64; Windows runtime pending."
+  },
+  "ui_macos_dropdown_popup": {
+    "reference": "macOS popup: rounded neutral surface, checkmark, blue selection, inset rows; selected row centered vertically on display value, popup right edge 20pt beyond display text right. Tall menus scroll to retain alignment at screen edges.",
+    "tests": [
+      "tests/f17_ui.rs::macos_dropdown_popup_aligns_selected_row_and_has_checkmark_and_insets",
+      "tests/f17_ui.rs::settings_dropdown_rows_align_and_font_options_persist",
+      "tests/vintage_ui.rs::dropdown_lists_keep_style_specific_insets_and_option_padding"
+    ],
+    "evidence": "docs/artifacts/ui-macos-popup-2026-11-18",
+    "platform_limit": "Native macOS ARM64 screenshots and input verified; Windows native pending."
+  },
+  "ui_settings_icon_tiles_and_groups": {
+    "reference": "Remove right-pane section headings. Per-category colored square icon tiles with 4pt corners, centered icon at 90% tile size. Change group fill to screenshot gray #F8F8F8 only; add no dividers.",
+    "tests": [
+      "tests/f17_ui.rs::settings_cards_have_no_titles_and_sidebar_uses_distinct_icon_tiles",
+      "tests/f18_ui.rs::settings_sidebar_icons_use_ninety_percent_of_centered_square_tiles",
+      "tests/f18_ui.rs::settings_sections_have_equal_top_and_bottom_content_padding"
+    ],
+    "evidence": "docs/artifacts/ui-settings-tiles-2026-11-18",
+    "platform_limit": "Native macOS ARM64 verified; Windows runtime pending."
+  },
+  "ui_settings_controls_refinement": {
+    "reference": "80% centered sidebar icons; 4pt group radius; localized version/author at left and updater button at right on the same row. Neutral button fills inherit white/gray container context in both themes.",
+    "tests": [
+      "tests/f17_ui.rs::settings_rounded_groups_about_row_and_contextual_buttons",
+      "tests/f17_ui.rs::settings_cards_have_no_titles_and_sidebar_uses_distinct_icon_tiles",
+      "tests/f18_ui.rs::settings_sidebar_icons_use_eighty_percent_of_centered_square_tiles",
+      "tests/f20_ui.rs::updates_version_progress_retry_and_input_in_both_languages"
+    ],
+    "evidence": "docs/artifacts/ui-settings-controls-2026-11-18",
+    "platform_limit": "Native macOS ARM64 verified; Windows runtime pending."
+  },
+  "ui_button_radius": {
+    "reference": "Icon, icon-and-text and text buttons use 4pt corners. Preserve hit boxes, glyph sizes and keyboard/click behavior.",
+    "tests": [
+      "tests/f17_ui.rs::settings_text_icon_text_and_icon_buttons_share_four_point_corners",
+      "tests/vintage_ui.rs::shared_text_and_icon_buttons_have_four_point_corners_including_disabled",
+      "tests/desktop_ui.rs::standalone_icon_buttons_use_24_point_frames_and_14_point_glyphs"
+    ],
+    "evidence": "docs/artifacts/ui-button-radius-2026-11-18",
+    "platform_limit": "174 renderer/UI tests, fmt and Clippy pass. Full socket regression, native smoke and packaging were not run because automatic review reached its usage limit."
+  },
+  "ui_json_format_borderless": {
+    "reference": "Remove the black outline from the JSON Format button while preserving blue fill, 4pt corners and formatting behavior.",
+    "tests": [
+      "tests/desktop_ui.rs::workspace_header_formats_finds_copies_and_downloads_json"
+    ],
+    "evidence": "docs/artifacts/ui-format-border-2026-11-18"
+  },
+  "ui_shared_search_bar": {
+    "reference": "One shared search field with 4pt padding/gap, zero input margin, input-height search icon, 4pt outer corners and a right-inset 4pt centered clear overlay that appears only with text; caller controls width.",
+    "tests": [
+      "tests/desktop_ui.rs::shared_search_geometry_and_clear_work_on_capture_and_json_at_all_font_sizes",
+      "tests/desktop_ui.rs::network_filters_live_in_header_and_search_has_compact_padding",
+      "tests/desktop_ui.rs::text_inputs_keep_vintage_default_and_focused_borders",
+      "tests/vintage_ui.rs::selected_popup_options_use_paper_text_and_focused_inputs_keep_ink_borders"
+    ],
+    "evidence": "docs/artifacts/ui-search-corners-2026-11-18",
+    "platform_limit": "Renderer/input tests and macOS ARM64 package verified; Windows native pending."
+  },
+  "ui_json_query_before_format": {
+    "reference": "Keep JSON workspace search text across redraws before Format; apply it to the formatted document.",
+    "tests": [
+      "tests/desktop_ui.rs::json_workspace_keeps_search_typed_before_formatting"
+    ],
+    "evidence": "docs/artifacts/ui-json-query-before-format-2026-11-18"
+  },
+  "ui_header_right_alignment": {
+    "reference": "Right-align both header rows to the same 8pt inset for Network, Console and JSON Beautify.",
+    "tests": [
+      "tests/desktop_ui.rs::header_rows_align_last_actions_to_the_same_eight_point_inset"
+    ],
+    "evidence": "docs/artifacts/ui-header-align-2026-11-18"
   }
 }

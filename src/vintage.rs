@@ -356,8 +356,8 @@ fn action_control(
         backing,
         egui::Shape::rect_filled(
             response.rect,
-            0,
-            desktop_style::Palette::of(ui.ctx()).control,
+            desktop_style::BUTTON_RADIUS,
+            desktop_style::neutral_button_fill(ui),
         ),
     );
     ui.advance_cursor_after_rect(response.rect);
@@ -370,6 +370,14 @@ fn action_control(
     }
 }
 pub fn button(ui: &mut egui::Ui, text: &str, primary: bool) -> Response {
+    text_button(ui, text, primary, true)
+}
+
+pub(crate) fn borderless_primary_button(ui: &mut egui::Ui, text: &str) -> Response {
+    text_button(ui, text, true, false)
+}
+
+fn text_button(ui: &mut egui::Ui, text: &str, primary: bool, outlined: bool) -> Response {
     hover_action(ui, |ui, _| {
         let p = desktop_style::Palette::of(ui.ctx());
         ui.add(
@@ -379,54 +387,226 @@ pub fn button(ui: &mut egui::Ui, text: &str, primary: bool) -> Response {
                 p.text
             }))
             .fill(if primary { p.accent } else { p.control })
-            .stroke(Stroke::new(1.0_f32, p.text))
-            .corner_radius(0),
+            .stroke(if outlined {
+                Stroke::new(1.0_f32, p.text)
+            } else {
+                Stroke::NONE
+            })
+            .corner_radius(desktop_style::BUTTON_RADIUS),
         )
     })
 }
-/// Shared font-size control used by production Settings and the widget gallery.
-/// Only the square decrement/increment actions can change the displayed value.
-pub fn font_size_stepper(ui: &mut egui::Ui, size: &mut f32, probe: &mut UiProbe, keys: [&str; 3]) {
-    ui.scope(|ui| {
-        let font = egui::FontId::proportional(desktop_style::font_size(ui.ctx()));
-        let display_height = ui.fonts_mut(|fonts| fonts.row_height(&font)) + 24.;
-        ui.spacing_mut().interact_size.y = display_height.max(34.);
-        ui.horizontal(|ui| {
-            if probe
-                .record(
-                    keys[0],
-                    ui.add_enabled_ui(*size > 10., |ui| {
-                        desktop_style::square_icon(ui, 0xe516, "−")
-                    })
-                    .inner,
+/// Shared Settings row: label, flexible space, selected value and double chevrons.
+/// Only the trailing selection is interactive; hover never changes row geometry.
+pub fn dropdown_row(
+    ui: &mut egui::Ui,
+    probe: &mut UiProbe,
+    key: &str,
+    title: &str,
+    options: &[(&str, &str)],
+    selected: usize,
+) -> Option<usize> {
+    let p = desktop_style::Palette::of(ui.ctx());
+    let hover_fill = if ui.visuals().dark_mode {
+        crate::app_colors::DROPDOWN_HOVER_DARK
+    } else {
+        crate::app_colors::DROPDOWN_HOVER_LIGHT
+    };
+    let font = desktop_style::medium(desktop_style::font_size(ui.ctx()));
+    let label = options.get(selected).map_or("14", |o| o.1);
+    let value = ui
+        .painter()
+        .layout_no_wrap(label.into(), font.clone(), p.text);
+    let title = ui.painter().layout_no_wrap(title.into(), font, p.text);
+    let height = value.size().y.max(title.size().y) + 8.;
+    let (row, _) = ui.allocate_exact_size(
+        egui::vec2(ui.available_width(), height),
+        egui::Sense::hover(),
+    );
+    let button = egui::Rect::from_min_max(
+        egui::pos2(row.right() - value.size().x - 32., row.top()),
+        row.max,
+    );
+    let response = ui
+        .interact(button, ui.make_persistent_id(key), egui::Sense::click())
+        .on_hover_cursor(egui::CursorIcon::PointingHand);
+    let popup_id = response.id.with("popup");
+    let open = egui::Popup::is_id_open(ui.ctx(), popup_id);
+    if response.hovered() || response.has_focus() || open {
+        ui.painter().rect_filled(button, 4, hover_fill);
+    }
+    let title_rect = egui::Rect::from_min_size(
+        egui::pos2(row.left(), row.center().y - title.size().y / 2.),
+        title.size(),
+    );
+    let value_rect = egui::Rect::from_min_size(
+        egui::pos2(button.left() + 8., row.center().y - value.size().y / 2.),
+        value.size(),
+    );
+    let arrows = egui::Rect::from_center_size(
+        egui::pos2(button.right() - 12., row.center().y),
+        egui::vec2(8., 12.),
+    );
+    if !response.hovered() && !response.has_focus() && !open {
+        ui.painter().circle_filled(arrows.center(), 10., hover_fill);
+    }
+    ui.painter().galley(title_rect.min, title, p.text);
+    ui.painter().galley(value_rect.min, value, p.text);
+    let center = arrows.center();
+    for direction in [-1., 1.] {
+        ui.painter().add(egui::Shape::line(
+            vec![
+                center + egui::vec2(-3., direction * 2.),
+                center + egui::vec2(0., direction * 5.),
+                center + egui::vec2(3., direction * 2.),
+            ],
+            Stroke::new(1.2_f32, p.text),
+        ));
+    }
+    for (suffix, rect) in [
+        ("row", row),
+        ("title", title_rect),
+        ("value", value_rect),
+        ("arrows", arrows),
+    ] {
+        probe.widgets.insert(format!("{key}-{suffix}"), rect);
+    }
+    probe.record(key, response.clone());
+    let row_height = value_rect.height() + 8.;
+    let option_width = options
+        .iter()
+        .map(|(_, label)| {
+            ui.painter()
+                .layout_no_wrap(
+                    (*label).into(),
+                    desktop_style::medium(desktop_style::font_size(ui.ctx())),
+                    p.text,
                 )
-                .clicked()
-            {
-                *size = (*size - 1.).max(10.);
+                .size()
+                .x
+        })
+        .fold(0_f32, f32::max)
+        + 36.;
+    // Frame: 6pt inset + 1pt stroke. Align the selected row over the display,
+    // with the menu's right edge 20pt beyond the displayed value's right edge.
+    let screen = ui.ctx().content_rect().shrink(4.);
+    let desired_top = value_rect.center().y - (selected as f32 + 0.5) * row_height - 7.;
+    let top = desired_top.max(screen.top());
+    let left = (value_rect.right() + 20. - option_width - 14.).max(screen.left());
+    let viewport_height = (screen.bottom() - top - 14.)
+        .min(options.len() as f32 * row_height - (top - desired_top))
+        .max(row_height);
+    let mut choice = None;
+    let popup = egui::Popup::menu(&response)
+        .id(popup_id)
+        .at_position(egui::pos2(left, top))
+        .align(egui::emath::RectAlign::BOTTOM_START)
+        .align_alternatives(&[])
+        .gap(0.)
+        .width(option_width)
+        .frame(
+            egui::Frame::popup(ui.style())
+                .fill(if ui.visuals().dark_mode {
+                    crate::app_colors::DROPDOWN_MENU_DARK
+                } else {
+                    crate::app_colors::DROPDOWN_MENU_LIGHT
+                })
+                .stroke(Stroke::new(1.0_f32, p.line))
+                .corner_radius(10)
+                .inner_margin(6),
+        )
+        .show(|ui| {
+            ui.set_min_width(option_width);
+            ui.spacing_mut().item_spacing.y = 0.;
+            let mut scroll = egui::ScrollArea::vertical()
+                .id_salt((key, "options"))
+                .max_height(viewport_height)
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                .auto_shrink([false, true]);
+            if !open {
+                scroll = scroll.vertical_scroll_offset(top - desired_top);
             }
-            probe.record(
-                keys[1],
-                crate::desktop_support::display_text(
-                    ui,
-                    &format!("{size:.0}"),
-                    egui::Align::Center,
-                    false,
-                ),
-            );
-            if probe
-                .record(
-                    keys[2],
-                    ui.add_enabled_ui(*size < 24., |ui| {
-                        desktop_style::square_icon(ui, 0xe047, "+")
-                    })
-                    .inner,
-                )
-                .clicked()
-            {
-                *size = (*size + 1.).min(24.);
-            }
+            scroll.show(ui, |ui| {
+                ui.set_width(option_width);
+                for (index, (option_key, label)) in options.iter().enumerate() {
+                    let (row, response) = ui.allocate_exact_size(
+                        egui::vec2(option_width, row_height),
+                        egui::Sense::click(),
+                    );
+                    let response = response.on_hover_cursor(egui::CursorIcon::PointingHand);
+                    let active = selected == index;
+                    let ink = if active || response.hovered() {
+                        p.on_accent
+                    } else {
+                        p.text
+                    };
+                    if active || response.hovered() {
+                        ui.painter().rect_filled(row, 5, p.accent);
+                    }
+                    if active {
+                        let check = egui::Rect::from_center_size(
+                            egui::pos2(row.left() + 11., row.center().y),
+                            egui::vec2(12., 12.),
+                        );
+                        ui.painter().add(egui::Shape::line(
+                            vec![
+                                check.center() + egui::vec2(-4., 0.),
+                                check.center() + egui::vec2(-1., 3.),
+                                check.center() + egui::vec2(5., -4.),
+                            ],
+                            Stroke::new(1.5_f32, ink),
+                        ));
+                        probe.widgets.insert(format!("{key}-check"), check);
+                    }
+                    let text = ui.painter().layout_no_wrap(
+                        (*label).into(),
+                        desktop_style::medium(desktop_style::font_size(ui.ctx())),
+                        ink,
+                    );
+                    ui.painter().galley(
+                        egui::pos2(row.left() + 24., row.center().y - text.size().y / 2.),
+                        text,
+                        ink,
+                    );
+                    if probe.record(*option_key, response).clicked() {
+                        choice = Some(index);
+                        ui.close();
+                    }
+                }
+            });
         });
-    });
+    if let Some(popup) = popup {
+        probe
+            .widgets
+            .insert(format!("{key}-popup"), popup.response.rect);
+    }
+    choice
+}
+
+pub fn font_size_dropdown(
+    ui: &mut egui::Ui,
+    size: &mut f32,
+    probe: &mut UiProbe,
+    key: &str,
+    title: &str,
+) {
+    let labels: Vec<_> = (10..=22).map(|n| n.to_string()).collect();
+    let keys: Vec<_> = labels.iter().map(|n| format!("{key}:{n}")).collect();
+    let options: Vec<_> = keys
+        .iter()
+        .zip(&labels)
+        .map(|(k, v)| (k.as_str(), v.as_str()))
+        .collect();
+    if let Some(index) = dropdown_row(
+        ui,
+        probe,
+        key,
+        title,
+        &options,
+        (*size as usize).saturating_sub(10).min(12),
+    ) {
+        *size = (index + 10) as f32;
+    }
 }
 
 pub fn icon(ui: &mut egui::Ui, code: u32, tip: &str) -> Response {
@@ -516,37 +696,59 @@ pub fn loading(ui: &mut egui::Ui, count: usize) -> LoadingResponse {
         active,
     }
 }
+pub const SWITCH_SIZE: egui::Vec2 = egui::vec2(44., 22.);
+
+/// A Ventura-style vector switch shared by every OS and the widget gallery.
 pub fn toggle(ui: &mut egui::Ui, value: &mut bool) -> Response {
-    hover_action(ui, |ui, factor| {
-        let (rect, mut response) =
-            ui.allocate_exact_size(egui::vec2(52., 32.) * factor, egui::Sense::click());
-        let p = desktop_style::Palette::of(ui.ctx());
-        if response.clicked() {
-            *value = !*value;
-            response.mark_changed();
-        }
-        ui.painter().rect(
-            rect,
-            0,
-            if *value { p.accent } else { p.control },
-            egui::Stroke::new(1.0_f32, p.text),
-            egui::StrokeKind::Inside,
+    // Draw directly: the square action wrapper would add a rectangular backing.
+    let (rect, mut response) = ui.allocate_exact_size(SWITCH_SIZE, egui::Sense::click());
+    let p = desktop_style::Palette::of(ui.ctx());
+    if response.clicked() {
+        *value = !*value;
+        response.mark_changed();
+    }
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(egui::WidgetType::Checkbox, response.enabled(), *value, "")
+    });
+    let t = ui.ctx().animate_bool_with_time(response.id, *value, 0.12);
+    let off = if ui.visuals().dark_mode {
+        crate::app_colors::SWITCH_OFF_DARK
+    } else {
+        crate::app_colors::SWITCH_OFF_LIGHT
+    };
+    let mut track = off.lerp_to_gamma(p.accent, t);
+    let mut thumb = crate::app_colors::SWITCH_THUMB;
+    if !response.enabled() {
+        track = track.lerp_to_gamma(p.background, 0.55);
+        thumb = thumb.lerp_to_gamma(p.background, 0.35);
+    }
+    ui.painter().rect_filled(rect, 11, track);
+    if response.has_focus() {
+        ui.painter().rect_stroke(
+            rect.expand(2.),
+            13,
+            Stroke::new(1.5_f32, p.accent),
+            egui::StrokeKind::Outside,
         );
-        let knob = egui::Rect::from_center_size(
-            egui::pos2(
-                if *value {
-                    rect.right() - 16. * factor
-                } else {
-                    rect.left() + 16. * factor
-                },
-                rect.center().y,
-            ),
-            egui::Vec2::splat(20. * factor),
-        );
-        ui.painter()
-            .rect_filled(knob, 0, if *value { p.on_accent } else { p.text });
+    }
+    let knob = egui::Rect::from_center_size(
+        egui::pos2(
+            egui::lerp(rect.left() + 15. ..=rect.right() - 15., t),
+            rect.center().y,
+        ),
+        egui::vec2(26., 18.),
+    );
+    ui.painter().rect_filled(
+        knob.translate(egui::vec2(0., 0.5)),
+        9,
+        crate::app_colors::SWITCH_SHADOW,
+    );
+    ui.painter().rect_filled(knob, 9, thumb);
+    if response.enabled() {
+        response.on_hover_cursor(egui::CursorIcon::PointingHand)
+    } else {
         response
-    })
+    }
 }
 
 fn heading(ui: &mut egui::Ui, index: &str, title: &str, subtitle: &str) {
@@ -869,13 +1071,21 @@ impl VintageDemo {
                 probe.record(
                     "vintage-quiet",
                     hover_action(ui, |ui, _| {
-                        ui.add(egui::Button::new("Quiet action").frame(false))
+                        ui.add(
+                            egui::Button::new("Quiet action")
+                                .frame(false)
+                                .corner_radius(desktop_style::BUTTON_RADIUS),
+                        )
                     }),
                 );
                 probe.record(
                     "vintage-disabled",
                     hover_action(ui, |ui, _| {
-                        ui.add_enabled(false, egui::Button::new("Disabled").corner_radius(0))
+                        ui.add_enabled(
+                            false,
+                            egui::Button::new("Disabled")
+                                .corner_radius(desktop_style::BUTTON_RADIUS),
+                        )
                     }),
                 );
                 if probe
@@ -893,17 +1103,19 @@ impl VintageDemo {
                 "vintage-input",
                 input(ui, &mut self.value, "VM Service URL"),
             );
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = desktop_style::ICON_TEXT_GAP;
-                ui.label("⌕");
-                probe.record(
-                    "vintage-search",
-                    input(ui, &mut self.search, "Tìm URL, method, status…"),
-                );
-                if button(ui, "×", false).clicked() {
-                    self.search.clear();
-                }
-            });
+            let width = ui.available_width();
+            let (_, cleared) = desktop_style::search_bar(
+                ui,
+                probe,
+                "vintage-search",
+                "vintage-search-clear",
+                &mut self.search,
+                "Tìm URL, method, status…",
+                width,
+            );
+            if cleared {
+                self.search.clear();
+            }
             let multiline = desktop_style::framed_text_edit(
                 ui,
                 egui::TextEdit::multiline(&mut self.draft)
@@ -920,50 +1132,33 @@ impl VintageDemo {
         ui.add_space(16.);
         let r = card(ui.ctx()).show(ui, |ui| {
             ui.label("INTERFACE / SETTINGS");
-            ui.horizontal_wrapped(|ui| {
-                ui.label("Theme");
-                let r = fixed_action(ui, |ui| {
-                    egui::ComboBox::from_id_salt("vintage-theme")
-                        .selected_text(["Vintage paper", "Vintage ink"][self.choice])
-                        .popup_style(egui::style::StyleModifier::from(
-                            |style: &mut egui::Style| {
-                                style.spacing.menu_margin = egui::Margin::ZERO;
-                            },
-                        ))
-                        .show_ui(ui, |ui| {
-                            ui.set_style(ui.ctx().style());
-                            ui.spacing_mut().item_spacing.y = 0.;
-                            for (i, name) in ["Vintage paper", "Vintage ink"].iter().enumerate() {
-                                probe.record(
-                                    format!("vintage-theme-option:{i}"),
-                                    dropdown_option(ui, &mut self.choice, i, name),
-                                );
-                            }
-                        })
-                        .response
-                });
-                probe.record("vintage-dropdown", r);
-                ui.label("Dropdown state demo; palette preview stays paper.");
-            });
-            ui.horizontal_wrapped(|ui| {
-                ui.label("Cỡ chữ toàn app");
-                let mut size = settings.values().font_size;
-                font_size_stepper(
-                    ui,
-                    &mut size,
-                    probe,
-                    [
-                        "vintage-font-minus",
-                        "vintage-font-value",
-                        "vintage-font-plus",
-                    ],
-                );
-                if size != settings.values().font_size
-                    && let Err(e) = settings.set_font_size(size)
-                {
-                    ui.label(e.to_string());
-                }
-            });
+            if let Some(choice) = dropdown_row(
+                ui,
+                probe,
+                "vintage-dropdown",
+                "Theme",
+                &[
+                    ("vintage-theme-option:0", "Vintage paper"),
+                    ("vintage-theme-option:1", "Vintage ink"),
+                ],
+                self.choice,
+            ) {
+                self.choice = choice;
+            }
+            ui.label("Dropdown state demo; palette preview stays paper.");
+            let mut size = settings.values().font_size;
+            font_size_dropdown(
+                ui,
+                &mut size,
+                probe,
+                "vintage-font-value",
+                "Cỡ chữ toàn app",
+            );
+            if size != settings.values().font_size
+                && let Err(e) = settings.set_font_size(size)
+            {
+                ui.label(e.to_string());
+            }
             ui.horizontal_wrapped(|ui| {
                 ui.label("MCP / capture toggle");
                 probe.record("vintage-switch", toggle(ui, &mut self.enabled));
