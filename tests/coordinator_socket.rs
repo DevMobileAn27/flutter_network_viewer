@@ -265,6 +265,19 @@ fn real_socket_reconnect_keeps_clear_cursor_and_timeout_reattach_keeps_transport
 }
 #[test]
 fn cancellation_wakes_pending_websocket_handshake_and_subscription_reads() {
+    assert_setup_cancellation(Duration::ZERO);
+}
+
+#[test]
+fn cancellation_still_wakes_reads_after_slow_fixture_startup() {
+    assert_setup_cancellation(Duration::from_millis(3200));
+}
+
+fn assert_setup_cancellation(ready_delay: Duration) {
+    // Connection readiness is scheduling/handshake work. The cancellation
+    // deadline starts only after the peer confirms a pending read.
+    let startup_budget = Duration::from_secs(15);
+    let cancellation_budget = Duration::from_secs(2);
     for handshake in [true, false] {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let uri = format!("ws://{}/ws", listener.local_addr().unwrap());
@@ -272,31 +285,53 @@ fn cancellation_wakes_pending_websocket_handshake_and_subscription_reads() {
         let (closed_tx, closed_rx) = mpsc::channel();
         let server = thread::spawn(move || {
             let (s, _) = listener.accept().unwrap();
-            s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
-            if handshake {
+            s.set_nonblocking(false).unwrap();
+            s.set_read_timeout(Some(startup_budget)).unwrap();
+            let mut socket = if handshake {
                 use std::io::Read;
                 let mut s = s;
                 let mut b = [0; 4096];
                 assert!(s.read(&mut b).unwrap() > 0);
-                ready_tx.send(()).unwrap();
-                assert_eq!(s.read(&mut b).unwrap(), 0);
+                s
             } else {
                 let mut ws = tungstenite::accept(s).unwrap();
                 assert!(ws.read().is_ok());
-                ready_tx.send(()).unwrap();
-                assert!(ws.read().is_err());
+                ws.into_inner()
+            };
+            thread::sleep(ready_delay);
+            // Keep the peer's fallback timeout long enough for the owner to
+            // be scheduled. closed_rx below enforces 2 s starting at Stop/Drop.
+            ready_tx.send(()).unwrap();
+            use std::io::Read;
+            // A read timeout is not evidence that cancellation closed the peer.
+            // Windows may report a reset rather than EOF after shutdown(Both).
+            match socket.read(&mut [0; 4096]) {
+                Ok(0) => {}
+                Err(e)
+                    if matches!(
+                        e.kind(),
+                        std::io::ErrorKind::ConnectionReset
+                            | std::io::ErrorKind::ConnectionAborted
+                            | std::io::ErrorKind::BrokenPipe
+                            | std::io::ErrorKind::NotConnected
+                    ) => {}
+                result => panic!("expected peer closure after cancellation, got {result:?}"),
             }
             closed_tx.send(()).unwrap();
         });
         let mut c = viewer(Duration::from_secs(30));
         c.connect(&uri, 0).unwrap();
-        ready_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        ready_rx
+            .recv_timeout(startup_budget)
+            .expect("VM fixture did not reach pending handshake/subscription read");
         if handshake {
             c.stop();
         } else {
             drop(c);
         }
-        closed_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        closed_rx
+            .recv_timeout(cancellation_budget)
+            .expect("Stop/Drop did not close the pending connection within 2 seconds");
         server.join().unwrap();
     }
 }

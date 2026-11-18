@@ -1271,3 +1271,22 @@ built, extracted and verified. All 25 release/packaging tests, macOS signer test
 385 Rust tests, fmt and Clippy passed. Evidence: `docs/artifacts/ci-v1.0.3-macos-signing`.
 The full upgrade from the installed 0.1.8 app using a production-signed 1.0.3
 feed, and hosted Intel validation, are still pending.
+
+## F11 — Windows cancellation fixture startup deadline (2026-11-18)
+
+The supplied Windows log failed before cancellation: ready_rx expired at 2 s
+and the fixture's initial HTTP read timed out (10060). Separate the 15 s setup
+budget from the unchanged 2 s peer-closure budget starting after Stop/Drop.
+Keep the peer fallback timeout long enough for owner scheduling; a read timeout
+is now rejected rather than counted as successful cancellation. Windows EOF
+and connection-reset/closed errors are accepted.
+
+A new production-Coordinator socket regression delays readiness by 3.2 s for
+both pending handshake and pending subscription cases. It failed with the old
+2 s readiness limit, then passed. Six socket tests pass on the final source;
+386 Rust tests (including F19 example test), fmt and all-target Clippy pass.
+Only the test fixture changed; runtime timeout and cancellation behavior are
+unchanged. Restored the deleted temporary Rust 1.100.0 toolchain and locked
+dependencies to execute verification. Local execution is macOS ARM64; Windows
+hosted verification remains pending. No version bump, commit or push performed.
+Evidence: `docs/artifacts/ci-cancellation-startup-2026-11-18`.

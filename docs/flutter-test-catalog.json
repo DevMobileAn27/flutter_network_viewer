@@ -2699,5 +2699,16 @@
     ],
     "verification": "Old bundle reproduced strict codesign failure; built 1.0.3 ARM64 ZIP passes extraction and strict verification. 25 release/packaging and 385 Rust tests passed. Hosted in-place upgrade still pending.",
     "evidence": "docs/artifacts/ci-v1.0.3-macos-signing"
+  },
+  "ci_windows_cancellation_startup_2026_11_18": {
+    "feature": "F11",
+    "reference": "Separate setup readiness from cancellation latency; socket timeout cannot satisfy peer-closure assertion.",
+    "tests": [
+      "tests/coordinator_socket.rs::cancellation_wakes_pending_websocket_handshake_and_subscription_reads",
+      "tests/coordinator_socket.rs::cancellation_still_wakes_reads_after_slow_fixture_startup"
+    ],
+    "verification": "Delayed-readiness regression red before fix; 6 final socket tests and 386 Rust tests incl. F19 example pass on macOS ARM64; fmt/Clippy pass.",
+    "platform_limit": "Windows hosted execution pending; failure diagnosis based on supplied Windows log.",
+    "evidence": "docs/artifacts/ci-cancellation-startup-2026-11-18"
   }
 }
