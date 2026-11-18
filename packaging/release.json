@@ -1,6 +1,6 @@
 {
-  "build": 13,
+  "build": 14,
   "identifier": "dev.quocan.flutterNetworkViewer.rust",
-  "notes": "- Sửa chữ ký gói ứng dụng macOS khiến Sparkle từ chối cài bản cập nhật từ Flutter Network Viewer 0.1.8.\n- Nội dung trong hộp thoại cập nhật tự xuống dòng.\n",
+  "notes": "- Sắp xếp lại Cài đặt với menu bên trái và giao diện chọn cỡ chữ từ 10 đến 22 pt.\n- Làm mới các nút, công tắc và ô tìm kiếm với giao diện nhất quán.\n- Giữ nguyên ký tự tìm kiếm trong JSON Beautify trước khi định dạng.\n- Căn thẳng mép phải của hai dòng công cụ trong Network, Console và JSON Beautify.\n",
   "public_key": "TNPdGQZDTuvlcdgdReTFjir/+sfSLq5+o92dT4IolFY="
 }

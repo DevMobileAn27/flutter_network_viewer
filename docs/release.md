@@ -4,7 +4,7 @@ The build workflow creates a GitHub draft after all platform jobs pass.
 Publishing remains manual. Release `rust-v1.0.1` shipped without legacy
 appcasts. The macOS `rust-v1.0.2` archive has a valid Ed25519 signature, but its
 app bundle fails macOS code signature verification; Flutter Network Viewer
-`0.1.8` reports a Sparkle validation error. The fix is staged for `1.0.3`.
+`0.1.8` reports a Sparkle validation error. The bundle signing fix was prepared in `1.0.3` and is included in `1.0.4`.
 
 ## Identity and update compatibility
 

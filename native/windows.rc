@@ -1,8 +1,8 @@
 #include <windows.h>
 1 ICON "assets/icons/AppIcon.ico"
 1 VERSIONINFO
-FILEVERSION 1,0,3,13
-PRODUCTVERSION 1,0,3,13
+FILEVERSION 1,0,4,14
+PRODUCTVERSION 1,0,4,14
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -12,9 +12,9 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "Nguyễn Quốc An\0"
       VALUE "FileDescription", "Flutter Network Viewer\0"
-      VALUE "FileVersion", "1.0.3.13\0"
+      VALUE "FileVersion", "1.0.4.14\0"
       VALUE "ProductName", "Flutter Network Viewer\0"
-      VALUE "ProductVersion", "1.0.3\0"
+      VALUE "ProductVersion", "1.0.4\0"
       VALUE "OriginalFilename", "flutter-network-viewer.exe\0"
       VALUE "LegalCopyright", "GPL-3.0-only; modified Rust port\0"
     END
