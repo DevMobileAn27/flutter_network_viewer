@@ -2830,5 +2830,13 @@
       "tools/f20_native_smoke.py"
     ],
     "evidence": "docs/artifacts/ci-f20-about-2026-11-18"
+  },
+  "ci_f19_resume_diagnostics_flush": {
+    "reference": "F19 waits for recovery of the actual diagnostics batch queued by native Resume before checking the log.",
+    "tests": [
+      "examples/f19_native_smoke.rs",
+      "tools/f19_native_smoke.py (default and --slow-input)"
+    ],
+    "evidence": "docs/artifacts/ci-f19-resume-flush-2026-11-18"
   }
 }

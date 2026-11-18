@@ -136,17 +136,32 @@ impl eframe::App for Smoke {
             }
             1 => {
                 assert!(app.capture.store().paused);
-                std::fs::remove_file(self.output.join("blocker")).unwrap();
-                self.click("pause");
-                self.stage = Instant::now();
-            }
-            2 => {
-                if self.stage.elapsed() < Duration::from_millis(400) {
+                if app.diagnostics.pending_bytes() != 0 {
+                    // Let the blocked pause batch finish before unblocking the
+                    // path, so recovery must come from the new resume event.
                     return;
                 }
+                std::fs::remove_file(self.output.join("blocker")).unwrap();
+                self.click("pause");
+            }
+            2 => {
                 assert!(!app.capture.store().paused);
                 assert!(app.capture.store().network().len() >= 3);
-                assert!(self.output.join("blocker/nested/viewer.log").exists());
+                // Resume queues diagnostics when input is dispatched, after
+                // the host's poll for this frame. Wait for the actual batch.
+                if app.diagnostics.pending_bytes() != 0 {
+                    return;
+                }
+                let path = app.diagnostics.path();
+                let log = std::fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("Resume did not restore {}: {e}", path.display()));
+                assert!(
+                    log.lines().any(|line| {
+                        let record: serde_json::Value = serde_json::from_str(line).unwrap();
+                        record["event"] == "pause_changed" && record["paused"] == false
+                    }),
+                    "Resume was not recorded after the diagnostic path recovered"
+                );
                 let app = self.app.as_mut().unwrap();
                 app.ui.settings.set_language("vi").unwrap();
                 app.ui.settings.set_theme_mode(ThemeMode::Dark).unwrap();

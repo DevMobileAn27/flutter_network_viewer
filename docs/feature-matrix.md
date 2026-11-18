@@ -1514,3 +1514,16 @@ current and available paths both exit cleanly without an installer request.
 macOS ARM64 F20, 396 Rust regression tests, fmt, Clippy and 3 updater
 integrity/signing tests passed locally. Hosted rerun pending.
 Evidence: `docs/artifacts/ci-f20-about-2026-11-18`.
+
+### F19 — wait for the Resume diagnostics batch
+
+Run 44245534489 failed on macOS ARM64 because the smoke checked for
+`viewer.log` before the resume diagnostics had flushed. Reproduced the same
+missing-file assertion locally by combining slow input with a fully drained
+blocked pause batch. The smoke now waits for the actual batch to drain and
+checks that the log records `pause_changed` with `paused: false` before shutdown.
+Both native modes passed locally, along with the slow-frame example test,
+396 Rust tests, fmt, and Clippy. The Windows excerpt identifies
+`coordinator_socket` but omits the failing case/panic; all six cases passed
+locally on macOS. Windows diagnosis and hosted rerun are pending.
+Evidence: `docs/artifacts/ci-f19-resume-flush-2026-11-18`.
